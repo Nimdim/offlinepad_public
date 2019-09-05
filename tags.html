@@ -30,7 +30,7 @@
     </ul>
 
     <ul class="collection tags">
-      <li class="collection-item" v-for="tag in filtered_tags">
+      <li class="collection-item" v-for="tag in filtered_tags" v-on:click="show_edit_tag_form(tag.id)">
         <p>
           <label>
               <input type="checkbox" v-model="tag.checked"/>
@@ -93,7 +93,7 @@
       </div>
     </nav>
 
-    <a class="btn-floating btn-large waves-effect waves-light red modal-trigger" data-target="add_record_modal" id="add_record">
+    <a class="btn-floating btn-large waves-effect waves-light red" v-on:click="show_add_tag_form" id="add_record">
       <i class="material-icons">add</i>
     </a>
 
@@ -102,7 +102,7 @@
         <h4>Новая метка</h4>
         <label>
           Название:
-          <input type="text">
+          <input type="text" v-model="tags.form.text">
         </label>
       </div>
       <div class="modal-footer">
@@ -166,6 +166,9 @@
         el: '#app',
         data: {
           tags: {
+            form: {
+              text: "",
+            },
             search: '',
             footer: {
               show: false,
@@ -275,6 +278,28 @@
           tags_search_clear: function() {
             this.tags.search = "";
           },
+          show_edit_tag_form: function(id) {
+            console.log(id);
+            var k, tag;
+            for(k = 0; k < this.tags.items.length; k++) {
+              tag = this.tags.items[k];
+              if(tag.id == id) {
+                this.tags.form.text = tag.name;
+                var modalInstance = document.getElementById("add_record_modal").M_Modal;
+                if (modalInstance) {
+                  modalInstance.open();
+                }
+              }
+            }
+          },
+          show_add_tag_form: function() {
+            console.log("show_add_tag_form", arguments);
+            this.tags.form.text = "";
+            var modalInstance = document.getElementById("add_record_modal").M_Modal;
+            if (modalInstance) {
+              modalInstance.open();
+            }
+          }
         }
       });
     });
