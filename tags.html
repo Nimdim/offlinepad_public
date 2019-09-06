@@ -106,7 +106,10 @@
         </label>
       </div>
       <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Создать</a>
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat" v-on:click="tag_form_ok">
+          <span v-if="tags.form.action == 'add'">Создать</span>
+          <span v-if="tags.form.action == 'edit'">Сохранить</span>
+        </a>
         <a href="#!" class="modal-close waves-effect waves-green btn-flat">Отмена</a>
       </div>
     </div>
@@ -158,6 +161,7 @@
 
   <!--  Scripts-->
   <script src="js/vue.js"></script>
+  <script src="js/lodash.min.js"></script>
   <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
   
   <script>
@@ -168,6 +172,7 @@
           tags: {
             form: {
               text: "",
+              action: "",
             },
             search: '',
             footer: {
@@ -279,25 +284,40 @@
             this.tags.search = "";
           },
           show_edit_tag_form: function(id) {
-            console.log(id);
-            var k, tag;
-            for(k = 0; k < this.tags.items.length; k++) {
-              tag = this.tags.items[k];
-              if(tag.id == id) {
-                this.tags.form.text = tag.name;
-                var modalInstance = document.getElementById("add_record_modal").M_Modal;
-                if (modalInstance) {
-                  modalInstance.open();
-                }
-              }
+            var tag = _.find(this.tags.items, {id: id});
+            if(tag != null) {
+              this.tags.form.id = id;
+              this.tags.form.text = tag.name;
+              this.tags.form.action = "edit";
+              this.show_tag_form();
             }
           },
           show_add_tag_form: function() {
-            console.log("show_add_tag_form", arguments);
             this.tags.form.text = "";
+            this.tags.form.action = "add";
+            this.show_tag_form();
+          },
+          show_tag_form: function() {
             var modalInstance = document.getElementById("add_record_modal").M_Modal;
             if (modalInstance) {
               modalInstance.open();
+            }
+          },
+          tag_form_ok: function() {
+            if(this.tags.form.action == "add") {
+              var item = {
+                check: false,
+                id: +(new Date()),
+                name: this.tags.form.text,
+                count: 0,
+              };
+              this.tags.items.push(item);
+            }
+            if(this.tags.form.action == "edit") {
+              var tag = _.find(this.tags.items, {id: this.tags.form.id});
+              if(tag != null) {
+                tag.name = this.tags.form.text;
+              }
             }
           }
         }
