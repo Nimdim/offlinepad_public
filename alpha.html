@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Оффлайн блокнот OfflinePad</title>
+
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- <link href="css/google_fonts2.css" rel="stylesheet"> -->
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="style.css" type="text/css" rel="stylesheet"/>
+</head>
+<body>
+  <style>
+    .modal_shown {
+      z-index: 1003;
+      display: block;
+      opacity: 1;
+      top: 10%;
+      transform: scaleX(1) scaleY(1);
+    }
+  </style>
+  <div id="app" v-bind:class="{show_footer: tags.footer.show}">
+    <ul id="dropdown1" class="dropdown-content">
+      <li><a href="#!">Все</a></li>
+      <li class="divider"></li>
+      <li><a href="#!">Разбор</a></li>
+      <li><a href="#!">Задачи</a></li>
+    </ul>
+
+    <ul class="collection tags">
+      <li class="collection-item" v-for="tag in filtered_tags" v-on:click="show_edit_tag_form(tag.id)">
+        <p v-if="tag.hidden !== true">
+          <label v-on:click.stop="">
+              <input type="checkbox" v-model="tag.checked"/>
+              <span>{{tag.name}}</span>
+          </label>
+          <span class="badge">{{tag.count}}</span>
+          <a class="waves-effect waves-teal btn right tag_delete_btn" v-on:click.prevent.stop="tag.hidden = true">
+            <i class="material-icons">delete</i>
+          </a>
+        </p>
+        <p v-else>
+          <span class="badge" style="visibility: hidden;">{{tag.count}}</span>
+          <span style="visibility:hidden;">stub</span>
+          <a class="waves-effect waves-teal btn tag_delete_btn right" v-on:click.prevent.stop="tag.hidden = false">
+            <i class="material-icons">Отмена</i>
+          </a>
+          <a class="waves-effect waves-teal btn tag_delete_btn right" style="margin-right: 10px;" v-on:click.prevent.stop="remove_tag(tag.id)">
+            <i class="material-icons">Удалить</i>
+          </a>
+        </p>
+      </li>
+    </ul>
+
+    <div class="tags_footer">
+      <p>
+        Найдено {{tags.footer.found}} записей
+        <a href="#!" class="modal-close waves-effect waves-green btn" v-on:click="filter_tags">Показать</a>
+      </p>
+    </div>
+
+    <nav class="light-blue lighten-1 header" role="navigation">
+      <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
+
+        <a href="#" data-target="nav-mobile" class="sidenav-trigger">
+          <i class="material-icons">menu</i>
+        </a>
+
+        <ul id="tags_filter">
+          <li class="search_li">
+            <div class="input-field">
+              <input id="search" type="search" v-model="tags.search" required>
+              <label class="label-icon" for="search"><i class="material-icons">search</i></label>
+              <i class="material-icons" v-on:click="tags_search_clear">close</i>
+            </div>
+          </li>
+        </ul>
+
+        <ul class="right hide-on-med-and-down desktop_menu">
+          <li><a class="dropdown-trigger" href="#!" data-target="dropdown1">Записи<i class="material-icons right">arrow_drop_down</i></a></li>
+          <li><a href="#">Метки</a></li>
+          <li><a href="#">Синхронизация</a></li>
+        </ul>
+
+        <ul id="nav-mobile" class="sidenav">
+          <li>
+            <a href="#">Записи</a>
+            <ul>
+              <li><a href="#!"><i class="material-icons">dashboard</i>Все</a></li>
+              <li class="divider"></li>
+              <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
+              <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li>
+            </ul>
+          </li>
+          <li><a href="#">Метки</a></li>
+          <li><a href="#">Синхронизация</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <a class="btn-floating btn-large waves-effect waves-light red" v-on:click="show_add_tag_form" id="add_record">
+      <i class="material-icons">add</i>
+    </a>
+
+    <div id="add_record_modal" class="modal">
+      <div class="modal-content">
+        <h4>
+          <template v-if="tags.form.action == 'add'">Новая метка</template>
+          <template v-else>Редактирование метки</template>
+        </h4>
+        <label>
+          Название:
+          <input type="text" v-model="tags.form.text">
+        </label>
+      </div>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat" v-on:click="tag_form_ok">
+          <span v-if="tags.form.action == 'add'">Создать</span>
+          <span v-if="tags.form.action == 'edit'">Сохранить</span>
+        </a>
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Отмена</a>
+      </div>
+    </div>
+
+    <div id="filter_records_modal" class="modal">
+      <div class="modal-content">
+        <h4>Фильтр</h4>
+        <p>
+          <select multiple>
+            <option value="" disabled selected>Выберите метки</option>
+            <option value="1">Работа</option>
+            <option value="2">Задачи</option>
+            <option value="3">Саморазвитие</option>
+            <option value="4">Мысли</option>
+          </select>
+        </p>
+        <p>
+          <label>
+            Дата от:
+            <input type="text" class="datepicker">
+          </label>
+          <label>
+            Дата до:
+            <input type="text" class="datepicker">
+          </label>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
+      </div>
+    </div>
+
+    <div id="loadscreen">
+      <span class="center_span">
+      <div class="preloader-wrapper big active">
+        <div class="spinner-layer spinner-blue-only">
+          <div class="circle-clipper left">
+            <div class="circle"></div>
+          </div><div class="gap-patch">
+            <div class="circle"></div>
+          </div><div class="circle-clipper right">
+            <div class="circle"></div>
+          </div>
+        </div>
+      </div>
+      </span>
+    </div>
+  </div>
+
+  <!--  Scripts-->
+  <script src="js/vue.js"></script>
+  <script src="js/lodash.min.js"></script>
+  <script src="js/jquery-2.1.1.min.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      var app = new Vue({
+        el: '#app',
+        data: function() {
+          var data = {
+            tags: {
+              form: {
+                text: "",
+                action: "",
+              },
+              search: '',
+              footer: {
+                show: false,
+                found: 66,
+              },
+              items: [],
+            }
+          };
+          var k = 0;
+          for(k = 0; k < 20; k++) {
+            data.tags.items.push(
+              {
+                "checked": false,
+                "id": k,
+                "name": "Задачи " + k,
+                "count": Math.floor(Math.random() * 35 + 10),
+                "hidden": false,
+              }
+            );
+          }
+          return data;
+        },
+        watch: {
+          "tags.items": {
+            "handler": function() {
+              var selected = [];
+              var k, item;
+              for(k = 0; k < this.tags.items.length; k++) {
+                item = this.tags.items[k];
+                if(item.checked) {
+                  selected.push(item.id);
+                }
+              }
+              this.tags.footer.show = selected.length > 0;
+            },
+            deep: true,
+          },
+        },
+        computed: {
+          filtered_tags: function() {
+            if(this.tags.search == "") {
+              return this.tags.items;
+            }
+            result = [];
+            var re = new RegExp(this.tags.search, "i");
+            var k, item;
+            for(k = 0; k< this.tags.items.length; k++) {
+              item = this.tags.items[k];
+              if(re.test(item.name)) {
+                result.push(item);
+              }
+            }
+            return result;
+          },
+        },
+        mounted: function() {
+          setTimeout(function() {
+            $("#loadscreen").fadeOut();
+          }, 0);
+
+        },
+        methods: {
+          remove_tag: function(tag_id) {
+            var tag_index = _.findIndex(this.tags.items, {id: tag_id});
+            this.tags.items.splice(tag_index, 1);
+          },
+          filter_tags: function() {
+            console.log("filter_tags");
+          },
+          tags_search_clear: function() {
+            this.tags.search = "";
+          },
+          show_edit_tag_form: function(id) {
+            var tag = _.find(this.tags.items, {id: id});
+            if(tag != null) {
+              this.tags.form.id = id;
+              this.tags.form.text = tag.name;
+              this.tags.form.action = "edit";
+              this.show_tag_form();
+            }
+          },
+          show_add_tag_form: function() {
+            this.tags.form.text = "";
+            this.tags.form.action = "add";
+            this.show_tag_form();
+          },
+          show_tag_form: function() {
+            var modalInstance = document.getElementById("add_record_modal").M_Modal;
+            if (modalInstance) {
+              modalInstance.open();
+            }
+          },
+          tag_form_ok: function() {
+            if(this.tags.form.action == "add") {
+              var item = {
+                check: false,
+                id: +(new Date()),
+                name: this.tags.form.text,
+                count: 0,
+              };
+              this.tags.items.push(item);
+            }
+            if(this.tags.form.action == "edit") {
+              var tag = _.find(this.tags.items, {id: this.tags.form.id});
+              if(tag != null) {
+                tag.name = this.tags.form.text;
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+
+  <script src="js/materialize.js"></script>
+  <script src="js/init.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('select').formSelect();
+      $(".dropdown-trigger").dropdown();
+      $('.modal').modal();
+      $('.datepicker').datepicker();
+
+      $('#sort_by_date').click(function(e) {
+        e.preventDefault();
+        if($("#sort_by_date i.up").hasClass("active")) {
+          $("#sort_by_date i.up").removeClass("active");
+          $("#sort_by_date i.down").addClass("active");
+        } else {
+          $("#sort_by_date i.down").removeClass("active");
+          $("#sort_by_date i.up").addClass("active");
+        }
+      });
+
+      // setTimeout(function() {
+      //   $("#loadscreen").fadeOut();
+      // }, 0);
+      var currenct_scrolltop = $(document).scrollTop();
+      var header_top = 0;
+      var header_height = $(".header").height();
+      var animating = false;
+      $(document).on("scroll", function(e) {
+        var scroll = $(document).scrollTop()
+        var delta = scroll - currenct_scrolltop;
+        header_top -= delta;
+        if(header_top < -header_height) {
+          header_top = -header_height;
+          if(!animating) {
+            $("#add_record").animate({"bottom": -100}, 50, function() {animating=false;});
+            animating = true;
+          }
+        }
+        if(header_top > 0) {
+          header_top = 0;
+          if(!animating) {
+            $("#add_record").animate({"bottom": 30}, 50, function() {animating=false;});
+            animating = true;
+          }
+        }
+        $(".header").css("top", header_top);
+        currenct_scrolltop = scroll;
+      });
+    });
+  </script>
+
+  </body>
+</html>
