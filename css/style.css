@@ -43,6 +43,10 @@ p {
   #index-banner .section {
     top: 0;
   }
+
+  .search_li {
+    width: calc(100% - 60px);
+  }
 }
 
 .icon-block {
@@ -60,4 +64,9 @@ footer.page-footer {
   position: relative;
   right: -10px;
   top: -7px;
+}
+
+.desktop_menu {
+  position: relative;
+  top: -100%;
 }
