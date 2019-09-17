@@ -70,3 +70,15 @@ footer.page-footer {
   position: relative;
   top: -100%;
 }
+
+.modal_shown {
+  z-index: 1003;
+  display: block;
+  opacity: 1;
+  top: 10%;
+  transform: scaleX(1) scaleY(1);
+}
+
+.visiblilty_hidden {
+  visibility: hidden;
+}

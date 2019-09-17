@@ -13,15 +13,6 @@
   <link href="style.css" type="text/css" rel="stylesheet"/>
 </head>
 <body>
-  <style>
-    .modal_shown {
-      z-index: 1003;
-      display: block;
-      opacity: 1;
-      top: 10%;
-      transform: scaleX(1) scaleY(1);
-    }
-  </style>
   <div id="app" v-bind:class="{show_footer: tags.footer.show}">
     <ul id="dropdown1" class="dropdown-content">
       <li><a href="#!">Все</a></li>
@@ -31,28 +22,13 @@
     </ul>
 
     <ul class="collection tags">
-      <li class="collection-item" v-for="tag in filtered_tags" v-on:click="show_edit_tag_form(tag.id)">
-        <p v-if="tag.hidden !== true">
-          <label v-on:click.stop="">
-              <input type="checkbox" v-model="tag.checked"/>
-              <span>{{tag.name}}</span>
-          </label>
-          <span class="badge">{{tag.count}}</span>
-          <a class="waves-effect waves-teal btn right tag_delete_btn" v-on:click.prevent.stop="tag.hidden = true">
-            <i class="material-icons">delete</i>
-          </a>
-        </p>
-        <p v-else>
-          <span class="badge" style="visibility: hidden;">{{tag.count}}</span>
-          <span style="visibility:hidden;">stub</span>
-          <a class="waves-effect waves-teal btn tag_delete_btn right" v-on:click.prevent.stop="tag.hidden = false">
-            <i class="material-icons">Отмена</i>
-          </a>
-          <a class="waves-effect waves-teal btn tag_delete_btn right" style="margin-right: 10px;" v-on:click.prevent.stop="remove_tag(tag.id)">
-            <i class="material-icons">Удалить</i>
-          </a>
-        </p>
-      </li>
+      <opl-tag-item v-for="tag in tags.items"
+        :tag="tag"
+        v-on:click="show_edit_tag_form"
+        v-on:hide="hide_tag"
+        v-on:show="show_tag"
+        v-on:delete="remove_tag">
+      </opt-tag-item>
     </ul>
 
     <div class="tags_footer">
@@ -80,7 +56,8 @@
         </ul>
 
         <ul class="right hide-on-med-and-down desktop_menu">
-          <li><a class="dropdown-trigger" href="#!" data-target="dropdown1">Записи<i class="material-icons right">arrow_drop_down</i></a></li>
+          <!-- <li><a class="dropdown-trigger" href="#!" data-target="dropdown1">Записи<i class="material-icons right">arrow_drop_down</i></a></li> -->
+          <li><a href="#">Записи</a></li>
           <li><a href="#">Метки</a></li>
           <li><a href="#">Синхронизация</a></li>
         </ul>
@@ -88,12 +65,12 @@
         <ul id="nav-mobile" class="sidenav">
           <li>
             <a href="#">Записи</a>
-            <ul>
+            <!-- <ul>
               <li><a href="#!"><i class="material-icons">dashboard</i>Все</a></li>
               <li class="divider"></li>
               <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
               <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li>
-            </ul>
+            </ul> -->
           </li>
           <li><a href="#">Метки</a></li>
           <li><a href="#">Синхронизация</a></li>
@@ -152,26 +129,12 @@
         <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
       </div>
     </div>
-
-    <div id="loadscreen">
-      <span class="center_span">
-      <div class="preloader-wrapper big active">
-        <div class="spinner-layer spinner-blue-only">
-          <div class="circle-clipper left">
-            <div class="circle"></div>
-          </div><div class="gap-patch">
-            <div class="circle"></div>
-          </div><div class="circle-clipper right">
-            <div class="circle"></div>
-          </div>
-        </div>
-      </div>
-      </span>
-    </div>
+    <opl-loadscreen :visible="loadscreen_visible"></opl-loadscreen>
   </div>
 
   <!--  Scripts-->
   <script src="js/vue.js"></script>
+  <script src="js/components.js"></script>
   <script src="js/lodash.min.js"></script>
   <script src="js/jquery-2.1.1.min.js"></script>
   
@@ -181,6 +144,23 @@
         el: '#app',
         data: function() {
           var data = {
+            loadscreen_visible: true,
+            notes: {
+              form: {
+                text: "",
+                action: "",
+                tags: [],
+                timestamp: 0,
+              },
+              order_by_timestamp: "asc",
+              filter: {
+                text: "",
+                tags: "",
+                timestamp_from: null,
+                timestamp_to: null,
+              },
+              items: [],
+            },
             tags: {
               form: {
                 text: "",
@@ -242,15 +222,20 @@
           },
         },
         mounted: function() {
-          setTimeout(function() {
-            $("#loadscreen").fadeOut();
-          }, 0);
-
+          this.loadscreen_visible = false;
         },
         methods: {
           remove_tag: function(tag_id) {
             var tag_index = _.findIndex(this.tags.items, {id: tag_id});
             this.tags.items.splice(tag_index, 1);
+          },
+          hide_tag: function(tag_id) {
+            var tag_index = _.findIndex(this.tags.items, {id: tag_id});
+            this.tags.items[tag_index].hidden = true;
+          },
+          show_tag: function(tag_id) {
+            var tag_index = _.findIndex(this.tags.items, {id: tag_id});
+            this.tags.items[tag_index].hidden = false;
           },
           filter_tags: function() {
             console.log("filter_tags");
@@ -285,6 +270,7 @@
                 id: +(new Date()),
                 name: this.tags.form.text,
                 count: 0,
+                hidden: false,
               };
               this.tags.items.push(item);
             }
