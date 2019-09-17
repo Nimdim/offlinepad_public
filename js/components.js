@@ -60,3 +60,78 @@ Vue.component("opl-loadscreen", {
     '</div> ',
 
 });
+
+Vue.component('opl-tag-form', {
+
+    props: ["form"],
+
+    watch: {
+        "form.visible": function(value) {
+            if(value) {
+                var modalInstance = document.getElementById("add_record_modal").M_Modal;
+                if (modalInstance) {
+                    modalInstance.open();
+                }
+            }
+        },
+    },
+
+    methods: {
+        ok_button: function() {
+            this.$emit("submit");
+            this.form.visible = false;
+        },
+        cancel_button: function() {
+            this.form.visible = false;
+        },
+    },
+
+    template:
+    '<div id="add_record_modal" class="modal"> ' +
+      '<div class="modal-content"> ' +
+        '<h4> ' +
+          '<template v-if="form.action == \'add\'">Новая метка</template> ' +
+          '<template v-else>Редактирование метки</template> ' +
+        '</h4> ' +
+        '<label> ' +
+          'Название: ' +
+          '<input type="text" v-model="form.text"> ' +
+        '</label> ' +
+      '</div> ' +
+      '<div class="modal-footer"> ' +
+        '<a href="#!" class="modal-close waves-effect waves-green btn-flat" v-on:click="ok_button"> ' +
+          '<span v-if="form.action == \'add\'">Создать</span> ' +
+          '<span v-if="form.action == \'edit\'">Сохранить</span> ' +
+        '</a> ' +
+        '<a href="#!" class="modal-close waves-effect waves-green btn-flat" v-on:click="cancel_button">Отмена</a> ' +
+      '</div> ' +
+    '</div> '
+});
+
+{/* <div id="filter_records_modal" class="modal">
+<div class="modal-content">
+  <h4>Фильтр</h4>
+  <p>
+    <select multiple>
+      <option value="" disabled selected>Выберите метки</option>
+      <option value="1">Работа</option>
+      <option value="2">Задачи</option>
+      <option value="3">Саморазвитие</option>
+      <option value="4">Мысли</option>
+    </select>
+  </p>
+  <p>
+    <label>
+      Дата от:
+      <input type="text" class="datepicker">
+    </label>
+    <label>
+      Дата до:
+      <input type="text" class="datepicker">
+    </label>
+  </p>
+</div>
+<div class="modal-footer">
+  <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
+</div>
+</div> */}

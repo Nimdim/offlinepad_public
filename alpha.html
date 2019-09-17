@@ -77,58 +77,10 @@
         </ul>
       </div>
     </nav>
-
     <a class="btn-floating btn-large waves-effect waves-light red" v-on:click="show_add_tag_form" id="add_record">
       <i class="material-icons">add</i>
     </a>
-
-    <div id="add_record_modal" class="modal">
-      <div class="modal-content">
-        <h4>
-          <template v-if="tags.form.action == 'add'">Новая метка</template>
-          <template v-else>Редактирование метки</template>
-        </h4>
-        <label>
-          Название:
-          <input type="text" v-model="tags.form.text">
-        </label>
-      </div>
-      <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat" v-on:click="tag_form_ok">
-          <span v-if="tags.form.action == 'add'">Создать</span>
-          <span v-if="tags.form.action == 'edit'">Сохранить</span>
-        </a>
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Отмена</a>
-      </div>
-    </div>
-
-    <div id="filter_records_modal" class="modal">
-      <div class="modal-content">
-        <h4>Фильтр</h4>
-        <p>
-          <select multiple>
-            <option value="" disabled selected>Выберите метки</option>
-            <option value="1">Работа</option>
-            <option value="2">Задачи</option>
-            <option value="3">Саморазвитие</option>
-            <option value="4">Мысли</option>
-          </select>
-        </p>
-        <p>
-          <label>
-            Дата от:
-            <input type="text" class="datepicker">
-          </label>
-          <label>
-            Дата до:
-            <input type="text" class="datepicker">
-          </label>
-        </p>
-      </div>
-      <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
-      </div>
-    </div>
+    <opl-tag-form :form="tags.form" v-on:submit="tag_form_ok"></opl-tag-form>
     <opl-loadscreen :visible="loadscreen_visible"></opl-loadscreen>
   </div>
 
@@ -163,6 +115,7 @@
             },
             tags: {
               form: {
+                visible: false,
                 text: "",
                 action: "",
               },
@@ -258,10 +211,7 @@
             this.show_tag_form();
           },
           show_tag_form: function() {
-            var modalInstance = document.getElementById("add_record_modal").M_Modal;
-            if (modalInstance) {
-              modalInstance.open();
-            }
+            this.tags.form.visible = true;
           },
           tag_form_ok: function() {
             if(this.tags.form.action == "add") {
