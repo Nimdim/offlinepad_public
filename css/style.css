@@ -66,11 +66,6 @@ footer.page-footer {
   top: -7px;
 }
 
-.desktop_menu {
-  position: relative;
-  top: -100%;
-}
-
 .modal_shown {
   z-index: 1003;
   display: block;
@@ -81,4 +76,14 @@ footer.page-footer {
 
 .visiblilty_hidden {
   visibility: hidden;
+}
+
+#tags_filter {
+  display: inline;
+}
+
+.add_btn {
+  bottom: 30px;
+  right: 30px;
+  position: fixed;
 }
