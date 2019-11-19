@@ -74,7 +74,7 @@ footer.page-footer {
   transform: scaleX(1) scaleY(1);
 }
 
-.visiblilty_hidden {
+.visibility_hidden {
   visibility: hidden;
 }
 
@@ -86,4 +86,13 @@ footer.page-footer {
   bottom: 30px;
   right: 30px;
   position: fixed;
+}
+
+.add_btn.hidden {
+  bottom: -100px;
+}
+
+.timestamp i {
+  position: relative;
+  top: 7px;
 }

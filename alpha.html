@@ -22,91 +22,21 @@
     </ul>
 
     <ul class="collection tags" v-if="section == 'tags'">
-      <opl-tag-item v-for="tag in tags.items"
+      <opl-tag-item v-for="tag in tags.items" :key="tag.id"
         :tag="tag"
         v-on:click="show_edit_tag_form"
         v-on:hide="hide_tag"
         v-on:show="show_tag"
-        v-on:delete="remove_tag">
-      </opt-tag-item>
+        v-on:delete="remove_tag" />
     </ul>
 
     <ul class="collection records" v-if="section == 'notes'">
-      <li class="collection-item">
-        <p>
-          <span>
-            <i class="material-icons">access_time</i>
-            <span>10 августа 2019 16:00:01</span>
-          </span>
-          <a class="waves-effect waves-teal btn-floating right">
-            <i class="material-icons">delete</i>
-          </a>
-          <a class="waves-effect waves-light btn-floating right">
-            <i class="material-icons">create</i>
-          </a>
-        </p>
-        <p>
-          <div class="chip">
-            Работа
-          </div>
-          <div class="chip">
-            Задачи
-          </div>
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-      </li>
-      <li class="collection-item">
-        <p>
-          <span>
-            <i class="material-icons">access_time</i>
-            <span>10 августа 2019 16:00:01</span>
-          </span>
-          <a class="waves-effect waves-teal btn-floating right">
-            <i class="material-icons">delete</i>
-          </a>
-          <a class="waves-effect waves-light btn-floating right">
-            <i class="material-icons">create</i>
-          </a>
-        </p>
-        <p>
-          <div class="chip">
-            Работа
-          </div>
-          <div class="chip">
-            Задачи
-          </div>
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-      </li>
-      <li class="collection-item">
-        <p>
-          <span>
-            <i class="material-icons">access_time</i>
-            <span>10 августа 2019 16:00:01</span>
-          </span>
-          <a class="waves-effect waves-teal btn-floating right">
-            <i class="material-icons">delete</i>
-          </a>
-          <a class="waves-effect waves-light btn-floating right">
-            <i class="material-icons">create</i>
-          </a>
-        </p>
-        <p>
-          <div class="chip">
-            Работа
-          </div>
-          <div class="chip">
-            Задачи
-          </div>
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-      </li>
+      <opl-note-item v-for="note in notes.items" :key="note.id"
+        :note="note"
+        v-on:click="show_edit_note_form"
+        v-on:hide="hide_note"
+        v-on:show="show_note"
+        v-on:delete="remove_note" />
     </ul>
 
 
@@ -179,40 +109,23 @@
       </div>
     </nav>
     <a class="btn-floating btn-large waves-effect waves-light red add_btn"
-      v-on:click="show_add_tag_form" id="add_tag" v-if="section == 'tags'">
+      v-on:click="show_add_tag_form" id="add_tag" v-if="section == 'tags'"
+      :class="{hidden: tags.add_button_hidden}">
       <i class="material-icons">add</i>
     </a>
     <a class="btn-floating btn-large waves-effect waves-light red add_btn"
-      v-on:click="show_add_note_form" id="add_note" v-if="section == 'notes'">
+      v-on:click="show_add_note_form" id="add_note" v-if="section == 'notes'"
+      :class="{hidden: notes.add_button_hidden}"
+      >
       <i class="material-icons">add</i>
     </a>
-    <opl-tag-form :form="tags.form" v-if="section == 'tags'"
-      v-on:submit="tag_form_ok"></opl-tag-form>
+    <opl-tag-form :form="tags.form"
+      v-on:submit="tag_form_ok" v-on:cancel="tag_form_cancel"></opl-tag-form>
+    <opl-note-form :form="notes.form"
+      v-on:submit="note_form_ok" v-on:cancel="note_form_cancel"></opl-note-form>
     <opl-loadscreen :visible="loadscreen_visible"></opl-loadscreen>
 
-    <div id="add_record_modal" class="modal" v-if="section == 'notes'">
-      <div class="modal-content">
-        <h4>Новая запись</h4>
-        <p>
-          <select multiple>
-            <option value="" disabled selected>Выберите метки</option>
-            <option value="1">Работа</option>
-            <option value="2">Задачи</option>
-            <option value="3">Саморазвитие</option>
-            <option value="4">Мысли</option>
-          </select>
-        </p>
-        <label>
-          Текст:
-          <textarea class="materialize-textarea"></textarea>
-        </label>
-      </div>
-      <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Создать</a>
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Отмена</a>
-      </div>
-    </div>
-  
+    
     <div id="filter_records_modal" class="modal" v-if="section == 'notes'">
       <div class="modal-content">
         <h4>Фильтр</h4>
@@ -249,8 +162,10 @@
   <script src="js/components.js"></script>
   <script src="js/lodash.min.js"></script>
   <script src="js/jquery-2.1.1.min.js"></script>
+  <script src="js/moment-with-locales.min.js"></script>
   
   <script>
+    moment.locale("ru");
     $(document).ready(function() {
       var app = new Vue({
         el: '#app',
@@ -259,11 +174,13 @@
             loadscreen_visible: true,
             section: "tags",
             notes: {
+              add_button_hidden: false,
               form: {
+                id: null,
                 text: "",
                 action: "",
                 tags: [],
-                timestamp: 0,
+                visible: false,
               },
               order_by_timestamp: "asc",
               filter: {
@@ -275,7 +192,9 @@
               items: [],
             },
             tags: {
+              add_button_hidden: false,
               form: {
+                id: null,
                 visible: false,
                 text: "",
                 action: "",
@@ -288,7 +207,7 @@
               items: [],
             }
           };
-          var k = 0;
+          var k;
           for(k = 0; k < 20; k++) {
             data.tags.items.push(
               {
@@ -296,6 +215,17 @@
                 "id": k,
                 "name": "Задачи " + k,
                 "count": Math.floor(Math.random() * 35 + 10),
+                "hidden": false,
+              }
+            );
+          }
+          for(k = 0; k < 20; k++) {
+            data.notes.items.push(
+              {
+                // "checked": false,
+                "id": k,
+                "creation_time": +new Date(),
+                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." + k,
                 "hidden": false,
               }
             );
@@ -342,6 +272,27 @@
           change_section: function(section) {
             this.section = section;
           },
+
+          show_edit_note_form: function(note_id) {
+            var note = _.find(this.notes.items, {id: note_id});
+            if(note != null) {
+              this.notes.form.id = note_id;
+              this.notes.form.text = note.text;
+              this.notes.form.action = "edit";
+              this.notes.form.visible = true;
+            }
+          },
+          hide_note: function(note_id) {
+
+          },
+          show_note: function(note_id) {
+
+          },
+          remove_note : function(note_id) {
+
+          },
+
+
           remove_tag: function(tag_id) {
             var tag_index = _.findIndex(this.tags.items, {id: tag_id});
             this.tags.items.splice(tag_index, 1);
@@ -366,21 +317,21 @@
               this.tags.form.id = id;
               this.tags.form.text = tag.name;
               this.tags.form.action = "edit";
-              this.show_tag_form();
+              // this.tags.form.visible = false;
+              this.tags.form.visible = true;
             }
           },
           show_add_tag_form: function() {
             this.tags.form.text = "";
             this.tags.form.action = "add";
-            this.show_tag_form();
+            // this.tags.form.visible = false;
+            this.tags.form.visible = true;
           },
           show_add_note_form: function() {
-            // this.tags.form.text = "";
-            // this.tags.form.action = "add";
+            this.notes.form.text = "";
+            this.notes.form.action = "add";
             // this.show_tag_form();
-          },
-          show_tag_form: function() {
-            this.tags.form.visible = true;
+            this.notes.form.visible = true;
           },
           tag_form_ok: function() {
             if(this.tags.form.action == "add") {
@@ -399,9 +350,36 @@
                 tag.name = this.tags.form.text;
               }
             }
-          }
+            this.tags.form.visible = false;
+          },
+          tag_form_cancel: function() {
+            this.tags.form.visible = false;
+          },
+          note_form_ok: function() {
+            if(this.notes.form.action == "add") {
+              var item = {
+                id: +(new Date()),
+                creation_time: +(new Date()),
+                text: this.notes.form.text,
+                count: 0,
+                hidden: false,
+              };
+              this.notes.items.push(item);
+            }
+            if(this.notes.form.action == "edit") {
+              var note = _.find(this.notes.items, {id: this.notes.form.id});
+              if(note != null) {
+                note.text = this.notes.form.text;
+              }
+            }
+            this.notes.form.visible = false;
+          },
+          note_form_cancel: function() {
+            this.notes.form.visible = false;
+          },
         }
       });
+      window.app = app;
     });
   </script>
 
@@ -438,7 +416,9 @@
         header_top -= delta;
         if(header_top < -header_height) {
           header_top = -header_height;
-          $("#add_tag").css("bottom", -100);
+          window.app.notes.add_button_hidden = true;
+          window.app.tags.add_button_hidden = true;
+          // $("#add_tag").css("bottom", -100);
           // if(!animating) {
           //   $("#add_record").animate({"bottom": -100}, 50, function() {animating=false;});
           //   animating = true;
@@ -446,7 +426,9 @@
         }
         if(header_top > 0) {
           header_top = 0;
-          $("#add_tag").css("bottom", 30);
+          window.app.notes.add_button_hidden = false;
+          window.app.tags.add_button_hidden = false;
+          // $("#add_tag").css("bottom", 30);
           // if(!animating) {
           //   $("#add_record").animate({"bottom": 30}, 50, function() {animating=false;});
           //   animating = true;
