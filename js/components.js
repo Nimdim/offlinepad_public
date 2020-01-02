@@ -12,14 +12,12 @@ Vue.component("opl-tag-item", {
           '<a class="waves-effect waves-teal btn right tag_delete_btn" v-on:click.prevent.stop="$emit(\'hide\', tag.id)">' +
             '<i class="material-icons">delete</i>' +
           '</a>' +
-          '</p>' +
-          '<p v-else>' +
-          '<span class="badge visibility_hidden">{{tag.count}}</span>' +
-          '<span class="visibility_hidden">stub</span>' +
-          '<a class="waves-effect waves-teal btn tag_delete_btn right" v-on:click.prevent.stop="$emit(\'show\', tag.id)">' +
+        '</p>' +
+        '<p v-else>' +
+          '<a class="waves-effect waves-teal btn tag_delete_btn" style="margin-right: 10px;" v-on:click.prevent.stop="$emit(\'show\', tag.id)">' +
             '<i class="material-icons">Отмена</i>' +
           '</a>' +
-          '<a class="waves-effect waves-teal btn tag_delete_btn right" style="margin-right: 10px;" v-on:click.prevent.stop="$emit(\'delete\', tag.id)">' +
+          '<a class="waves-effect waves-teal btn tag_delete_btn" v-on:click.prevent.stop="$emit(\'delete\', tag.id)">' +
             '<i class="material-icons">Удалить</i>' +
           '</a>' +
         '</p>' +
@@ -180,81 +178,38 @@ Vue.component("opl-note-item", {
     },
   },
 
-  // template: '<li class="collection-item" v-on:click="$emit(\'click\', note.id)">' +
-  //     '<p v-if="tag.hidden !== true">' +
-  //     '<label v-on:click.stop="">' +
-  //         '<input type="checkbox" v-model="tag.checked"/>' +
-  //         '<span>{{tag.name}}</span>' +
-  //     '</label>' +
-  //     '<span class="badge">{{tag.count}}</span>' +
-  //     '<a class="waves-effect waves-teal btn right tag_delete_btn" v-on:click.prevent.stop="$emit(\'hide\', tag.id)">' +
-  //         '<i class="material-icons">delete</i>' +
-  //     '</a>' +
-  //     '</p>' +
-  //     '<p v-else>' +
-  //     '<span class="badge visibility_hidden">{{tag.count}}</span>' +
-  //     '<span class="visiblilty_hidden">stub</span>' +
-  //     '<a class="waves-effect waves-teal btn tag_delete_btn right" v-on:click.prevent.stop="$emit(\'show\', tag.id)">' +
-  //         '<i class="material-icons">Отмена</i>' +
-  //     '</a>' +
-  //     '<a class="waves-effect waves-teal btn tag_delete_btn right" style="margin-right: 10px;" v-on:click.prevent.stop="$emit(\'delete\', tag.id)">' +
-  //         '<i class="material-icons">Удалить</i>' +
-  //     '</a>' +
-  //     '</p>' +
-  // '</li>',
-
-  template: '<li class="collection-item" v-on:click="$emit(\'click\', note.id)"> ' +
-              '<p> ' +
-                '<span class="timestamp"> ' +
-                  '<i class="material-icons">access_time</i> ' +
-                  '<span>{{note.creation_time | note_datetime}}</span> ' +
-                '</span> ' +
-                '<a class="waves-effect waves-teal btn-floating right"> ' +
-                  '<i class="material-icons">delete</i> ' +
-                '</a> ' +
-              '</p> ' +
-              '<p> ' +
-                '<div class="chip"> ' +
-                  'Работа ' +
-                '</div> ' +
-                '<div class="chip"> ' +
-                  'Задачи ' +
-                '</div> ' +
-              '</p> ' +
-              '<p> ' +
-                '{{note.text}}' +
-              '</p> ' +
+  template: '<li class="collection-item"> ' +
+              '<span v-if="!note.hidden" v-on:click="$emit(\'click\', note.id)">' +
+                '<p> ' +
+                  '<span class="timestamp"> ' +
+                    '<i class="material-icons">access_time</i> ' +
+                    '<span>{{note.creation_time | note_datetime}}</span> ' +
+                  '</span> ' +
+                  '<a class="waves-effect waves-teal btn-floating right"> ' +
+                    '<i class="material-icons" v-on:click.prevent.stop="$emit(\'hide\', note.id)">delete</i> ' +
+                  '</a> ' +
+                '</p> ' +
+                '<p> ' +
+                  '<div class="chip"> ' +
+                    'Работа ' +
+                  '</div> ' +
+                  '<div class="chip"> ' +
+                    'Задачи ' +
+                  '</div> ' +
+                '</p> ' +
+                '<p> ' +
+                  '{{note.text}}' +
+                '</p> ' +
+              '</span>' +
+              '<p v-else> ' +
+                '<a class="waves-effect waves-teal btn tag_delete_btn" style="margin-right: 10px;" v-on:click.prevent.stop="$emit(\'show\', note.id)">' +
+                  '<i class="material-icons">Отмена</i>' +
+                '</a>' +
+                '<a class="waves-effect waves-teal btn tag_delete_btn" v-on:click.prevent.stop="$emit(\'delete\', note.id)">' +
+                  '<i class="material-icons">Удалить</i>' +
+                '</a>' +
+              '</p>' +
             '</li> ',
 
 
 });
-
-
-
-{/* <div id="filter_records_modal" class="modal">
-<div class="modal-content">
-  <h4>Фильтр</h4>
-  <p>
-    <select multiple>
-      <option value="" disabled selected>Выберите метки</option>
-      <option value="1">Работа</option>
-      <option value="2">Задачи</option>
-      <option value="3">Саморазвитие</option>
-      <option value="4">Мысли</option>
-    </select>
-  </p>
-  <p>
-    <label>
-      Дата от:
-      <input type="text" class="datepicker">
-    </label>
-    <label>
-      Дата до:
-      <input type="text" class="datepicker">
-    </label>
-  </p>
-</div>
-<div class="modal-footer">
-  <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
-</div>
-</div> */}
