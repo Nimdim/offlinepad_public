@@ -10,6 +10,13 @@ p {
   margin-top: 64px;
 }
 
+.separate-dropdown:hover {
+  background-color: #25a3dd;
+}
+
+#nav-mobile a {
+  text-align: left;
+}
 
 @media all (max-width: 480px) {
   .records {

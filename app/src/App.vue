@@ -6,6 +6,12 @@
       <li><a href="#!">Разбор</a></li>
       <li><a href="#!">Задачи</a></li>
     </ul>
+  
+    <ul id="dropdown_notepad" class="dropdown-content">
+      <li v-for="menu_item in notepad_controls" v-bind:key="menu_item.id">
+        <a href="#!" v-on:click="notepad_menu(menu_item.id)">{{menu_item.name}}</a>
+      </li>
+    </ul>
 
     <ul class="collection tags" v-if="section == 'tags'">
       <tag-item v-for="tag in tags.items" :key="tag.id"
@@ -62,33 +68,40 @@
   
 
         <ul class="right hide-on-med-and-down desktop_menu">
-          <!-- <li><a class="dropdown-trigger" href="#!" data-target="dropdown1">Записи<i class="material-icons right">arrow_drop_down</i></a></li> -->
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
-            <a href="#">Записи</a>
+            <a>
+              Записи
+              <i class="material-icons right dropdown-trigger separate-dropdown" href="#!" data-target="dropdown1" v-on:click.stop="">arrow_drop_down</i>
+            </a>
           </li>
+          <!-- <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
+            <a href="#">Записи</a>
+          </li> -->
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
           </li>
-          <li :class="{active: section == 'notepads'}" v-on:click="change_section('notepads')">
-            <a href="#">Блокноты</a>
+          <li>
+            <a href="#" class="dropdown-trigger" data-target="dropdown_notepad">
+              Блокнот
+              <i class="material-icons right" href="#!">arrow_drop_down</i>
+            </a>
           </li>
         </ul>
 
         <ul id="nav-mobile" class="sidenav">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
-            <!-- <ul>
-              <li><a href="#!"><i class="material-icons">dashboard</i>Все</a></li>
-              <li class="divider"></li>
+            <ul>
               <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
               <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li>
-            </ul> -->
+            </ul>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
           </li>
-          <li :class="{active: section == 'notepads'}" v-on:click="change_section('notepads')">
-            <a href="#">Блокноты</a>
+          <li class="divider"></li>
+          <li v-for="menu_item in notepad_controls" v-bind:key="menu_item.id">
+            <a href="#">{{menu_item.name}}</a>
           </li>
         </ul>
       </div>
@@ -165,6 +178,11 @@ export default {
 
   data: function() {
     var data = {
+      notepad_controls: [
+        {id: "create", name: "Создать"},
+        {id: "import", name: "Импорт"},
+        {id: "open", name: "Открыть"},
+      ],
       loadscreen_visible: true,
       section: "tags",
       notes: {
@@ -265,10 +283,15 @@ export default {
   mounted: function() {
     window.$('.sidenav').sidenav();
     window.M.Modal.init(document.body.querySelectorAll('.modal:not(.no-autoinit)'));
+    window.M.Dropdown.init(document.body.querySelectorAll('.dropdown-trigger:not(.no-autoinit)'));
+
     // $('.parallax').parallax();
     this.loadscreen_visible = false;
   },
   methods: {
+    notepad_menu: function(command) {
+      console.log("command", command);
+    },
     change_section: function(section) {
       this.section = section;
     },
