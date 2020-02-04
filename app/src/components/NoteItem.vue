@@ -11,8 +11,7 @@
         </a>
       </p>
       <p>
-        <span class="chip">Работа</span>
-        <span class="chip">Задачи</span>
+        <span v-for="tag in note.tags" :key="tag.id" class="chip">{{tag.name}}</span>
       </p>
       <p>{{note.text}}</p>
     </span>
@@ -37,7 +36,7 @@ export default {
   },
   filters: {
     note_datetime: function(stamp) {
-      return moment(stamp).format("DD MMMM YYYY hh:mm:ss");
+      return moment(stamp).format("DD MMMM YYYY HH:mm:ss");
     },
   },
 }

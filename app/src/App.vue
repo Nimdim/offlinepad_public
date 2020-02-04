@@ -100,7 +100,7 @@
             <a href="#">Метки</a>
           </li>
           <li class="divider"></li>
-          <li v-for="menu_item in notepad_controls" v-bind:key="menu_item.id">
+          <li v-for="menu_item in notepad_controls" v-on:click="notepad_menu(menu_item.id)" v-bind:key="menu_item.id">
             <a href="#">{{menu_item.name}}</a>
           </li>
         </ul>
@@ -166,6 +166,11 @@ import NoteForm from './components/NoteForm.vue'
 import TagItem from './components/TagItem.vue'
 import TagForm from './components/TagForm.vue'
 
+import VariableStorage from "./js/variable_storage.js"
+import Notepad from './js/notepad.js'
+
+var notepad = new Notepad(VariableStorage);
+
 export default {
   name: 'app',
   components: {
@@ -222,29 +227,6 @@ export default {
         
       },
     };
-    var k;
-    for(k = 0; k < 20; k++) {
-      data.tags.items.push(
-        {
-          "checked": false,
-          "id": k,
-          "name": "Задачи " + k,
-          "count": Math.floor(Math.random() * 35 + 10),
-          "hidden": false,
-        }
-      );
-    }
-    for(k = 0; k < 20; k++) {
-      data.notes.items.push(
-        {
-          // "checked": false,
-          "id": k,
-          "creation_time": +new Date(),
-          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." + k,
-          "hidden": false,
-        }
-      );
-    }
     return data;
   },
   watch: {
@@ -287,10 +269,34 @@ export default {
 
     // $('.parallax').parallax();
     this.loadscreen_visible = false;
-  },
+    notepad.on("reset_tags", function(tags) {
+      this.tags.items = tags;
+    }.bind(this));
+    notepad.on("append_tags", function(tags) {
+      this.tags.items.push.apply(this.tags.items, tags);
+    }.bind(this));
+
+    notepad.on("reset_notes", function(notes) {
+      this.notes.items = notes;
+    }.bind(this));
+    notepad.on("append_notes", function(notes) {
+      this.notes.items.push.apply(this.notes.items, notes);
+    }.bind(this));
+},
   methods: {
     notepad_menu: function(command) {
       console.log("command", command);
+      switch(command) {
+        case "create":
+          notepad.create();
+          break;
+        case "import":
+          notepad.import();
+          break;
+        case "open":
+          notepad.open();
+          break;
+      }
     },
     change_section: function(section) {
       this.section = section;
