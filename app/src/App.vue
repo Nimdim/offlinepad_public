@@ -16,19 +16,19 @@
     <ul class="collection tags" v-if="section == 'tags'">
       <tag-item v-for="tag in tags.items" :key="tag.id"
         :tag="tag"
-        v-on:click="show_edit_tag_form"
-        v-on:hide="hide_tag"
-        v-on:show="show_tag"
-        v-on:delete="remove_tag" />
+        @submit="submit_tag"
+        @cancel="cancel_tag"
+        @delete="remove_tag" />
     </ul>
 
     <ul class="collection records" v-if="section == 'notes'">
       <note-item v-for="note in notes.items" :key="note.id"
         :note="note"
-        v-on:click="show_edit_note_form"
-        v-on:hide="hide_note"
-        v-on:show="show_note"
-        v-on:delete="remove_note" />
+        :tags="all_tags"
+        @submit="submit_note"
+        @cancel="cancel_note"
+        @delete="remove_note"
+        />
     </ul>
 
     <div class="tags_footer" v-if="section == 'tags'">
@@ -45,7 +45,7 @@
           <i class="material-icons">menu</i>
         </a>
 
-        <ul id="tags_filter" v-if="section == 'tags'">
+        <ul id="tags_filter">
           <li class="search_li">
             <div class="input-field">
               <input id="search" type="search" v-model="tags.search" required>
@@ -54,18 +54,7 @@
             </div>
           </li>
         </ul>
-
-        <ul id="notes_filter" class="left" v-if="section == 'notes'">
-          <li><a href="#" class="modal-trigger" data-target="filter_records_modal"><i class="material-icons">filter_list</i></a></li>
-          <li>
-            <a href="#" id="sort_by_date">
-              Дата
-              <i class="material-icons right up active">arrow_upward</i>
-              <i class="material-icons right down">arrow_downward</i>
-            </a>
-          </li>
-        </ul>
-  
+        <i class="material-icons sort-icon">sort</i>
 
         <ul class="right hide-on-med-and-down desktop_menu">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
@@ -106,21 +95,20 @@
         </ul>
       </div>
     </nav>
-    <a class="btn-floating btn-large waves-effect waves-light red add_btn"
-      v-on:click="show_add_tag_form" id="add_tag" v-if="section == 'tags'"
-      :class="{hidden: tags.add_button_hidden}">
+    <a v-if="section == 'tags'"
+      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      :class="{hidden: tags.add_button_hidden}"
+      @click="show_add_tag_form"
+      id="add_tag">
       <i class="material-icons">add</i>
     </a>
-    <a class="btn-floating btn-large waves-effect waves-light red add_btn"
-      v-on:click="show_add_note_form" id="add_note" v-if="section == 'notes'"
+    <a v-if="section == 'notes'"
+      class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: notes.add_button_hidden}"
+      @click="show_add_note_form" id="add_note"
       >
       <i class="material-icons">add</i>
     </a>
-    <tag-form :form="tags.form"
-      v-on:submit="tag_form_ok" v-on:cancel="tag_form_cancel" />
-    <note-form :form="notes.form"
-      v-on:submit="note_form_ok" v-on:cancel="note_form_cancel" />
     <load-screen :visible="loadscreen_visible" />
 
     
@@ -162,9 +150,7 @@ import _ from 'lodash'
 
 import LoadScreen from './components/LoadScreen.vue'
 import NoteItem from './components/NoteItem.vue'
-import NoteForm from './components/NoteForm.vue'
 import TagItem from './components/TagItem.vue'
-import TagForm from './components/TagForm.vue'
 
 import VariableStorage from "./js/variable_storage.js"
 import Notepad from './js/notepad.js'
@@ -176,9 +162,7 @@ export default {
   components: {
     "load-screen": LoadScreen,
     'note-item': NoteItem,
-    'note-form': NoteForm,
     'tag-item': TagItem,
-    'tag-form': TagForm,
   },
 
   data: function() {
@@ -223,9 +207,7 @@ export default {
         },
         items: [],
       },
-      notes_tags: {
-        
-      },
+      all_tags: [],
     };
     return data;
   },
@@ -270,20 +252,85 @@ export default {
     // $('.parallax').parallax();
     this.loadscreen_visible = false;
     notepad.on("reset_tags", function(tags) {
-      this.tags.items = tags;
+      this.tags.items = this.wrap_tags(tags);
     }.bind(this));
     notepad.on("append_tags", function(tags) {
-      this.tags.items.push.apply(this.tags.items, tags);
+      this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
+    }.bind(this));
+    notepad.on("all_tags", function(tags) {
+      this.all_tags = tags;
     }.bind(this));
 
     notepad.on("reset_notes", function(notes) {
-      this.notes.items = notes;
+      this.notes.items = this.wrap_notes(notes);
     }.bind(this));
     notepad.on("append_notes", function(notes) {
-      this.notes.items.push.apply(this.notes.items, notes);
+      this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
     }.bind(this));
-},
+    notepad.create();
+  },
   methods: {
+    wrap_tags: function(tags) {
+      let k, item;
+      for(k = 0; k < tags.length; k++) {
+        item = tags[k];
+        item.checked = false;
+        item.edit_state = false;
+      }
+      return tags;
+    },
+
+    wrap_notes: function(notes) {
+      let k, item;
+      for(k = 0; k < notes.length; k++) {
+        item = notes[k];
+        item.checked = false;
+        item.edit_state = false;
+      }
+      return notes;
+    },
+
+    submit_tag: function(data) {
+      if(data.id == "__new_item__") {
+        notepad.create_tag(data.name);
+      } else {
+        notepad.edit_tag(data.id, data.name);
+        data.edit_state = false;
+      }
+    },
+    cancel_tag: function(data) {
+      if(data.id == "__new_item__") {
+        this.tags.items.shift();
+      } else {
+        data.edit_state = false;
+        data.name = data._old_name;
+      }
+    },
+    remove_tag: function(tag_id) {
+      notepad.delete_tag(tag_id);
+    },
+
+    submit_note: function(data) {
+      if(data.id == "__new_item__") {
+        notepad.create_note(data.text, + new Date(), data.tags);
+      } else {
+        notepad.edit_note(data.id, data.text, data.tags);
+        data.edit_state = false;
+      }
+    },
+    cancel_note: function(data) {
+      if(data.id == "__new_item__") {
+        this.notes.items.shift();
+      } else {
+        data.edit_state = false;
+        data.text = data._old_text;
+        data.tags = data._old_tags;
+      }
+    },
+    remove_note: function(note_id) {
+      notepad.delete_note(note_id);
+    },
+
     notepad_menu: function(command) {
       console.log("command", command);
       switch(command) {
@@ -302,68 +349,29 @@ export default {
       this.section = section;
     },
 
-    show_edit_note_form: function(note_id) {
-      var note = _.find(this.notes.items, {id: note_id});
-      if(note != null) {
-        this.notes.form.id = note_id;
-        this.notes.form.text = note.text;
-        this.notes.form.action = "edit";
-        this.notes.form.visible = true;
-      }
-    },
-    hide_note: function(note_id) {
-      var note_index = _.findIndex(this.notes.items, {id: note_id});
-      this.notes.items[note_index].hidden = true;
-    },
-    show_note: function(note_id) {
-      var note_index = _.findIndex(this.notes.items, {id: note_id});
-      this.notes.items[note_index].hidden = false;
-    },
-    remove_note : function(note_id) {
-      var note_index = _.findIndex(this.notes.items, {id: note_id});
-      this.notes.items.splice(note_index, 1);
-    },
-
-
-    remove_tag: function(tag_id) {
-      var tag_index = _.findIndex(this.tags.items, {id: tag_id});
-      this.tags.items.splice(tag_index, 1);
-    },
-    hide_tag: function(tag_id) {
-      var tag_index = _.findIndex(this.tags.items, {id: tag_id});
-      this.tags.items[tag_index].hidden = true;
-    },
-    show_tag: function(tag_id) {
-      var tag_index = _.findIndex(this.tags.items, {id: tag_id});
-      this.tags.items[tag_index].hidden = false;
-    },
     filter_tags: function() {
       // console.log("filter_tags");
     },
     tags_search_clear: function() {
       this.tags.search = "";
     },
-    show_edit_tag_form: function(id) {
-      var tag = _.find(this.tags.items, {id: id});
-      if(tag != null) {
-        this.tags.form.id = id;
-        this.tags.form.text = tag.name;
-        this.tags.form.action = "edit";
-        // this.tags.form.visible = false;
-        this.tags.form.visible = true;
-      }
-    },
     show_add_tag_form: function() {
-      this.tags.form.text = "";
-      this.tags.form.action = "add";
-      // this.tags.form.visible = false;
-      this.tags.form.visible = true;
+      this.tags.items.unshift({
+        "id": "__new_item__",
+        "edit_state": true,
+        "name": "Новая метка",
+        "count": 0,
+      })
     },
     show_add_note_form: function() {
-      this.notes.form.text = "";
-      this.notes.form.action = "add";
-      // this.show_tag_form();
-      this.notes.form.visible = true;
+      this.notes.items.unshift({
+        "id": "__new_item__",
+        "tags": [],
+        "checked": false,
+        "edit_state": true,
+        "text": "Новая запись",
+        "creation_time": + new Date(),
+      })
     },
     tag_form_ok: function() {
       if(this.tags.form.action == "add") {

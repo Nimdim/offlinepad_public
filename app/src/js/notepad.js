@@ -29,6 +29,7 @@ class Notepad {
             "tags": {},
             "notes_of_tag": {},
             "tags_of_note": {},
+            "tag_notes": {},
         };
     }
 
@@ -61,6 +62,10 @@ class Notepad {
             type: "tag",
             name: "первые шаги",
         });
+        this._storage.create({
+            type: "tag",
+            name: "еще тег",
+        });
         let welcome_note = this._storage.create({
             type: "note",
             text: "Добро пожаловать, ваш путь начинается здесь",
@@ -76,7 +81,6 @@ class Notepad {
     _load_data() {
         let reader = function(object) {
             let key = object.id;
-            let list;
             switch(object.type) {
                 case "notepad":
                     this._data.notepad = object;
@@ -88,28 +92,40 @@ class Notepad {
                     this._data.notes[key] = object;
                     break;
                 case "tag_note":
-                    list = this._data.notes_of_tag[object.tag_id];
-                    if(list == null) {
-                        list = [];
-                        this._data.notes_of_tag[object.tag_id] = list;
-                    }
-                    list.push(object.note_id);
-
-                    list = this._data.tags_of_note[object.note_id];
-                    if(list == null) {
-                        list = [];
-                        this._data.tags_of_note[object.note_id] = list;
-                    }
-                    list.push(object.tag_id);
+                    this.register_tag_note(object);
                     break;
                 default:
-                    console.warn("неизвестный тип объекта", object);
+                    console.error("неизвестный тип объекта", object);
                     break;
             }
         }.bind(this);
         this._storage.iterate(reader);
     }
 
+    tag_note_key(tag_id, note_id) {
+        return tag_id + "_" + note_id;
+    }
+
+    register_tag_note(object) {
+        let tag_note_key = this.tag_note_key(object.tag_id, object.note_id);
+        let note_ids, tag_ids;
+
+        this._data.tag_notes[tag_note_key] = object;
+        note_ids = this._data.notes_of_tag[object.tag_id];
+        if(note_ids == null) {
+            note_ids = {};
+            this._data.notes_of_tag[object.tag_id] = note_ids;
+        }
+        note_ids[object.note_id] = true;
+
+        tag_ids = this._data.tags_of_note[object.note_id];
+        if(tag_ids == null) {
+            tag_ids = {};
+            this._data.tags_of_note[object.note_id] = tag_ids;
+        }
+        tag_ids[object.tag_id] = true;
+    }
+    
     _reset_filter() {
         this._filter.tags.sorting_asc = true;
         this._filter.notes.sorting_asc = true;
@@ -130,6 +146,7 @@ class Notepad {
         this._state.tags.items_shown_count = items_for_show_count;
         items_for_show = this._state.tags.items.slice(0, items_for_show_count);
         this.trigger("reset_tags", this._wrap_tags(items_for_show));
+        this.trigger("all_tags", _.sortBy(_.values(this._data.tags), "name"));
     }
 
     _wrap_tags(items) {
@@ -138,10 +155,8 @@ class Notepad {
             let item = items[index];
             result.push({
                 id: item.id,
-                checked: false,
                 name: item.name,
-                count: this._data.notes_of_tag[item.id].length,
-                hidden: false,
+                count: _.keys(this._data.notes_of_tag[item.id]).length,
             });
         }
         return result;
@@ -163,19 +178,19 @@ class Notepad {
         let result = [];
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
-            let tags = this._data.tags_of_note[item.id];
+            let tags = _.keys(this._data.tags_of_note[item.id]);
             tags = _.map(
                 tags,
-                function(id) {return this._data.tags[id]}.bind(this)
+                function(id) {
+                    return _.cloneDeep(this._data.tags[id])
+                }.bind(this)
             );
             tags = _.orderBy(tags, "name");
             result.push({
                 id: item.id,
-                tags: tags,
-                checked: false,
+                tags: _.map(tags, function(item) {return item.id;}),
                 text: item.text,
                 creation_time: item.created_at,
-                hidden: false,
             });
         }
         return result;
@@ -201,7 +216,7 @@ class Notepad {
         } else {
             order = ["desc"];
         }
-        notes = _.orderBy(notes, ["name"], order);
+        notes = _.orderBy(notes, ["created_at"], order);
         return notes;
     }
 
@@ -240,33 +255,119 @@ class Notepad {
         this._password = password;
     }
 
-    // create_tag(name) {
+    create_tag(name) {
+        let tag_id = this._storage.create({
+            "type": "tag",
+            "name": name,
+        });
+        this._data.notes_of_tag[tag_id] = {};
+        this._data.tags[tag_id] = this._storage.get(tag_id);
+        this._reset_tags();
+    }
 
-    // }
+    edit_tag(id, name) {
+        let tag = this._data.tags[id];
+        tag.name = name;
+        this._storage.set(id, tag);
 
-    // edit_tag(id, name) {
+        this._reset_tags();
+    }
 
-    // }
+    delete_tag(id) {
+        this._storage.delete(id);
+        delete this._data.tags[id];
+        let note_ids = _.keys(this._data.notes_of_tag[id]);
+        for(let index = 0; index < note_ids.length; index++) {
+            let note_id = note_ids[index];
+            this.delete_tag_note(id, note_id);
+            // let tag_note_key = this.tag_note_key(id, note_id);
+            // let tag_note_id = this._data.tag_notes[tag_note_key].id;
 
-    // delete_tag(id, name) {
+            // this._storage.delete(tag_note_id);
+            // delete this._data.tag_notes[tag_note_key];
+            // this._data.tags_of_note[note_id] = _.without(this._data.tags_of_note[note_id], id);
+        }
+        delete this._data.notes_of_tag[id];
+        this._reset_tags();
+    }
 
-    // }
+    delete_tag_note(tag_id, note_id) {
+        let tag_note_key = this.tag_note_key(tag_id, note_id);
+        let tag_note_id = this._data.tag_notes[tag_note_key].id;
+
+        this._storage.delete(tag_note_id);
+        delete this._data.tag_notes[tag_note_key];
+        delete this._data.tags_of_note[note_id][tag_id];
+        delete this._data.notes_of_tag[tag_id][note_id];
+    }
 
     // list_tags(from, count) {
 
     // }
 
-    // create_note(text, stamp, tags) {
+    create_note(text, stamp, tags) {
+        let note_id = this._storage.create({
+            "type": "note",
+            "text": text,
+            "created_at": stamp,
+        });
+        this._data.tags_of_note[note_id] = {};
+        this._data.notes[note_id] = this._storage.get(note_id);
+        this.apply_note_tags(note_id, tags);
 
-    // }
+        this._reset_notes();
+        this._reset_tags();
+    }
 
-    // edit_note(id, text, stamp, tags) {
+    create_tag_note(tag_id, note_id) {
+        let tag_note_id = this._storage.create({
+            "tag_id": tag_id,
+            "note_id": note_id,
+        });
+        let tag_note = this._storage.get(tag_note_id);
+        this.register_tag_note(tag_note);
+    }
 
-    // }
+    edit_note(id, text, tags) {
+        let note = this._data.notes[id];
+        note.text = text;
+        this._storage.set(id, note);
 
-    // delete_note(id) {
+        this.apply_note_tags(id, tags);
+        this._reset_notes();
+        this._reset_tags();
+    }
 
-    // }
+    apply_note_tags(note_id, tag_ids) {
+        let old_tag_ids = _.keys(this._data.tags_of_note[note_id]);
+
+        let new_tag_ids = _.difference(tag_ids, old_tag_ids);
+        let deleted_tag_ids = _.difference(old_tag_ids, tag_ids);
+
+        let k, tag_id;
+        for(k = 0; k < new_tag_ids.length; k++) {
+            tag_id = new_tag_ids[k];
+            this.create_tag_note(tag_id, note_id);
+        }
+        for(k = 0; k < deleted_tag_ids.length; k++) {
+            tag_id = deleted_tag_ids[k];
+            this.delete_tag_note(tag_id, note_id);
+        }
+    }
+
+    delete_note(id) {
+        this._storage.delete(id);
+        delete this._data.notes[id];
+        this.apply_note_tags(id, []);
+        // let tag_ids = _.keys(this._data.tags_of_note[id]);
+        // for(let index = 0; index < tag_ids.length; index++) {
+        //     let tag_id = tag_ids[index];
+        //     this.delete_tag_note(tag_id, id);
+        // }
+        delete this._data.tags_of_note[id];
+        this._reset_notes();
+        this._reset_tags();
+    }
 
     // list_notes(from, count) {
 

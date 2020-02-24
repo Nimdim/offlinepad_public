@@ -8,7 +8,9 @@ class VariableStorage {
     }
 
     get(id) {
-        return this._storage[id];
+        let value = _.cloneDeep(this._storage[id]);
+        value.id = id;
+        return value;
     }
 
     create(object) {
