@@ -4,7 +4,7 @@
       <label v-on:click.stop="">
         <input type="checkbox" v-model="data.checked"/>
         <input v-if="data.edit_state"
-          placeholder="Название метки" type="text" class="validate" v-model="data.name" />
+          placeholder="Название метки" type="text" class="validate tag_name" v-model="data.name" />
         <span v-else>{{data.name}}</span>
       </label>
       <span class="badge">{{data.count}}</span>
@@ -67,4 +67,10 @@
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+  input[type=text].tag_name {
+    width: calc(100% - 160px);
+    position: relative;
+    top: -10px;
+    margin: 0px;
+  }
 </style>

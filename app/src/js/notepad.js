@@ -6,8 +6,8 @@ class Notepad {
         _.extend(this, Backbone.Events);
         this._storage_class = storage_class;
         this._configuration = {
-            "tags_per_page": 15,
-            "notes_per_page": 10,
+            "tags_per_page": 999,//15,
+            "notes_per_page": 999,//10,
         };
         this._storage = null;
         this._password = null;
@@ -18,9 +18,12 @@ class Notepad {
         this._filter = {
             "tags": {
                 sorting_asc: true,
+                name: "",
             },
             "notes": {
                 sorting_asc: true,
+                text: "",
+                tags: [],
             },
         }
         this._data = {
@@ -31,6 +34,40 @@ class Notepad {
             "tags_of_note": {},
             "tag_notes": {},
         };
+    }
+
+    set_tags_filter(options) {
+        let keys = ["sorting_asc", "name"];
+        let k, key, value;
+        for(k = 0; k < keys.length; k++) {
+            key = keys[k];
+            value = options[key];
+            if(value != null) {
+                this._filter.tags[key] = value;
+            }
+        }
+        this._reset_tags();
+    }
+
+    set_notes_filter(options) {
+        let keys = ["sorting_asc", "text", "tags"];
+        let k, key, value;
+        for(k = 0; k < keys.length; k++) {
+            key = keys[k];
+            value = options[key];
+            if(value != null) {
+                this._filter.notes[key] = value;
+            }
+        }
+        this._reset_notes();
+    }
+
+    get_tags_filter() {
+        return _.cloneDeep(this._filter.tags);
+    }
+
+    get_notes_filter() {
+        return _.cloneDeep(this._filter.notes);
     }
 
     create() {
@@ -56,25 +93,104 @@ class Notepad {
     _create_initial_data() {
         this._storage.create({
             type: "notepad",
-            name: "вдохновение",
+            name: "Дневник",
         });
-        let first_steps_tag = this._storage.create({
+        let welcome_tag = this._storage.create({
             type: "tag",
-            name: "первые шаги",
+            name: "добро пожаловать",
         });
-        this._storage.create({
+        let lesson_tag = this._storage.create({
             type: "tag",
-            name: "еще тег",
+            name: "обучение",
         });
         let welcome_note = this._storage.create({
             type: "note",
-            text: "Добро пожаловать, ваш путь начинается здесь",
+            text: "Добро пожаловать, это первая запись вашего дневника.",
             created_at: + new Date(),
         });
         this._storage.create({
             type: "tag_note",
-            tag_id: first_steps_tag,
+            tag_id: welcome_tag,
             note_id: welcome_note,
+        });
+        let lesson_note1 = this._storage.create({
+            type: "note",
+            text: "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
+            created_at: + new Date(),
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: lesson_tag,
+            note_id: lesson_note1,
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: welcome_tag,
+            note_id: lesson_note1,
+        });
+
+        let lesson_note2 = this._storage.create({
+            type: "note",
+            text: "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
+            created_at: + new Date(),
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: lesson_tag,
+            note_id: lesson_note2,
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: welcome_tag,
+            note_id: lesson_note2,
+        });
+
+        let lesson_note3 = this._storage.create({
+            type: "note",
+            text: "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
+            created_at: + new Date(),
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: lesson_tag,
+            note_id: lesson_note3,
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: welcome_tag,
+            note_id: lesson_note3,
+        });
+
+        let lesson_note4 = this._storage.create({
+            type: "note",
+            text: "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
+            created_at: + new Date(),
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: lesson_tag,
+            note_id: lesson_note4,
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: welcome_tag,
+            note_id: lesson_note4,
+        });
+
+        let lesson_note5 = this._storage.create({
+            type: "note",
+            text: "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
+            created_at: + new Date(),
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: lesson_tag,
+            note_id: lesson_note5,
+        });
+        this._storage.create({
+            type: "tag_note",
+            tag_id: welcome_tag,
+            note_id: lesson_note5,
         });
     }
 
@@ -198,6 +314,14 @@ class Notepad {
 
     _filter_tags() {
         let tags = _.values(this._data.tags);
+        if(this._filter.tags.name != "") {
+            tags = _.filter(
+                tags,
+                function(tag) {
+                    return tag.name.indexOf(this._filter.tags.name) >= 0
+                }.bind(this)
+            );
+        }
         let order;
         if(this._filter.tags.sorting_asc) {
             order = ["asc"];
@@ -210,6 +334,28 @@ class Notepad {
 
     _filter_notes() {
         let notes = _.values(this._data.notes);
+        if(this._filter.notes.text != "") {
+            notes = _.filter(
+                notes,
+                function(note) {
+                    return note.text.indexOf(this._filter.notes.text) >= 0
+                }.bind(this)
+            )
+        }
+        if(this._filter.notes.tags.length > 0) {
+            for(let k = 0; k < this._filter.notes.tags.length; k++) {
+                let tag = this._filter.notes.tags[k];
+                if(tag) {
+                    let note_ids = this._data.notes_of_tag[tag];
+                    notes = _.filter(
+                        notes,
+                        function(note) {
+                            return note_ids[note.id] === true
+                        }
+                    );
+                }
+            }
+        }
         let order;
         if(this._filter.notes.sorting_asc) {
             order = ["asc"];

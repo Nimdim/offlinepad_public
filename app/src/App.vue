@@ -2,14 +2,36 @@
   <div id="app" v-bind:class="{show_footer: tags.footer.show}">
     <ul id="dropdown1" class="dropdown-content">
       <li><a href="#!">Все</a></li>
-      <li class="divider"></li>
+      <!-- <li class="divider"></li>
       <li><a href="#!">Разбор</a></li>
-      <li><a href="#!">Задачи</a></li>
+      <li><a href="#!">Задачи</a></li> -->
     </ul>
-  
+
     <ul id="dropdown_notepad" class="dropdown-content">
       <li v-for="menu_item in notepad_controls" v-bind:key="menu_item.id">
         <a href="#!" v-on:click="notepad_menu(menu_item.id)">{{menu_item.name}}</a>
+      </li>
+    </ul>
+
+    <ul class="collection notes_extended_filter" v-if="(section == 'notes') && show_notes_filter" style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;" :style="{'top': (header_bottom) + 'px'}">
+      <li>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span v-for="(tag, index) in notes_filter_tags" :key="tag.id" class="chip">
+            <select class="browser-default" v-model="notes_filter_tags[index]">
+              <option value="0" disabled selected>Выберите</option>
+              <option v-for="global_tag in all_tags" :key="global_tag.id"
+                :value="global_tag.id" :selected="tag == global_tag.id">
+                {{global_tag.name}}
+              </option>
+            </select>
+            <i class="material-icons add-tag-to-note"
+              @click="delete_tag(index)">delete</i>
+          </span>
+          <span class="chip"
+            @click="add_tag">
+            <i class="material-icons add-tag-to-note">add</i>
+          </span>
+        </p>
       </li>
     </ul>
 
@@ -48,13 +70,16 @@
         <ul id="tags_filter">
           <li class="search_li">
             <div class="input-field">
-              <input id="search" type="search" v-model="tags.search" required>
+              <input id="search" type="search" v-model="fast_search" required>
               <label class="label-icon" for="search"><i class="material-icons">search</i></label>
-              <i class="material-icons" v-on:click="tags_search_clear">close</i>
+              <i class="material-icons" @click="fast_search = ''">close</i>
             </div>
           </li>
         </ul>
-        <i class="material-icons sort-icon">sort</i>
+        <i class="material-icons sort-icon"
+          @click="sorting_order_asc = !sorting_order_asc">
+          sort
+        </i>
 
         <ul class="right hide-on-med-and-down desktop_menu">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
@@ -69,20 +94,31 @@
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
           </li>
-          <li>
+          <!-- <li>
             <a href="#" class="dropdown-trigger" data-target="dropdown_notepad">
               Блокнот
               <i class="material-icons right" href="#!">arrow_drop_down</i>
             </a>
-          </li>
+          </li> -->
         </ul>
 
-        <ul id="nav-mobile" class="sidenav">
+        <a v-if="section == 'notes'"
+          class="btn-floating btn-small waves-effect waves-light"
+          :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
+          @click="show_notes_filter = !show_notes_filter"
+          style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
+          :style="{'top': (header_bottom) + 'px'}"
+          >
+          <i class="material-icons">drag_handle</i>
+        </a>
+
+        <ul id="nav-mobile" class="sidenav" style="z-index: 1003;">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
             <ul>
-              <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
-              <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li>
+              <li><a href="#!"><i class="material-icons">dashboard</i>Все</a></li>
+              <!-- <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
+              <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li> -->
             </ul>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
@@ -95,52 +131,25 @@
         </ul>
       </div>
     </nav>
+
     <a v-if="section == 'tags'"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
-      :class="{hidden: tags.add_button_hidden}"
+      :class="{hidden: add_button_hidden}"
       @click="show_add_tag_form"
       id="add_tag">
       <i class="material-icons">add</i>
     </a>
     <a v-if="section == 'notes'"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
-      :class="{hidden: notes.add_button_hidden}"
+      :class="{hidden: add_button_hidden}"
       @click="show_add_note_form" id="add_note"
       >
       <i class="material-icons">add</i>
     </a>
+    <warning-screen
+      :visible="warningscreen_visible"
+      @accept="warningscreen_visible=false" />
     <load-screen :visible="loadscreen_visible" />
-
-    
-    <div id="filter_records_modal" class="modal" v-if="section == 'notes'">
-      <div class="modal-content">
-        <h4>Фильтр</h4>
-        <p>
-          <select multiple>
-            <option value="" disabled selected>Выберите метки</option>
-            <option value="1">Работа</option>
-            <option value="2">Задачи</option>
-            <option value="3">Саморазвитие</option>
-            <option value="4">Мысли</option>
-          </select>
-        </p>
-        <p>
-          <label>
-            Дата от:
-            <input type="text" class="datepicker">
-          </label>
-          <label>
-            Дата до:
-            <input type="text" class="datepicker">
-          </label>
-        </p>
-      </div>
-      <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Применить</a>
-      </div>
-    </div>
-  
-
   </div>
 </template>
 
@@ -149,6 +158,7 @@
 import _ from 'lodash'
 
 import LoadScreen from './components/LoadScreen.vue'
+import WarningScreen from './components/WarningScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import TagItem from './components/TagItem.vue'
 
@@ -161,6 +171,7 @@ export default {
   name: 'app',
   components: {
     "load-screen": LoadScreen,
+    "warning-screen": WarningScreen,
     'note-item': NoteItem,
     'tag-item': TagItem,
   },
@@ -168,14 +179,21 @@ export default {
   data: function() {
     var data = {
       notepad_controls: [
-        {id: "create", name: "Создать"},
-        {id: "import", name: "Импорт"},
-        {id: "open", name: "Открыть"},
+        // {id: "create", name: "Создать"},
+        // {id: "import", name: "Импорт"},
+        // {id: "open", name: "Открыть"},
       ],
       loadscreen_visible: true,
-      section: "tags",
+      warningscreen_visible: true,
+      notes_filter_tags: [],
+      section: "notes",
+      fast_search: "",
+      sorting_order_asc: true,
+      add_button_hidden: false,
+      show_notes_filter: false,
+      header_top: 0,
+      header_bottom: 0,
       notes: {
-        add_button_hidden: false,
         form: {
           id: null,
           text: "",
@@ -193,7 +211,6 @@ export default {
         items: [],
       },
       tags: {
-        add_button_hidden: false,
         form: {
           id: null,
           visible: false,
@@ -226,6 +243,49 @@ export default {
       },
       deep: true,
     },
+
+    "section": function(section) {
+      let filter;
+      if(section == "tags") {
+        filter = notepad.get_tags_filter();
+        this.fast_search = filter.name;
+        this.sorting_order_asc = filter.sorting_asc;
+      } else if (section == "notes") {
+        filter = notepad.get_notes_filter();
+        this.fast_search = filter.text;
+        this.sorting_order_asc = filter.sorting_asc;
+      }
+    },
+
+    "notes_filter_tags": function(value) {
+      notepad.set_notes_filter({
+        "tags": value,
+      });
+    },
+  
+    "fast_search": function(value) {
+      if(this.section == "tags") {
+        notepad.set_tags_filter({
+          "name": value,
+        });
+      } else if (this.section == "notes") {
+        notepad.set_notes_filter({
+          "text": value,
+        })
+      }
+    },
+  
+    "sorting_order_asc": function(asc) {
+      if(this.section == "tags") {
+        notepad.set_tags_filter({
+          "sorting_asc": asc,
+        });
+      } else if (this.section == "notes") {
+        notepad.set_notes_filter({
+          "sorting_asc": asc,
+        })
+      }
+    },
   },
   computed: {
     filtered_tags: function() {
@@ -245,12 +305,34 @@ export default {
     },
   },
   mounted: function() {
+    var currenct_scrolltop = window.$(document).scrollTop();
+    var header_top = 0;
+    var header_height = window.$(".header").height();
+    let on_scroll = function() {
+      var scroll = window.$(window.document).scrollTop()
+      var delta = scroll - currenct_scrolltop;
+      header_top -= delta;
+      if(header_top < -header_height) {
+        header_top = -header_height;
+        this.add_button_hidden = true;
+      }
+      if(header_top > 0) {
+        header_top = 0;
+        this.add_button_hidden = false;
+      }
+      window.$(".header").css("top", header_top);
+      this.header_top = header_top;
+      this.header_bottom = header_top + header_height;
+      currenct_scrolltop = scroll;
+    }.bind(this);
+    window.$(window.document).on("scroll", on_scroll);
+    on_scroll();
+
     window.$('.sidenav').sidenav();
     window.M.Modal.init(document.body.querySelectorAll('.modal:not(.no-autoinit)'));
     window.M.Dropdown.init(document.body.querySelectorAll('.dropdown-trigger:not(.no-autoinit)'));
 
     // $('.parallax').parallax();
-    this.loadscreen_visible = false;
     notepad.on("reset_tags", function(tags) {
       this.tags.items = this.wrap_tags(tags);
     }.bind(this));
@@ -268,8 +350,19 @@ export default {
       this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
     }.bind(this));
     notepad.create();
+    setTimeout(
+      function() {this.loadscreen_visible = false;}.bind(this),
+      1000);
   },
   methods: {
+    "add_tag": function() {
+      this.notes_filter_tags.push(0);
+    },
+    
+    "delete_tag": function(index) {
+      this.notes_filter_tags.splice(index, 1);
+    },
+
     wrap_tags: function(tags) {
       let k, item;
       for(k = 0; k < tags.length; k++) {
@@ -332,7 +425,6 @@ export default {
     },
 
     notepad_menu: function(command) {
-      console.log("command", command);
       switch(command) {
         case "create":
           notepad.create();
@@ -351,9 +443,6 @@ export default {
 
     filter_tags: function() {
       // console.log("filter_tags");
-    },
-    tags_search_clear: function() {
-      this.tags.search = "";
     },
     show_add_tag_form: function() {
       this.tags.items.unshift({
