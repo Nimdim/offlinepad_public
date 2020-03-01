@@ -21,7 +21,7 @@ class Notepad {
                 name: "",
             },
             "notes": {
-                sorting_asc: true,
+                sorting_asc: false,
                 text: "",
                 tags: [],
             },
@@ -244,7 +244,10 @@ class Notepad {
     
     _reset_filter() {
         this._filter.tags.sorting_asc = true;
-        this._filter.notes.sorting_asc = true;
+        this._filter.tags.name = "";
+        this._filter.notes.sorting_asc = false;
+        this._filter.notes.text = "";
+        this._filter.notes.tags.splice(0, this._filter.notes.tags.length);
     }
 
     _reset_state() {
@@ -306,6 +309,7 @@ class Notepad {
                 id: item.id,
                 tags: _.map(tags, function(item) {return item.id;}),
                 text: item.text,
+                text_highlighted: item.text_highlighted,
                 creation_time: item.created_at,
             });
         }
@@ -333,7 +337,10 @@ class Notepad {
     }
 
     _filter_notes() {
-        let notes = _.values(this._data.notes);
+        let notes = _.cloneDeep(_.values(this._data.notes));
+        // _.forEach(notes, function(note) {
+        //     note.text_highlighted = note.text;
+        // }.bind(this));
         if(this._filter.notes.text != "") {
             notes = _.filter(
                 notes,
@@ -341,7 +348,11 @@ class Notepad {
                     return note.text.indexOf(this._filter.notes.text) >= 0
                 }.bind(this)
             )
+            // _.forEach(notes, function(note) {
+            //     note.text_highlighted = note.text.replace(new RegExp(this._filter.notes.text, "g"), "<b>" + this._filter.notes.text + "</b>")
+            // }.bind(this));
         }
+
         if(this._filter.notes.tags.length > 0) {
             for(let k = 0; k < this._filter.notes.tags.length; k++) {
                 let tag = this._filter.notes.tags[k];
@@ -434,6 +445,7 @@ class Notepad {
             // this._data.tags_of_note[note_id] = _.without(this._data.tags_of_note[note_id], id);
         }
         delete this._data.notes_of_tag[id];
+        this._reset_notes();
         this._reset_tags();
     }
 

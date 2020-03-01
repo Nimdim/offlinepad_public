@@ -18,21 +18,6 @@
 
 <script>
 export default {
-  name: 'HelloWorld',
-  props: {
-    visible: Boolean
-  },
-  watch: {
-    "visible": function(value) {
-      setTimeout(function() {
-        if(value) {
-          window.$("#loadscreen").fadeIn();
-        } else {
-          window.$("#loadscreen").fadeOut();
-        }
-      }, 0);
-    }
-  },
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

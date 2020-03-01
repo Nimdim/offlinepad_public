@@ -1,44 +1,40 @@
 <template>
   <li class="collection-item" v-on:click="$emit('click', data.id)">
-    <p v-if="delete_prompt !== true">
-      <label v-on:click.stop="">
-        <input type="checkbox" v-model="data.checked"/>
-        <input v-if="data.edit_state"
-          placeholder="Название метки" type="text" class="validate tag_name" v-model="data.name" />
-        <span v-else>{{data.name}}</span>
-      </label>
+    <p>
+      <input v-if="data.edit_state"
+        placeholder="Название метки" type="text" class="validate tag_name" v-model="data.name" />
+      <span class="tag_name" v-else v-html="tag.name_highlighted"></span>
       <span class="badge">{{data.count}}</span>
       <template v-if="data.edit_state">
-        <a class="waves-effect waves-teal btn right tag_delete_btn"
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           v-on:click.prevent.stop="$emit('submit', data)">
           <i class="material-icons">done</i>
         </a>
-        <a class="waves-effect waves-teal btn right tag_delete_btn"
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
           @click.prevent.stop="$emit('cancel', data)">
           <i class="material-icons">cancel</i>
         </a>
       </template>
+      <template v-else-if="delete_prompt">
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn"
+          @click.prevent.stop="delete_prompt = false">
+          <i class="material-icons">cancel</i>
+        </a>
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
+          v-on:click.prevent.stop="$emit('delete', data.id)">
+          <i class="material-icons">delete</i>
+        </a>
+      </template>
       <template v-else>
-        <a class="waves-effect waves-teal btn right tag_delete_btn"
+        <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
           v-on:click.prevent.stop="delete_prompt = true">
           <i class="material-icons">delete</i>
         </a>
-        <a class="waves-effect waves-teal btn right tag_delete_btn"
+        <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
           v-on:click.prevent.stop="edit_item">
           <i class="material-icons">create</i>
         </a>
       </template>
-    </p>
-    <p v-else>
-      <a class="waves-effect waves-teal btn tag_delete_btn"
-        style="margin-right: 10px;"
-        v-on:click.prevent.stop="delete_prompt = false">
-        <i class="material-icons">Отмена</i>
-      </a>
-      <a class="waves-effect waves-teal btn tag_delete_btn"
-        v-on:click.prevent.stop="$emit('delete', data.id)">
-        <i class="material-icons">Удалить</i>
-      </a>
     </p>
   </li>
 </template>
@@ -72,5 +68,12 @@
     position: relative;
     top: -10px;
     margin: 0px;
+  }
+  span.tag_name {
+    width: calc(100% - 160px);
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

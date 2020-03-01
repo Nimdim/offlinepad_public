@@ -26,21 +26,6 @@
 
 <script>
 export default {
-  name: 'HelloWorld',
-  props: {
-    visible: Boolean
-  },
-  watch: {
-    "visible": function(value) {
-      setTimeout(function() {
-        if(value) {
-          window.$("warningscreen").fadeIn();
-        } else {
-          window.$("#warningscreen").fadeOut();
-        }
-      }, 0);
-    }
-  },
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

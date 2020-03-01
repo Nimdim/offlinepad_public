@@ -3,10 +3,7 @@ p {
   text-align: left;
 }
 
-.records {
-  margin-top: 64px;
-}
-.tags {
+.records, .tags {
   margin-top: 64px;
 }
 
@@ -18,12 +15,9 @@ p {
   text-align: left;
 }
 
-@media all (max-width: 480px) {
-  .records {
-    margin-top: 50px;
-  }
-  .tags {
-    margin-top: 50px;
+@media (max-width: 600px) {
+  .records, .tags {
+    margin-top: -3px;
   }
 }
 

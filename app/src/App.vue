@@ -60,7 +60,7 @@
       </p>
     </div>
 
-    <nav class="light-blue lighten-1 header" role="navigation">
+    <nav class="light-blue lighten-1 header" role="navigation" ref="header">
       <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
 
         <a href="#" data-target="nav-mobile" class="sidenav-trigger">
@@ -112,7 +112,7 @@
           <i class="material-icons">drag_handle</i>
         </a>
 
-        <ul id="nav-mobile" class="sidenav" style="z-index: 1003;">
+        <ul id="nav-mobile" class="sidenav" style="z-index: 1003;" ref="nav_mobile">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
             <ul>
@@ -146,16 +146,22 @@
       >
       <i class="material-icons">add</i>
     </a>
-    <warning-screen
-      :visible="warningscreen_visible"
-      @accept="warningscreen_visible=false" />
-    <load-screen :visible="loadscreen_visible" />
+    <transition name="fade">
+      <warning-screen
+        v-if="warningscreen_visible"
+        @accept="warningscreen_visible=false" />
+    </transition>
+    <transition name="fade">
+      <load-screen v-if="loadscreen_visible" />
+    </transition>
   </div>
 </template>
 
 <script>
 
 import _ from 'lodash'
+import moment from 'moment'
+moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
@@ -305,34 +311,9 @@ export default {
     },
   },
   mounted: function() {
-    var currenct_scrolltop = window.$(document).scrollTop();
-    var header_top = 0;
-    var header_height = window.$(".header").height();
-    let on_scroll = function() {
-      var scroll = window.$(window.document).scrollTop()
-      var delta = scroll - currenct_scrolltop;
-      header_top -= delta;
-      if(header_top < -header_height) {
-        header_top = -header_height;
-        this.add_button_hidden = true;
-      }
-      if(header_top > 0) {
-        header_top = 0;
-        this.add_button_hidden = false;
-      }
-      window.$(".header").css("top", header_top);
-      this.header_top = header_top;
-      this.header_bottom = header_top + header_height;
-      currenct_scrolltop = scroll;
-    }.bind(this);
-    window.$(window.document).on("scroll", on_scroll);
-    on_scroll();
+    this.scroll_init();
+    window.M.AutoInit();
 
-    window.$('.sidenav').sidenav();
-    window.M.Modal.init(document.body.querySelectorAll('.modal:not(.no-autoinit)'));
-    window.M.Dropdown.init(document.body.querySelectorAll('.dropdown-trigger:not(.no-autoinit)'));
-
-    // $('.parallax').parallax();
     notepad.on("reset_tags", function(tags) {
       this.tags.items = this.wrap_tags(tags);
     }.bind(this));
@@ -355,6 +336,42 @@ export default {
       1000);
   },
   methods: {
+    scroll_init: function() {
+      var currenct_scrolltop = window.scrollY;
+      var header_top = 0;
+      var header = this.$refs.header;
+      var old_header_height;
+      var header_height = header.clientHeight;
+      old_header_height = header_height;
+      window.addEventListener("resize", function() {
+        old_header_height = header_height;
+        header_height = header.clientHeight;
+        on_scroll();
+      });
+      let on_scroll = function() {
+        var scroll = window.scrollY;
+        var delta = scroll - currenct_scrolltop;
+        header_top -= delta;
+        if(header_top + old_header_height == 0) {
+          header_top = - header_height;
+        }
+        if(header_top < -header_height) {
+          header_top = -header_height;
+          this.add_button_hidden = true;
+        }
+        if(header_top > 0) {
+          header_top = 0;
+          this.add_button_hidden = false;
+        }
+        header.style.top = header_top + "px";
+        this.header_top = header_top;
+        this.header_bottom = header_top + header_height;
+        currenct_scrolltop = scroll;
+      }.bind(this);
+      window.document.addEventListener("scroll", on_scroll);
+      on_scroll();
+    },
+
     "add_tag": function() {
       this.notes_filter_tags.push(0);
     },
@@ -367,6 +384,7 @@ export default {
       let k, item;
       for(k = 0; k < tags.length; k++) {
         item = tags[k];
+        item.name_highlighted = item.name.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
         item.checked = false;
         item.edit_state = false;
       }
@@ -377,6 +395,7 @@ export default {
       let k, item;
       for(k = 0; k < notes.length; k++) {
         item = notes[k];
+        item.text_highlighted = item.text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
         item.checked = false;
         item.edit_state = false;
       }
@@ -438,6 +457,8 @@ export default {
       }
     },
     change_section: function(section) {
+      let menu = window.M.Sidenav.getInstance(this.$refs.nav_mobile);
+      menu.close();
       this.section = section;
     },
 
@@ -519,5 +540,11 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
+  opacity: 0;
 }
 </style>
