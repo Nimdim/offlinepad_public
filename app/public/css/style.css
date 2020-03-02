@@ -15,8 +15,41 @@ p {
   line-height: 2rem;
 }
 
-.sidenav-trigger {
-  color: #26a69a;
+.sidenav-trigger, label[for='search'] {
+  color: white;
+}
+
+.grey_icon {
+  color: #666;
+}
+
+.input-field input[type=search] ~ svg {
+  position: absolute;
+  top: 13px;
+  width: 14px;
+  right: 1rem;
+  color: transparent;
+  cursor: pointer;
+  font-size: 2rem;
+  -webkit-transition: .3s color;
+  transition: .3s color;
+}
+
+nav svg.nav-icon {
+  width: 18px !important;
+  height: 18px !important;
+  margin-top: 16px;
+}
+
+svg.mobile-menu-icon {
+  width: 18px !important;
+  height: 18px !important;
+  margin-right: 8px;
+  color: #666;
+}
+
+.input-field input[type=search]:focus ~ svg {
+  color: #777;
 }
 
 .parallax-container {
@@ -37,10 +70,14 @@ p {
 
 select.browser-default {
   position: relative;
-  top: -2px;
+  top: 1px;
   height: 30px;
   display: inline;
   width: calc(100% - 24px);
+}
+
+.chip > svg[data-icon=trash] {
+  margin-left: 10px;
 }
 
 .multiline-text {

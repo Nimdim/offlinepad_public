@@ -8,31 +8,31 @@
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           v-on:click.prevent.stop="$emit('submit', data)">
-          <i class="material-icons">done</i>
+          <font-awesome-icon icon="check" />
         </a>
         <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
           @click.prevent.stop="$emit('cancel', data)">
-          <i class="material-icons">cancel</i>
+          <font-awesome-icon icon="times-circle" />
         </a>
       </template>
       <template v-else-if="delete_prompt">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           @click.prevent.stop="delete_prompt = false">
-          <i class="material-icons">cancel</i>
+          <font-awesome-icon icon="times-circle" />
         </a>
         <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
           v-on:click.prevent.stop="$emit('delete', data.id)">
-          <i class="material-icons">delete</i>
+          <font-awesome-icon icon="trash" />
         </a>
       </template>
       <template v-else>
         <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
           v-on:click.prevent.stop="delete_prompt = true">
-          <i class="material-icons">delete</i>
+          <font-awesome-icon icon="trash" class="grey_icon" />
         </a>
         <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
           v-on:click.prevent.stop="edit_item">
-          <i class="material-icons">create</i>
+          <font-awesome-icon icon="pen" class="grey_icon" />
         </a>
       </template>
     </p>

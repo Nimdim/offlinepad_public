@@ -24,12 +24,13 @@
                 {{global_tag.name}}
               </option>
             </select>
-            <i class="material-icons add-tag-to-note"
-              @click="delete_tag(index)">delete</i>
+            <font-awesome-icon icon="trash"
+              @click="delete_tag(index)"/>
           </span>
           <span class="chip"
             @click="add_tag">
-            <i class="material-icons add-tag-to-note">add</i>
+            
+            <font-awesome-icon icon="plus" />
           </span>
         </p>
       </li>
@@ -64,42 +65,43 @@
       <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
 
         <a href="#" data-target="nav-mobile" class="sidenav-trigger">
-          <i class="material-icons">menu</i>
+          <font-awesome-icon class="nav-icon" icon="bars" />
         </a>
 
         <ul id="tags_filter">
           <li class="search_li">
             <div class="input-field">
               <input id="search" type="search" v-model="fast_search" required>
-              <label class="label-icon" for="search"><i class="material-icons">search</i></label>
-              <i class="material-icons" @click="fast_search = ''">close</i>
+              <label class="label-icon" for="search">
+                <font-awesome-icon class="nav-icon" icon="search" />
+              </label>
+              <font-awesome-icon icon="times" @click="fast_search = ''" />
             </div>
           </li>
         </ul>
-        <i class="material-icons sort-icon"
-          @click="sorting_order_asc = !sorting_order_asc">
-          sort
-        </i>
+        <font-awesome-icon v-if="sorting_order_asc"
+          icon="sort-amount-up"
+          class="nav-icon"
+          @click="sorting_order_asc = !sorting_order_asc" />
+        <font-awesome-icon v-else
+          icon="sort-amount-down-alt"
+          class="nav-icon"
+          @click="sorting_order_asc = !sorting_order_asc" />
 
         <ul class="right hide-on-med-and-down desktop_menu">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a>
               Записи
-              <i class="material-icons right dropdown-trigger separate-dropdown" href="#!" data-target="dropdown1" v-on:click.stop="">arrow_drop_down</i>
             </a>
           </li>
-          <!-- <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
-            <a href="#">Записи</a>
-          </li> -->
+          <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
+            <a style="padding: 0px 5px;">
+              <font-awesome-icon icon="caret-down" style="height: 64px;" class="right" v-on:click.stop="" />
+            </a>
+          </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
           </li>
-          <!-- <li>
-            <a href="#" class="dropdown-trigger" data-target="dropdown_notepad">
-              Блокнот
-              <i class="material-icons right" href="#!">arrow_drop_down</i>
-            </a>
-          </li> -->
         </ul>
 
         <a v-if="section == 'notes'"
@@ -109,16 +111,19 @@
           style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
           :style="{'top': (header_bottom) + 'px'}"
           >
-          <i class="material-icons">drag_handle</i>
+          <font-awesome-icon v-if="!show_notes_filter"
+            icon="angle-down" />
+          <font-awesome-icon v-else
+            icon="angle-up" />
         </a>
 
         <ul id="nav-mobile" class="sidenav" style="z-index: 1003;" ref="nav_mobile">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
             <ul>
-              <li><a href="#!"><i class="material-icons">dashboard</i>Все</a></li>
-              <!-- <li><a href="#!"><i class="material-icons">dashboard</i>Разбор</a></li>
-              <li><a href="#!"><i class="material-icons">dashboard</i>Задачи</a></li> -->
+              <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Все</a></li>
+              <!-- <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Разбор</a></li>
+              <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Задачи</a></li> -->
             </ul>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
@@ -137,14 +142,14 @@
       :class="{hidden: add_button_hidden}"
       @click="show_add_tag_form"
       id="add_tag">
-      <i class="material-icons">add</i>
+      <font-awesome-icon icon="plus" />
     </a>
     <a v-if="section == 'notes'"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: add_button_hidden}"
       @click="show_add_note_form" id="add_note"
       >
-      <i class="material-icons">add</i>
+      <font-awesome-icon icon="plus" />
     </a>
     <transition name="fade">
       <warning-screen
@@ -190,11 +195,11 @@ export default {
         // {id: "open", name: "Открыть"},
       ],
       loadscreen_visible: true,
-      warningscreen_visible: true,
+      warningscreen_visible: false,
       notes_filter_tags: [],
       section: "notes",
       fast_search: "",
-      sorting_order_asc: true,
+      sorting_order_asc: false,
       add_button_hidden: false,
       show_notes_filter: false,
       header_top: 0,

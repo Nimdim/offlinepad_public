@@ -4,17 +4,17 @@
       <template v-if="data.edit_state">
         <p>
           <span class="timestamp">
-            <i class="material-icons">access_time</i>&nbsp;
+            <font-awesome-icon icon="calendar-alt" />&nbsp;
             <span>{{data.creation_time | note_datetime}}</span>
           </span>
 
           <a class="waves-effect waves-teal btn-small right"
             v-on:click.prevent.stop="submit">
-            <i class="material-icons">done</i>
+            <font-awesome-icon icon="check" />
           </a>
           <a class="waves-effect waves-teal btn-small right red"
             @click.prevent.stop="$emit('cancel', data)">
-            <i class="material-icons">cancel</i>
+            <font-awesome-icon icon="times-circle" />
           </a>
         </p>
         <p>
@@ -26,12 +26,11 @@
                 {{global_tag.name}}
               </option>
             </select>
-            <i class="material-icons add-tag-to-note"
-              @click="delete_tag(index)">delete</i>
+            <font-awesome-icon icon="trash" @click="delete_tag(index)" />
           </span>
           <span class="chip"
             @click="add_tag">
-            <i class="material-icons add-tag-to-note">add</i>
+            <font-awesome-icon icon="plus" />
           </span>
         </p>
         <textarea ref="textarea" class="materialize-textarea" v-model="data.text"></textarea>
@@ -39,31 +38,25 @@
       <template v-else>
         <p>
           <span class="timestamp">
-            <i class="material-icons">access_time</i>&nbsp;
+            <font-awesome-icon icon="calendar-alt" class="grey_icon" style="width: 16px; height: 16px;" />&nbsp;
             <span>{{data.creation_time | note_datetime}}</span>
           </span>
           <template v-if="delete_prompt">
             <a class="waves-effect waves-teal btn-small right"
               @click.prevent.stop="delete_prompt = false">
-              <i class="material-icons">cancel</i>
+              <font-awesome-icon icon="times-circle" />
             </a>
             <a class="waves-effect waves-teal btn-small right red"
               v-on:click.prevent.stop="$emit('delete', data.id)">
-              <i class="material-icons">delete</i>
+              <font-awesome-icon icon="trash" />
             </a>
           </template>
           <template v-else>
             <a class="waves-effect waves-teal btn-flat btn-small right">
-              <i class="material-icons"
-                @click.prevent.stop="delete_prompt = true">
-                delete
-              </i>
+              <font-awesome-icon icon="trash" class="grey_icon" @click.prevent.stop="delete_prompt = true" />
             </a>
             <a class="waves-effect waves-teal btn-flat btn-small right">
-              <i class="material-icons"
-                @click.prevent.stop="edit_item">
-                create
-              </i>
+              <font-awesome-icon icon="pen" class="grey_icon" @click.prevent.stop="edit_item" />
             </a>
           </template>
         </p>
@@ -73,17 +66,6 @@
         <p class="multiline-text"><span v-html="note.text_highlighted"></span></p>
       </template>
     </span>
-    <!-- <p v-else>
-      <a class="waves-effect waves-teal btn-flat btn-small tag_delete_btn"
-        style="margin-right: 10px;"
-        v-on:click.prevent.stop="delete_prompt = false">
-        <i class="material-icons">Отмена</i>
-      </a>
-      <a class="waves-effect waves-teal btn-flat btn-small tag_delete_btn"
-        v-on:click.prevent.stop="$emit('delete', data.id)">
-        <i class="material-icons">Удалить</i>
-      </a>
-    </p> -->
   </li>
 </template>
 

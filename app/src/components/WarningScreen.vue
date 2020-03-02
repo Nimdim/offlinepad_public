@@ -17,7 +17,7 @@
           name="action"
           @click="$emit('accept')">
           Хорошо
-          <i class="material-icons right">check</i>
+          <font-awesome-icon icon="check" />
         </button>
       </p>
     </span>
