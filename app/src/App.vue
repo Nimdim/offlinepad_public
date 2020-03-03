@@ -195,7 +195,7 @@ export default {
         // {id: "open", name: "Открыть"},
       ],
       loadscreen_visible: true,
-      warningscreen_visible: false,
+      warningscreen_visible: true,
       notes_filter_tags: [],
       section: "notes",
       fast_search: "",
