@@ -320,7 +320,6 @@ export default {
     window.M.AutoInit();
 
     notepad.on("reset_tags", function(tags) {
-      debugger
       this.tags.items = this.wrap_tags(tags);
     }.bind(this));
     notepad.on("append_tags", function(tags) {
@@ -331,7 +330,6 @@ export default {
     }.bind(this));
 
     notepad.on("reset_notes", function(notes) {
-      debugger
       this.notes.items = this.wrap_notes(notes);
     }.bind(this));
     notepad.on("append_notes", function(notes) {
@@ -355,105 +353,39 @@ export default {
         type: "notepad",
         name: "Дневник",
     });
-    let welcome_tag = notepad._storage.create({
-        type: "tag",
-        name: "добро пожаловать",
-    });
-    let lesson_tag = notepad._storage.create({
-        type: "tag",
-        name: "обучение",
-    });
-    let welcome_note = notepad._storage.create({
-        type: "note",
-        text: "Добро пожаловать, это первая запись вашего дневника.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: welcome_note,
-    });
-    let lesson_note1 = notepad._storage.create({
-        type: "note",
-        text: "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: lesson_tag,
-        note_id: lesson_note1,
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: lesson_note1,
-    });
+    let welcome_tag = notepad.create_tag("добро пожаловать");
+    let lesson_tag = notepad.create_tag("обучение");
 
-    let lesson_note2 = notepad._storage.create({
-        type: "note",
-        text: "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: lesson_tag,
-        note_id: lesson_note2,
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: lesson_note2,
-    });
-
-    let lesson_note3 = notepad._storage.create({
-        type: "note",
-        text: "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: lesson_tag,
-        note_id: lesson_note3,
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: lesson_note3,
-    });
-
-    let lesson_note4 = notepad._storage.create({
-        type: "note",
-        text: "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: lesson_tag,
-        note_id: lesson_note4,
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: lesson_note4,
-    });
-
-    let lesson_note5 = notepad._storage.create({
-        type: "note",
-        text: "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
-        created_at: + new Date(),
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: lesson_tag,
-        note_id: lesson_note5,
-    });
-    notepad._storage.create({
-        type: "tag_note",
-        tag_id: welcome_tag,
-        note_id: lesson_note5,
-    });
-    notepad._load_data();
-    notepad._reset_state();
+    notepad.create_note(
+        "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
+        + new Date(),
+        [welcome_tag, lesson_tag]
+    );
+    notepad.create_note(
+        "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
+        + new Date() + 1,
+        [welcome_tag, lesson_tag]
+    );
+    notepad.create_note(
+        "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
+        + new Date() + 2,
+        [welcome_tag, lesson_tag]
+    );
+    notepad.create_note(
+        "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
+        + new Date() + 3,
+        [welcome_tag, lesson_tag]
+    );
+    notepad.create_note(
+        "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
+        + new Date() + 4,
+        [welcome_tag, lesson_tag]
+    );
+    notepad.create_note(
+        "Добро пожаловать, это первая запись вашего дневника.",
+        + new Date() + 5,
+        [welcome_tag]
+    );
 
     setTimeout(
       function() {this.loadscreen_visible = false;}.bind(this),

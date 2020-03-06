@@ -317,6 +317,7 @@ class Notepad {
         this._data.notes_of_tag[tag_id] = {};
         this._data.tags[tag_id] = this._storage.get(tag_id);
         this._reset_tags();
+        return tag_id;
     }
 
     edit_tag(id, name) {
@@ -372,6 +373,7 @@ class Notepad {
 
         this._reset_notes();
         this._reset_tags();
+        return note_id;
     }
 
     create_tag_note(tag_id, note_id) {
