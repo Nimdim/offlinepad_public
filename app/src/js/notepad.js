@@ -235,9 +235,6 @@ class Notepad {
 
     _filter_notes() {
         let notes = _.cloneDeep(_.values(this._data.notes));
-        // _.forEach(notes, function(note) {
-        //     note.text_highlighted = note.text;
-        // }.bind(this));
         if(this._filter.notes.text != "") {
             notes = _.filter(
                 notes,
@@ -245,9 +242,6 @@ class Notepad {
                     return note.text.indexOf(this._filter.notes.text) >= 0
                 }.bind(this)
             )
-            // _.forEach(notes, function(note) {
-            //     note.text_highlighted = note.text.replace(new RegExp(this._filter.notes.text, "g"), "<b>" + this._filter.notes.text + "</b>")
-            // }.bind(this));
         }
 
         if(this._filter.notes.tags.length > 0) {
