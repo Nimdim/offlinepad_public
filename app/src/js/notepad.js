@@ -79,7 +79,6 @@ class Notepad {
                 password: null,
             };
             this._storage = new this._storage_class(options);
-            this._create_initial_data();
             this._reset_filter();
             this._load_data();
             this._reset_state();
@@ -88,110 +87,6 @@ class Notepad {
         } else {
             return false;
         }
-    }
-
-    _create_initial_data() {
-        this._storage.create({
-            type: "notepad",
-            name: "Дневник",
-        });
-        let welcome_tag = this._storage.create({
-            type: "tag",
-            name: "добро пожаловать",
-        });
-        let lesson_tag = this._storage.create({
-            type: "tag",
-            name: "обучение",
-        });
-        let welcome_note = this._storage.create({
-            type: "note",
-            text: "Добро пожаловать, это первая запись вашего дневника.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: welcome_note,
-        });
-        let lesson_note1 = this._storage.create({
-            type: "note",
-            text: "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: lesson_tag,
-            note_id: lesson_note1,
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: lesson_note1,
-        });
-
-        let lesson_note2 = this._storage.create({
-            type: "note",
-            text: "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: lesson_tag,
-            note_id: lesson_note2,
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: lesson_note2,
-        });
-
-        let lesson_note3 = this._storage.create({
-            type: "note",
-            text: "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: lesson_tag,
-            note_id: lesson_note3,
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: lesson_note3,
-        });
-
-        let lesson_note4 = this._storage.create({
-            type: "note",
-            text: "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: lesson_tag,
-            note_id: lesson_note4,
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: lesson_note4,
-        });
-
-        let lesson_note5 = this._storage.create({
-            type: "note",
-            text: "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
-            created_at: + new Date(),
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: lesson_tag,
-            note_id: lesson_note5,
-        });
-        this._storage.create({
-            type: "tag_note",
-            tag_id: welcome_tag,
-            note_id: lesson_note5,
-        });
     }
 
     _load_data() {
@@ -248,6 +143,8 @@ class Notepad {
         this._filter.notes.sorting_asc = false;
         this._filter.notes.text = "";
         this._filter.notes.tags.splice(0, this._filter.notes.tags.length);
+        let data = _.cloneDeep(this._filter);
+        this.trigger("reset_filter", data);
     }
 
     _reset_state() {
