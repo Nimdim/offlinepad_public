@@ -5,7 +5,7 @@ import { assert } from "chai";
 
 
 describe("notepad simle tests", function() {
-    let notepad = new Notepad(VariableStorage);
+    let notepad = new Notepad(new VariableStorage());
     let tag_id;
     let note_id;
     let tags_events = [];
@@ -107,7 +107,7 @@ describe("notepad simle tests", function() {
 });
 
 describe("notepad tags and notes", function() {
-    let notepad = new Notepad(VariableStorage);
+    let notepad = new Notepad(new VariableStorage());
     let tag_id1, tag_id2, tag_id3;
     let note_id1, note_id2;
     let tags_events = [];

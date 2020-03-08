@@ -2,14 +2,18 @@ import Backbone from "backbone";
 import _ from "lodash";
 
 class Notepad {
-    constructor(storage_class) {
+    constructor(storage) {
         _.extend(this, Backbone.Events);
-        this._storage_class = storage_class;
         this._configuration = {
             "tags_per_page": 999,//15,
             "notes_per_page": 999,//10,
         };
-        this._storage = null;
+        this._storage = storage;
+        this._reset_internal_state();
+    }
+
+    _reset_internal_state() {
+        this._set_working(false);
         this._password = null;
         this._state = {
             "notes": [],
@@ -71,22 +75,33 @@ class Notepad {
     }
 
     create() {
-        // создать базовые объекты, описывающие блокнот
-        // переход в состояние "с блокнотом"
-        if(this._storage == null) {
+        if(!this._working) {
             let options = {
                 with_password: false,
                 password: null,
             };
-            this._storage = new this._storage_class(options);
+            this._storage.set_options(options);
             this._reset_filter();
             this._load_data();
             this._reset_state();
+            this._set_working(true);
             // this.unlock(password);
             return true;
         } else {
             return false;
         }
+    }
+
+    sync() {
+        this._reset_filter();
+        this._load_data();
+        this._reset_state();
+        this._set_working(this._working);
+    }
+
+    _set_working(state) {
+        this._working = state;
+        this.trigger("working", this._working);
     }
 
     _load_data() {
@@ -95,6 +110,7 @@ class Notepad {
             switch(object.type) {
                 case "notepad":
                     this._data.notepad = object;
+                    this._working = true;
                     break;
                 case "tag":
                     this._data.tags[key] = object;
@@ -269,10 +285,9 @@ class Notepad {
     }
 
     close() {
-        this.lock();
-
-        // очистка хранилища
-        // переход в состояние "без блокнота"
+        this._reset_internal_state();
+        this._reset_state();
+        this._storage.clear();
     }
 
     // open_notepad() {
@@ -329,12 +344,6 @@ class Notepad {
         for(let index = 0; index < note_ids.length; index++) {
             let note_id = note_ids[index];
             this.delete_tag_note(id, note_id);
-            // let tag_note_key = this.tag_note_key(id, note_id);
-            // let tag_note_id = this._data.tag_notes[tag_note_key].id;
-
-            // this._storage.delete(tag_note_id);
-            // delete this._data.tag_notes[tag_note_key];
-            // this._data.tags_of_note[note_id] = _.without(this._data.tags_of_note[note_id], id);
         }
         delete this._data.notes_of_tag[id];
         this._reset_notes();
@@ -372,6 +381,7 @@ class Notepad {
 
     create_tag_note(tag_id, note_id) {
         let tag_note_id = this._storage.create({
+            "type": "tag_note",
             "tag_id": tag_id,
             "note_id": note_id,
         });
@@ -410,11 +420,6 @@ class Notepad {
         this._storage.delete(id);
         delete this._data.notes[id];
         this.apply_note_tags(id, []);
-        // let tag_ids = _.keys(this._data.tags_of_note[id]);
-        // for(let index = 0; index < tag_ids.length; index++) {
-        //     let tag_id = tag_ids[index];
-        //     this.delete_tag_note(tag_id, id);
-        // }
         delete this._data.tags_of_note[id];
         this._reset_notes();
         this._reset_tags();

@@ -1,17 +1,34 @@
 <template>
-  <div id="app" v-bind:class="{show_footer: tags.footer.show}">
-    <ul id="dropdown1" class="dropdown-content">
-      <li><a href="#!">Все</a></li>
-      <!-- <li class="divider"></li>
-      <li><a href="#!">Разбор</a></li>
-      <li><a href="#!">Задачи</a></li> -->
-    </ul>
+  <div id="app">
+    <popup
+      ref="notes_popup"
+      :items="notes_filters"
+    />
+    <popup
+      ref="notepad_popup"
+      :items="active_notepad_controls"
+      @click="notepad_menu"
+    />
 
-    <ul id="dropdown_notepad" class="dropdown-content">
-      <li v-for="menu_item in notepad_controls" v-bind:key="menu_item.id">
-        <a href="#!" v-on:click="notepad_menu(menu_item.id)">{{menu_item.name}}</a>
-      </li>
-    </ul>
+    <div style="width: 100%; height: 100%; position: fixed; left: 0px; top: 0px;" v-if="!notepad_working">
+      <span class="center_span">
+        <font-awesome-icon icon="box-open" style="width: 200px; height: 200px; color: gray;" />
+      </span>
+    </div>
+
+    <div style="width: 100%; height: 100%; position: fixed; left: 0px; top: 0px;" v-if="notepad_delete_mode">
+      <span class="center_span">
+        <p>при заркытии блокнота все данные будут потеряны</p>
+        <a class="waves-effect waves-teal btn-small red"
+          v-on:click.prevent.stop="notepad_delete">
+          закрыть
+        </a>
+        <a class="waves-effect waves-teal btn-small "
+          @click.prevent.stop="notepad_delete_mode = false">
+          отмена
+        </a>        
+      </span>
+    </div>
 
     <ul class="collection notes_extended_filter" v-if="(section == 'notes') && show_notes_filter" style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;" :style="{'top': (header_bottom) + 'px'}">
       <li>
@@ -28,7 +45,7 @@
               @click="delete_tag(index)"/>
           </span>
           <span class="chip"
-            @click="add_tag">
+            @click="add_tag_to_filter">
             
             <font-awesome-icon icon="plus" />
           </span>
@@ -36,7 +53,7 @@
       </li>
     </ul>
 
-    <ul class="collection tags" v-if="section == 'tags'">
+    <ul class="collection tags" v-if="section == 'tags' && notepad_working && !notepad_delete_mode">
       <tag-item v-for="tag in tags.items" :key="tag.id"
         :tag="tag"
         @submit="submit_tag"
@@ -44,7 +61,7 @@
         @delete="remove_tag" />
     </ul>
 
-    <ul class="collection records" v-if="section == 'notes'">
+    <ul class="collection records" v-if="section == 'notes' && notepad_working && !notepad_delete_mode">
       <note-item v-for="note in notes.items" :key="note.id"
         :note="note"
         :tags="all_tags"
@@ -54,12 +71,12 @@
         />
     </ul>
 
-    <div class="tags_footer" v-if="section == 'tags'">
+    <!-- <div class="tags_footer" v-if="section == 'tags'">
       <p>
         Найдено {{tags.footer.found}} записей
         <a href="#!" class="modal-close waves-effect waves-green btn" v-on:click="filter_tags">Показать</a>
       </p>
-    </div>
+    </div> -->
 
     <nav class="light-blue lighten-1 header" role="navigation" ref="header">
       <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
@@ -95,12 +112,31 @@
             </a>
           </li>
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
-            <a style="padding: 0px 5px;">
-              <font-awesome-icon icon="caret-down" style="height: 64px;" class="right" v-on:click.stop="" />
+            <a
+              style="padding: 0px 5px;"
+              @click.stop="show_notes_popup($event)"
+            >
+              <font-awesome-icon
+                icon="caret-down"
+                style="height: 64px;"
+                class="right"
+              />
             </a>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
+          </li>
+          <li>
+            <a 
+              @click.stop="show_notepad_popup($event)"
+            >
+              Блокнот
+              <font-awesome-icon
+                icon="caret-down"
+                style="height: 64px; margin-left: 5px;"
+                class="right"
+              />
+            </a>
           </li>
         </ul>
 
@@ -130,21 +166,23 @@
             <a href="#">Метки</a>
           </li>
           <li class="divider"></li>
-          <li v-for="menu_item in notepad_controls" v-on:click="notepad_menu(menu_item.id)" v-bind:key="menu_item.id">
+          <li v-for="menu_item in active_notepad_controls" :key="menu_item.id"
+            @click="notepad_menu_mob(menu_item.id)"
+          >
             <a href="#">{{menu_item.name}}</a>
           </li>
         </ul>
       </div>
     </nav>
 
-    <a v-if="section == 'tags'"
+    <a v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: add_button_hidden}"
-      @click="show_add_tag_form"
+      @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="plus" />
     </a>
-    <a v-if="section == 'notes'"
+    <a v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: add_button_hidden}"
       @click="show_add_note_form" id="add_note"
@@ -164,7 +202,6 @@
 
 <script>
 
-import _ from 'lodash'
 import moment from 'moment'
 moment.locale("ru");
 
@@ -172,27 +209,37 @@ import LoadScreen from './components/LoadScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import TagItem from './components/TagItem.vue'
+import Popup from './components/Popup.vue'
 
-import VariableStorage from "./js/variable_storage.js"
+// import VariableStorage from "./js/variable_storage.js"
+import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 
-var notepad = new Notepad(VariableStorage);
+var notepad = new Notepad(new LocalStorage());
 
 export default {
   name: 'app',
   components: {
-    "load-screen": LoadScreen,
-    "warning-screen": WarningScreen,
-    'note-item': NoteItem,
-    'tag-item': TagItem,
+    LoadScreen,
+    WarningScreen,
+    NoteItem,
+    TagItem,
+    Popup,
   },
 
   data: function() {
     var data = {
+      notes_filters: [
+        {
+          "id": "all",
+          "name": "Все",
+        },
+      ],
       notepad_controls: [
-        // {id: "create", name: "Создать"},
-        // {id: "import", name: "Импорт"},
-        // {id: "open", name: "Открыть"},
+        {id: "create", name: "Создать"},
+        {id: "open", name: "Открыть"},
+        {id: "save", name: "Сохранить"},
+        {id: "close", name: "Закрыть"},
       ],
       loadscreen_visible: true,
       warningscreen_visible: true,
@@ -204,14 +251,9 @@ export default {
       show_notes_filter: false,
       header_top: 0,
       header_bottom: 0,
+      notepad_working: false,
+      notepad_delete_mode: false,
       notes: {
-        form: {
-          id: null,
-          text: "",
-          action: "",
-          tags: [],
-          visible: false,
-        },
         order_by_timestamp: "asc",
         filter: {
           text: "",
@@ -222,17 +264,7 @@ export default {
         items: [],
       },
       tags: {
-        form: {
-          id: null,
-          visible: false,
-          text: "",
-          action: "",
-        },
         search: '',
-        footer: {
-          show: false,
-          found: 66,
-        },
         items: [],
       },
       all_tags: [],
@@ -240,21 +272,6 @@ export default {
     return data;
   },
   watch: {
-    "tags.items": {
-      "handler": function() {
-        var selected = [];
-        var k, item;
-        for(k = 0; k < this.tags.items.length; k++) {
-          item = this.tags.items[k];
-          if(item.checked) {
-            selected.push(item.id);
-          }
-        }
-        this.tags.footer.show = selected.length > 0;
-      },
-      deep: true,
-    },
-
     "section": function(section) {
       let filter;
       if(section == "tags") {
@@ -299,22 +316,15 @@ export default {
     },
   },
   computed: {
-    filtered_tags: function() {
-      if(this.tags.search == "") {
-        return this.tags.items;
+    "active_notepad_controls": function() {
+      if(this.notepad_working) {
+        return this.notepad_controls.slice(3, 4);
+      } else {
+        return this.notepad_controls.slice(0, 1);
       }
-      var result = [];
-      var re = new RegExp(this.tags.search, "i");
-      var k, item;
-      for(k = 0; k< this.tags.items.length; k++) {
-        item = this.tags.items[k];
-        if(re.test(item.name)) {
-          result.push(item);
-        }
-      }
-      return result;
     },
   },
+
   mounted: function() {
     this.scroll_init();
     window.M.AutoInit();
@@ -336,6 +346,10 @@ export default {
       this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
     }.bind(this));
 
+    notepad.on("working", function(working) {
+      this.notepad_working = working;
+    }.bind(this));
+
     notepad.on("reset_filter", function(filter) {
       this.notes_filter_tags = filter.notes.tags;
       if(this.section == "notes") {
@@ -348,50 +362,71 @@ export default {
         throw new Error("error");
       }
     }.bind(this));
-    notepad.create();
-    notepad._storage.create({
-        type: "notepad",
-        name: "Дневник",
-    });
-    let welcome_tag = notepad.create_tag("добро пожаловать");
-    let lesson_tag = notepad.create_tag("обучение");
 
-    notepad.create_note(
-        "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
-        + new Date(),
-        [welcome_tag, lesson_tag]
-    );
-    notepad.create_note(
-        "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
-        + new Date() + 1,
-        [welcome_tag, lesson_tag]
-    );
-    notepad.create_note(
-        "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
-        + new Date() + 2,
-        [welcome_tag, lesson_tag]
-    );
-    notepad.create_note(
-        "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
-        + new Date() + 3,
-        [welcome_tag, lesson_tag]
-    );
-    notepad.create_note(
-        "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
-        + new Date() + 4,
-        [welcome_tag, lesson_tag]
-    );
-    notepad.create_note(
-        "Добро пожаловать, это первая запись вашего дневника.",
-        + new Date() + 5,
-        [welcome_tag]
-    );
+    notepad.sync();
 
     setTimeout(
       function() {this.loadscreen_visible = false;}.bind(this),
       1000);
   },
   methods: {
+    notepad_delete: function() {
+      notepad.close();
+      this.notepad_delete_mode = false;
+    },
+
+    create_notepad_data: function() {
+      notepad._storage.create({
+          type: "notepad",
+          name: "Дневник",
+      });
+      let welcome_tag = notepad.create_tag("добро пожаловать");
+      let lesson_tag = notepad.create_tag("обучение");
+
+      notepad.create_note(
+          "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
+          + new Date(),
+          [welcome_tag, lesson_tag]
+      );
+      notepad.create_note(
+          "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
+          + new Date() + 1,
+          [welcome_tag, lesson_tag]
+      );
+      notepad.create_note(
+          "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
+          + new Date() + 2,
+          [welcome_tag, lesson_tag]
+      );
+      notepad.create_note(
+          "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
+          + new Date() + 3,
+          [welcome_tag, lesson_tag]
+      );
+      notepad.create_note(
+          "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
+          + new Date() + 4,
+          [welcome_tag, lesson_tag]
+      );
+      notepad.create_note(
+          "Добро пожаловать, это первая запись вашего дневника.",
+          + new Date() + 5,
+          [welcome_tag]
+      );
+    },
+
+    show_notes_popup: function(e) {
+      let el = e.currentTarget;
+      let rect = el.getBoundingClientRect();
+      this.$refs.notes_popup.toggle(rect.right, this.header_bottom);
+    },
+
+    show_notepad_popup: function(e) {
+      let el = e.currentTarget;
+      let rect = el.getBoundingClientRect();
+      this.$refs.notepad_popup.toggle(rect.right, this.header_bottom);
+    },
+
     scroll_init: function() {
       var currenct_scrolltop = window.scrollY;
       var header_top = 0;
@@ -428,7 +463,7 @@ export default {
       on_scroll();
     },
 
-    "add_tag": function() {
+    "add_tag_to_filter": function() {
       this.notes_filter_tags.push(0);
     },
     
@@ -441,7 +476,6 @@ export default {
       for(k = 0; k < tags.length; k++) {
         item = tags[k];
         item.name_highlighted = item.name.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
-        item.checked = false;
         item.edit_state = false;
       }
       return tags;
@@ -452,7 +486,6 @@ export default {
       for(k = 0; k < notes.length; k++) {
         item = notes[k];
         item.text_highlighted = item.text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
-        item.checked = false;
         item.edit_state = false;
       }
       return notes;
@@ -499,29 +532,43 @@ export default {
       notepad.delete_note(note_id);
     },
 
+    notepad_menu_mob: function(command) {
+      this.close_nav();
+      this.notepad_menu(command);
+    },
+
     notepad_menu: function(command) {
       switch(command) {
         case "create":
           notepad.create();
-          break;
-        case "import":
-          notepad.import();
+          this.create_notepad_data();
           break;
         case "open":
           notepad.open();
           break;
+        case "save":
+          notepad.save();
+          break;
+        case "close":
+          this.notepad_delete_mode = true;
+          break;
       }
     },
+
     change_section: function(section) {
+      this.close_nav();
+      this.section = section;
+    },
+
+    close_nav: function() {
       let menu = window.M.Sidenav.getInstance(this.$refs.nav_mobile);
       menu.close();
-      this.section = section;
     },
 
     filter_tags: function() {
       // console.log("filter_tags");
     },
-    show_add_tag_form: function() {
+    add_tag: function() {
       this.tags.items.unshift({
         "id": "__new_item__",
         "edit_state": true,
@@ -538,50 +585,6 @@ export default {
         "text": "Новая запись",
         "creation_time": + new Date(),
       })
-    },
-    tag_form_ok: function() {
-      if(this.tags.form.action == "add") {
-        var item = {
-          check: false,
-          id: +(new Date()),
-          name: this.tags.form.text,
-          count: 0,
-          hidden: false,
-        };
-        this.tags.items.push(item);
-      }
-      if(this.tags.form.action == "edit") {
-        var tag = _.find(this.tags.items, {id: this.tags.form.id});
-        if(tag != null) {
-          tag.name = this.tags.form.text;
-        }
-      }
-      this.tags.form.visible = false;
-    },
-    tag_form_cancel: function() {
-      this.tags.form.visible = false;
-    },
-    note_form_ok: function() {
-      if(this.notes.form.action == "add") {
-        var item = {
-          id: +(new Date()),
-          creation_time: +(new Date()),
-          text: this.notes.form.text,
-          count: 0,
-          hidden: false,
-        };
-        this.notes.items.push(item);
-      }
-      if(this.notes.form.action == "edit") {
-        var note = _.find(this.notes.items, {id: this.notes.form.id});
-        if(note != null) {
-          note.text = this.notes.form.text;
-        }
-      }
-      this.notes.form.visible = false;
-    },
-    note_form_cancel: function() {
-      this.notes.form.visible = false;
     },
   }
 

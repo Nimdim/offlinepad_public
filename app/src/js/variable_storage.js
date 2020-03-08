@@ -1,47 +1,49 @@
-
+import StorageInterface from "./storage_interface.js"
 import _ from "lodash";
 
-class VariableStorage {
-    constructor() {
+class VariableStorage extends StorageInterface {
+    _init_storage() {
         this._storage = {};
-        this._file_data = {};
     }
 
-    get(id) {
-        let value = _.cloneDeep(this._storage[id]);
-        value.id = id;
-        return value;
+    _reset_internal_state() {
+        this._autoincrement_id = 0;
+        super._reset_internal_state();
     }
 
-    create(object) {
-        let id = _.uniqueId();
+    _get_item_copy(id) {
+        return _.cloneDeep(this._storage[id]);
+    }
+
+    _create_item(object) {
+        let id = this._get_next_id();
+        if(this._storage[id] != null) {
+            throw new Error("Элемент с id=#{id} уже сущестует в хранилище");
+        }
         this._storage[id] = object;
         return id;
     }
 
-    set(id, object) {
-        if(this._storage.hasOwnProperty(id)) {
-            this._storage[id] = _.cloneDeep(object);
-            return true;
-        } else {
-            return false;
-        }
+    _get_next_id() {
+        this._autoincrement_id += 1;
+        return this._autoincrement_id.toString();
     }
 
-    delete(id) {
-        if(this._storage.hasOwnProperty(id)) {
-            delete this._storage[id];
-            return true;
-        } else {
-            return false;
-        }
+    _has_item(id) {
+        return this._storage.hasOwnProperty(id);
     }
 
-    iterate(callback) {
+    _set_item(id, object) {
+        this._storage[id] = _.cloneDeep(object);
+    }
+
+    _delete_item(id) {
+        delete this._storage[id];
+    }
+
+    _iterate_keys(callback) {
         for(let key in this._storage) {
-            let value = _.cloneDeep(this._storage[key]);
-            value.id = key;
-            callback(value);
+            callback(key);
         }
     }
 }
