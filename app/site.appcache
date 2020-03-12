@@ -1,14 +1,13 @@
 CACHE MANIFEST
-# v1 - 2011-08-13
-# Это комментарий.
+# v2
 favicon.ico
 index.html
 style.css
-css/app.7b3d9d2c.css
+css/app.b598e23f.css
 css/materialize.css
 css/style.css
-js/app.b0e619b1.js
-js/chunk-vendors.539ccac8.js
+js/app.3e380972.js
+js/chunk-vendors.2cfd5247.js
 js/jquery-2.1.1.min.js
 js/materialize.js
 js/materialize.min.js

@@ -55,6 +55,26 @@ class StorageInterface {
         this._iterate_keys(delete_callback)
         this._reset_internal_state();
     }
+
+    export() {
+        let result = {};
+        let save_item = function(object) {
+            result[object.id] = object;
+            delete object.id;
+        };
+        this.iterate(save_item);
+        return result;
+    }
+
+    import(objects) {
+        let key;
+        for(key in objects) {
+            if(objects.hasOwnProperty(key)) {
+                let object = objects[key];
+                this._import_item(key, object);
+            }
+        }
+    }
 }
 
 export default StorageInterface;

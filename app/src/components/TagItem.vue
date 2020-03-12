@@ -2,16 +2,19 @@
   <li class="collection-item" v-on:click="$emit('click', data.id)">
     <p>
       <input v-if="data.edit_state"
-        placeholder="Название метки" type="text" class="validate tag_name" v-model="data.name" />
+        placeholder="Название метки"
+        type="text"
+        class="validate tag_name"
+        v-model="data.name" />
       <span class="tag_name" v-else v-html="tag.name_highlighted"></span>
       <span class="badge">{{data.count}}</span>
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
-          v-on:click.prevent.stop="$emit('submit', data)">
+          v-on:click.prevent.stop="submit_edit">
           <font-awesome-icon icon="check" />
         </a>
         <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
-          @click.prevent.stop="$emit('cancel', data)">
+          @click.prevent.stop="cancel_edit">
           <font-awesome-icon icon="times-circle" />
         </a>
       </template>
@@ -35,6 +38,11 @@
           <font-awesome-icon icon="pen" class="grey_icon" />
         </a>
       </template>
+      <template v-if="data.edit_state">
+        <span v-if="data.error_existing_name">
+          метка с таким именем уже есть
+        </span>
+      </template>
     </p>
   </li>
 </template>
@@ -51,13 +59,28 @@
         delete_prompt: false,
         data: _.cloneDeep(this.tag),
       }
+      if(data.data.edit_state == null) {
+        data.data.edit_state = false;
+      }
       return data;
     },
     methods: {
       edit_item: function() {
-        this.data._old_name = this.data.name;
-        this.data.edit_state = true
-      }
+        this.backup_name = this.data.name;
+        this.data.edit_state = true;
+      },
+
+      cancel_edit: function() {
+        this.data.error_existing_name = false;
+        this.data.edit_state = false;
+        this.data.name = this.backup_name;
+        this.$emit('cancel', this.data);
+      },
+
+      submit_edit: function() {
+        this.data.edit_state = false;
+        this.$emit('submit', this.data);
+      },
     }
   }
 </script>

@@ -10,6 +10,8 @@
       @click="notepad_menu"
     />
 
+    <input type="file" ref="upload" style="display:none;" @change="do_upload" />
+
     <div style="width: 100%; height: 100%; position: fixed; left: 0px; top: 0px;" v-if="!notepad_working">
       <span class="center_span">
         <font-awesome-icon icon="box-open" style="width: 200px; height: 200px; color: gray;" />
@@ -33,22 +35,11 @@
     <ul class="collection notes_extended_filter" v-if="(section == 'notes') && show_notes_filter" style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;" :style="{'top': (header_bottom) + 'px'}">
       <li>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
-          <span v-for="(tag, index) in notes_filter_tags" :key="tag.id" class="chip">
-            <select class="browser-default" v-model="notes_filter_tags[index]">
-              <option value="0" disabled selected>Выберите</option>
-              <option v-for="global_tag in all_tags" :key="global_tag.id"
-                :value="global_tag.id" :selected="tag == global_tag.id">
-                {{global_tag.name}}
-              </option>
-            </select>
-            <font-awesome-icon icon="trash"
-              @click="delete_tag(index)"/>
-          </span>
-          <span class="chip"
-            @click="add_tag_to_filter">
-            
-            <font-awesome-icon icon="plus" />
-          </span>
+          <tags-list
+            :initial_tags="notes_filter_tags"
+            :all_tags="all_tags"
+            @change="notes_filter_tags = $event"
+          />
         </p>
       </li>
     </ul>
@@ -185,7 +176,7 @@
     <a v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: add_button_hidden}"
-      @click="show_add_note_form" id="add_note"
+      @click="add_note" id="add_note"
       >
       <font-awesome-icon icon="plus" />
     </a>
@@ -203,17 +194,24 @@
 <script>
 
 import moment from 'moment'
+import _ from 'lodash'
 moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import TagItem from './components/TagItem.vue'
+import TagsList from './components/TagsList.vue'
 import Popup from './components/Popup.vue'
 
+import sanitize_html from 'sanitize-html'
+sanitize_html.defaults.allowedTags = [];
+ 
 // import VariableStorage from "./js/variable_storage.js"
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
+
+// import streamSaver from 'streamsaver'
 
 var notepad = new Notepad(new LocalStorage());
 
@@ -224,6 +222,7 @@ export default {
     WarningScreen,
     NoteItem,
     TagItem,
+    TagsList,
     Popup,
   },
 
@@ -318,9 +317,9 @@ export default {
   computed: {
     "active_notepad_controls": function() {
       if(this.notepad_working) {
-        return this.notepad_controls.slice(3, 4);
+        return this.notepad_controls.slice(2, 4);
       } else {
-        return this.notepad_controls.slice(0, 1);
+        return this.notepad_controls.slice(0, 2);
       }
     },
   },
@@ -384,9 +383,9 @@ export default {
       let lesson_tag = notepad.create_tag("обучение");
 
       notepad.create_note(
-          "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
-          + new Date(),
-          [welcome_tag, lesson_tag]
+        "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
+        + new Date(),
+        [welcome_tag, lesson_tag]
       );
       notepad.create_note(
           "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
@@ -463,48 +462,75 @@ export default {
       on_scroll();
     },
 
-    "add_tag_to_filter": function() {
-      this.notes_filter_tags.push(0);
-    },
-    
-    "delete_tag": function(index) {
-      this.notes_filter_tags.splice(index, 1);
-    },
-
     wrap_tags: function(tags) {
       let k, item;
       for(k = 0; k < tags.length; k++) {
         item = tags[k];
-        item.name_highlighted = item.name.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
-        item.edit_state = false;
+        let text = sanitize_html(item.name);
+        item.name_highlighted = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
+        item.error_existing_name = false;
       }
       return tags;
+    },
+
+    download: function(filename, text) {
+      var element = window.document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      window.document.body.appendChild(element);
+
+      element.click();
+
+      window.document.body.removeChild(element);
+    },
+
+    upload: function() {
+      this.$refs.upload.click();
+    },
+
+    do_upload: function() {
+      let files = this.$refs.upload.files;
+      let file = files[0];
+      let reader = new FileReader();
+
+      reader.onload = function(e) {
+        let objects = JSON.parse(e.target.result)
+        notepad.import(objects);
+      }.bind(this);
+
+      reader.readAsText(file);
     },
 
     wrap_notes: function(notes) {
       let k, item;
       for(k = 0; k < notes.length; k++) {
         item = notes[k];
-        item.text_highlighted = item.text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
-        item.edit_state = false;
+        let text = sanitize_html(item.text);
+        item.text_highlighted = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
       }
       return notes;
     },
 
     submit_tag: function(data) {
       if(data.id == "__new_item__") {
-        notepad.create_tag(data.name);
+        if(notepad.is_tag_with_name_exists(data.name)) {
+          data.error_existing_name = true;
+        } else {
+          notepad.create_tag(data.name);
+        }
       } else {
-        notepad.edit_tag(data.id, data.name);
-        data.edit_state = false;
+        if(notepad.is_tag_with_name_exists(data.name, data.id)) {
+          data.error_existing_name = true;
+        } else {
+          notepad.edit_tag(data.id, data.name);
+        }
       }
     },
     cancel_tag: function(data) {
       if(data.id == "__new_item__") {
         this.tags.items.shift();
-      } else {
-        data.edit_state = false;
-        data.name = data._old_name;
       }
     },
     remove_tag: function(tag_id) {
@@ -515,17 +541,12 @@ export default {
       if(data.id == "__new_item__") {
         notepad.create_note(data.text, + new Date(), data.tags);
       } else {
-        notepad.edit_note(data.id, data.text, data.tags);
-        data.edit_state = false;
+        notepad.edit_note(data.id, data.text, data.creation_time, data.tags);
       }
     },
     cancel_note: function(data) {
       if(data.id == "__new_item__") {
         this.notes.items.shift();
-      } else {
-        data.edit_state = false;
-        data.text = data._old_text;
-        data.tags = data._old_tags;
       }
     },
     remove_note: function(note_id) {
@@ -537,6 +558,11 @@ export default {
       this.notepad_menu(command);
     },
 
+    long_str: function() {
+      let str = Array(20000000).join("z");
+      return str;
+    },
+
     notepad_menu: function(command) {
       switch(command) {
         case "create":
@@ -544,11 +570,34 @@ export default {
           this.create_notepad_data();
           break;
         case "open":
-          notepad.open();
+          this.upload();
           break;
-        case "save":
-          notepad.save();
+        case "save": {
+          let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
+          let filename = "data_" + stamp + ".txt";
+          let data = JSON.stringify(notepad.export());
+          this.download(filename, data);
+          // const fileStream = streamSaver.createWriteStream('filename.txt'
+          // // ,
+          // // {
+          // //   size: 22, // (optional) Will show progress
+          // //   writableStrategy: undefined, // (optional)
+          // //   readableStrategy: undefined  // (optional)
+          // // }
+          // )
+
+          // new Response(this.long_str()).body
+          //   .pipeTo(fileStream)
+          //   // .then(success, error)
+          // // let writer = fileStream.getWriter();
+          // // writer.write(this.long_str()).then(function(){
+          // //   writer.write(this.long_str()).then(function() {
+          // //     // writer.close();
+          // //     // fileStream.close();
+          // //   });
+          // // }.bind(this))
           break;
+        }
         case "close":
           this.notepad_delete_mode = true;
           break;
@@ -572,14 +621,15 @@ export default {
       this.tags.items.unshift({
         "id": "__new_item__",
         "edit_state": true,
+        "error_existing_name": false,
         "name": "Новая метка",
         "count": 0,
       })
     },
-    show_add_note_form: function() {
+    add_note: function() {
       this.notes.items.unshift({
         "id": "__new_item__",
-        "tags": [],
+        "tags": _.cloneDeep(this.notes_filter_tags),
         "checked": false,
         "edit_state": true,
         "text": "Новая запись",

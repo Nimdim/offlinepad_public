@@ -21,6 +21,8 @@
     "jquery": "^3.4.1",
     "mocha": "^7.1.0",
     "moment": "^2.24.0",
+    "sanitize-html": "^1.22.0",
+    "streamsaver": "^2.0.3",
     "vue": "^2.6.10"
   },
   "devDependencies": {

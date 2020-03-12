@@ -122,7 +122,7 @@ class Notepad {
                     this.register_tag_note(object);
                     break;
                 default:
-                    console.error("неизвестный тип объекта", object);
+                    // console.error("неизвестный тип объекта", object);
                     break;
             }
         }.bind(this);
@@ -294,13 +294,14 @@ class Notepad {
 
     // }
 
-    // import_notepad() {
+    import(objects) {
+        this._storage.import(objects);
+        this.sync();
+    }
 
-    // }
-
-    // export_notepad() {
-
-    // }
+    export() {
+        return this._storage.export();
+    }
 
     // save_notepad() {
 
@@ -318,7 +319,24 @@ class Notepad {
         this._password = password;
     }
 
+    is_tag_with_name_exists(name, current_tag_id) {
+        let tag_id, tag;
+        for(tag_id in this._data.tags) {
+            if(current_tag_id == tag_id) {
+                continue;
+            }
+            tag = this._data.tags[tag_id];
+            if(tag.name == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     create_tag(name) {
+        if(this.is_tag_with_name_exists(name)) {
+            throw new Error("tag with name '" + name + "' exists");
+        }
         let tag_id = this._storage.create({
             "type": "tag",
             "name": name,
@@ -330,6 +348,9 @@ class Notepad {
     }
 
     edit_tag(id, name) {
+        if(this.is_tag_with_name_exists(name, id)) {
+            throw new Error("tag with name '" + name + "' exists");
+        }
         let tag = this._data.tags[id];
         tag.name = name;
         this._storage.set(id, tag);
@@ -389,9 +410,10 @@ class Notepad {
         this.register_tag_note(tag_note);
     }
 
-    edit_note(id, text, tags) {
+    edit_note(id, text, stamp, tags) {
         let note = this._data.notes[id];
         note.text = text;
+        note.created_at = stamp;
         this._storage.set(id, note);
 
         this.apply_note_tags(id, tags);

@@ -81,7 +81,7 @@ describe("notepad simle tests", function() {
 
     it("edit tag", function() {
         reset_events()
-        notepad.edit_note(note_id, "test note new text", []);
+        notepad.edit_note(note_id, "test note new text", 1111, []);
         let EXPECTED_NOTES = [
             [
                 {
@@ -178,7 +178,7 @@ describe("notepad tags and notes", function() {
 
     it("add tag to note", function() {
         reset_events();
-        notepad.edit_note(note_id1, "note text1", [tag_id1, tag_id2, tag_id3]);
+        notepad.edit_note(note_id1, "note text1", 1111, [tag_id1, tag_id2, tag_id3]);
 
         let EXPECTED_TAGS = [
             [
@@ -202,7 +202,7 @@ describe("notepad tags and notes", function() {
 
     it("delete tag from note", function() {
         reset_events();
-        notepad.edit_note(note_id1, "note text1", [tag_id1, tag_id3]);
+        notepad.edit_note(note_id1, "note text1", 1111, [tag_id1, tag_id3]);
 
         let EXPECTED_TAGS = [
             [

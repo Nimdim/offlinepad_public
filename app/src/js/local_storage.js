@@ -32,6 +32,15 @@ class LocalStorage extends StorageInterface{
         return id;
     }
 
+    _import_item(id, object) {
+        let id_int = parseInt(id);
+        this._autoincrement_id = Math.max(this._autoincrement_id, id_int);
+        if(window.localStorage[PREFIX + id] != null) {
+            throw new Error("Элемент с id=" + id + " уже сущестует в хранилище");
+        }
+        window.localStorage[PREFIX + id] = JSON.stringify(object);
+    }
+
     _get_next_id() {
         this._autoincrement_id += 1;
         window.localStorage[PREFIX2 + "ai"] = this._autoincrement_id;
