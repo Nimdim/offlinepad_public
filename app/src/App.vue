@@ -12,25 +12,11 @@
 
     <input type="file" ref="upload" style="display:none;" @change="do_upload" />
 
-    <div style="width: 100%; height: 100%; position: fixed; left: 0px; top: 0px;" v-if="!notepad_working">
-      <span class="center_span">
-        <font-awesome-icon icon="box-open" style="width: 200px; height: 200px; color: gray;" />
-      </span>
-    </div>
-
-    <div style="width: 100%; height: 100%; position: fixed; left: 0px; top: 0px;" v-if="notepad_delete_mode">
-      <span class="center_span">
-        <p>при заркытии блокнота все данные будут потеряны</p>
-        <a class="waves-effect waves-teal btn-small red"
-          v-on:click.prevent.stop="notepad_delete">
-          закрыть
-        </a>
-        <a class="waves-effect waves-teal btn-small "
-          @click.prevent.stop="notepad_delete_mode = false">
-          отмена
-        </a>        
-      </span>
-    </div>
+    <notepad-empty-screen v-if="!notepad_working" />
+    <notepad-delete-screen  v-if="notepad_delete_mode"
+      @submit="notepad_delete"
+      @cancel="notepad_delete_mode = false"
+    />
 
     <ul v-if="(section == 'notes') && show_notes_filter"
       class="collection notes_extended_filter"
@@ -60,7 +46,9 @@
         icon="angle-up" />
     </a>
 
-    <ul class="collection tags" v-if="section == 'tags' && notepad_working && !notepad_delete_mode">
+    <ul v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
+      class="collection tags"
+    >
       <tag-item v-for="tag in tags.items" :key="tag.id"
         :tag="tag"
         @submit="submit_tag"
@@ -68,7 +56,9 @@
         @delete="remove_tag" />
     </ul>
 
-    <ul class="collection records" v-if="section == 'notes' && notepad_working && !notepad_delete_mode">
+    <ul v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
+      class="collection records"
+    >
       <note-item v-for="note in notes.items" :key="note.id"
         :note="note"
         :tags="all_tags"
@@ -202,6 +192,8 @@ moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
+import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
+import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import TagItem from './components/TagItem.vue'
 import TagsList from './components/TagsList.vue'
@@ -230,6 +222,8 @@ export default {
   components: {
     LoadScreen,
     WarningScreen,
+    NotepadDeleteScreen,
+    NotepadEmptyScreen,
     NoteItem,
     TagItem,
     TagsList,
