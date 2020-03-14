@@ -1,6 +1,6 @@
 <template>
-  <div id="warningscreen">
-    <span class="center_span">
+  <div class="fullscreenbox fullscreenbox--order-top">
+    <span>
       <p>
         Предупреждение
       </p>

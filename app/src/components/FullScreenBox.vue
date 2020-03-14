@@ -1,7 +1,7 @@
 <template>
     <div class="fullscreenbox">
         <span>
-            <font-awesome-icon icon="box-open" style="width: 200px; height: 200px; color: gray;" />
+            <slot />
         </span>
     </div>
 </template>
