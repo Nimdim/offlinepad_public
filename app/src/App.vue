@@ -32,7 +32,11 @@
       </span>
     </div>
 
-    <ul class="collection notes_extended_filter" v-if="(section == 'notes') && show_notes_filter" style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;" :style="{'top': (header_bottom) + 'px'}">
+    <ul v-if="(section == 'notes') && show_notes_filter"
+      class="collection notes_extended_filter"
+      style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;"
+      :style="{'top': (header_bottom) + 'px'}"
+    >
       <li>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
           <tags-list
@@ -43,6 +47,18 @@
         </p>
       </li>
     </ul>
+    <a v-if="section == 'notes'"
+      class="btn-floating btn-small waves-effect waves-light"
+      :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
+      @click="show_notes_filter = !show_notes_filter"
+      style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
+      :style="{'top': (header_bottom) + 'px'}"
+      >
+      <font-awesome-icon v-if="!show_notes_filter"
+        icon="angle-down" />
+      <font-awesome-icon v-else
+        icon="angle-up" />
+    </a>
 
     <ul class="collection tags" v-if="section == 'tags' && notepad_working && !notepad_delete_mode">
       <tag-item v-for="tag in tags.items" :key="tag.id"
@@ -131,19 +147,6 @@
           </li>
         </ul>
 
-        <a v-if="section == 'notes'"
-          class="btn-floating btn-small waves-effect waves-light"
-          :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
-          @click="show_notes_filter = !show_notes_filter"
-          style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
-          :style="{'top': (header_bottom) + 'px'}"
-          >
-          <font-awesome-icon v-if="!show_notes_filter"
-            icon="angle-down" />
-          <font-awesome-icon v-else
-            icon="angle-up" />
-        </a>
-
         <ul id="nav-mobile" class="sidenav" style="z-index: 1003;" ref="nav_mobile">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
@@ -215,6 +218,13 @@ import Notepad from './js/notepad.js'
 
 var notepad = new Notepad(new LocalStorage());
 
+let NOTEPAD_CONTROLS = [
+  {id: "create", name: "Создать"},
+  {id: "open", name: "Открыть"},
+  {id: "save", name: "Сохранить"},
+  {id: "close", name: "Закрыть"},
+];
+
 export default {
   name: 'app',
   components: {
@@ -234,36 +244,28 @@ export default {
           "name": "Все",
         },
       ],
-      notepad_controls: [
-        {id: "create", name: "Создать"},
-        {id: "open", name: "Открыть"},
-        {id: "save", name: "Сохранить"},
-        {id: "close", name: "Закрыть"},
-      ],
+
+      section: "notes",
+
       loadscreen_visible: true,
       warningscreen_visible: true,
+
       notes_filter_tags: [],
-      section: "notes",
       fast_search: "",
       sorting_order_asc: true,
+
       add_button_hidden: false,
+
       show_notes_filter: false,
+
       header_top: 0,
       header_bottom: 0,
       notepad_working: false,
       notepad_delete_mode: false,
       notes: {
-        order_by_timestamp: "asc",
-        filter: {
-          text: "",
-          tags: "",
-          timestamp_from: null,
-          timestamp_to: null,
-        },
         items: [],
       },
       tags: {
-        search: '',
         items: [],
       },
       all_tags: [],
@@ -317,9 +319,9 @@ export default {
   computed: {
     "active_notepad_controls": function() {
       if(this.notepad_working) {
-        return this.notepad_controls.slice(2, 4);
+        return NOTEPAD_CONTROLS.slice(2, 4);
       } else {
-        return this.notepad_controls.slice(0, 2);
+        return NOTEPAD_CONTROLS.slice(0, 2);
       }
     },
   },
