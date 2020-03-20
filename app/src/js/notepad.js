@@ -171,6 +171,7 @@ class Notepad {
         let note_ids, tag_ids;
 
         this._data.tag_notes[tag_note_key] = object;
+
         note_ids = this._data.notes_of_tag[object.tag_id];
         if(note_ids == null) {
             note_ids = {};
@@ -266,6 +267,8 @@ class Notepad {
 
     _filter_tags() {
         let tags = _.values(this._data.tags);
+
+        // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
             tags = _.filter(
                 tags,
@@ -274,6 +277,8 @@ class Notepad {
                 }.bind(this)
             );
         }
+
+        // TODO сделать тесты и выделить в функцию
         let order;
         if(this._filter.tags.sorting_asc) {
             order = ["asc"];
@@ -281,11 +286,14 @@ class Notepad {
             order = ["desc"];
         }
         tags = _.orderBy(tags, ["name"], order);
+
         return tags;
     }
 
     _filter_notes() {
         let notes = _.cloneDeep(_.values(this._data.notes));
+
+        // TODO сделать тесты и выделить в функцию
         if(this._filter.notes.text != "") {
             notes = _.filter(
                 notes,
@@ -295,6 +303,7 @@ class Notepad {
             )
         }
 
+        // TODO сделать тесты и выделить в функцию
         if(this._filter.notes.tags.length > 0) {
             for(let k = 0; k < this._filter.notes.tags.length; k++) {
                 let tag = this._filter.notes.tags[k];
@@ -309,6 +318,8 @@ class Notepad {
                 }
             }
         }
+
+        // TODO сделать тесты и выделить в функцию
         let order;
         if(this._filter.notes.sorting_asc) {
             order = ["asc"];
@@ -316,6 +327,7 @@ class Notepad {
             order = ["desc"];
         }
         notes = _.orderBy(notes, ["created_at"], order);
+
         return notes;
     }
 
@@ -459,8 +471,6 @@ class Notepad {
             "created_at": stamp,
         });
         this.register_note(this._storage.get(note_id));
-        // this._data.tags_of_note[note_id] = {};
-        // this._data.notes[note_id] = this._storage.get(note_id);
         this.apply_note_tags(note_id, tags);
 
         this._reset_notes();
