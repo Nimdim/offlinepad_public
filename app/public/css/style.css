@@ -23,6 +23,11 @@ p {
   color: #666;
 }
 
+body {
+  /* Disables pull-to-refresh but allows overscroll glow effects. */
+  overscroll-behavior-y: contain;
+}
+
 .input-field input[type=search] ~ svg {
   position: absolute;
   top: 13px;
@@ -80,8 +85,12 @@ select.browser-default {
   margin-left: 10px;
 }
 
-.multiline-text {
+p.multiline-text {
+  margin-block-start: 0.4rem;
+  margin-block-end: 0.4rem;
   white-space: pre-wrap;
+  line-height: 1.2rem;
+  text-align: justify;
 }
 
 .add-tag-to-note {

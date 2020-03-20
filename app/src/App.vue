@@ -2,7 +2,7 @@
   <div id="app">
     <popup
       ref="notes_popup"
-      :items="notes_filters"
+      :items="note_filters"
     />
     <popup
       ref="notepad_popup"
@@ -31,20 +31,38 @@
             @change="notes_filter_tags = $event"
           />
         </p>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px; color: white;">
+          Записей: {{notes.count}}
+          <a v-if="!add_note_filter_show"
+            class="waves-effect waves-teal btn-small right tag_delete_btn"
+            @click.prevent.stop="note_filter_add_gui_show">
+            Сохранить как
+          </a>
+        </p>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;" v-if="add_note_filter_show">
+          <input
+            ref="new_note_filter_name"
+            placeholder="Введите название фильтра"
+            type="text"
+            class="validate filter_name"
+            style="width: calc(100% - 108px); padding-left: 5px;"
+            :style="{'background': new_note_filter.error ? 'red': 'white'}"
+            v-model="new_note_filter.name"
+            @keyup="new_note_filter.error = null"
+          />
+          <a class="waves-effect waves-teal btn-small btn-flat right tag_delete_btn"
+            style="margin-top: 12px; color: white;"
+            v-on:click.prevent.stop="cancel_note_filter">
+            <font-awesome-icon icon="times-circle" />
+          </a>
+          <a class="waves-effect waves-teal btn-small right tag_delete_btn"
+            style="margin-top: 12px; margin-right: 12px;"
+            v-on:click.prevent.stop="add_note_filter">
+            <font-awesome-icon icon="save" />
+          </a>
+        </p>
       </li>
     </ul>
-    <a v-if="section == 'notes'"
-      class="btn-floating btn-small waves-effect waves-light"
-      :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
-      @click="show_notes_filter = !show_notes_filter"
-      style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
-      :style="{'top': (header_bottom) + 'px'}"
-      >
-      <font-awesome-icon v-if="!show_notes_filter"
-        icon="angle-down" />
-      <font-awesome-icon v-else
-        icon="angle-up" />
-    </a>
 
     <ul v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
       class="collection tags"
@@ -141,9 +159,11 @@
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
             <a href="#">Записи</a>
             <ul>
-              <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Все</a></li>
-              <!-- <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Разбор</a></li>
-              <li><a href="#!"><font-awesome-icon class="mobile-menu-icon" icon="th" />Задачи</a></li> -->
+              <note-filter-item v-for="note_filter in note_filters" :key="note_filter.id"
+                :note_filter="note_filter"
+                @click="note_filter_click(note_filter.tags)"
+                @delete="delete_note_filter(note_filter.id)"
+              />
             </ul>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
@@ -156,6 +176,20 @@
             <a href="#">{{menu_item.name}}</a>
           </li>
         </ul>
+
+        <a v-if="section == 'notes'"
+          class="btn-floating btn-small waves-effect waves-light"
+          :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
+          @click="show_notes_filter = !show_notes_filter"
+          style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
+          :style="{'top': (header_bottom) + 'px'}"
+          >
+          <font-awesome-icon v-if="!show_notes_filter"
+            icon="angle-down" />
+          <font-awesome-icon v-else
+            icon="angle-up" />
+        </a>
+
       </div>
     </nav>
 
@@ -195,6 +229,7 @@ import WarningScreen from './components/WarningScreen.vue'
 import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import NoteItem from './components/NoteItem.vue'
+import NoteFilterItem from './components/NoteFilterItem.vue'
 import TagItem from './components/TagItem.vue'
 import TagsList from './components/TagsList.vue'
 import Popup from './components/Popup.vue'
@@ -202,7 +237,6 @@ import Popup from './components/Popup.vue'
 import sanitize_html from 'sanitize-html'
 sanitize_html.defaults.allowedTags = [];
  
-// import VariableStorage from "./js/variable_storage.js"
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 
@@ -225,6 +259,7 @@ export default {
     NotepadDeleteScreen,
     NotepadEmptyScreen,
     NoteItem,
+    NoteFilterItem,
     TagItem,
     TagsList,
     Popup,
@@ -232,15 +267,16 @@ export default {
 
   data: function() {
     var data = {
-      notes_filters: [
-        {
-          "id": "all",
-          "name": "Все",
-        },
-      ],
+      note_filters: [],
+
+      new_note_filter: {
+        name: "",
+        error: null,
+      },
 
       section: "notes",
 
+      add_note_filter_show: false,
       loadscreen_visible: true,
       warningscreen_visible: true,
 
@@ -257,6 +293,7 @@ export default {
       notepad_working: false,
       notepad_delete_mode: false,
       notes: {
+        count: 0,
         items: [],
       },
       tags: {
@@ -337,8 +374,15 @@ export default {
     notepad.on("reset_notes", function(notes) {
       this.notes.items = this.wrap_notes(notes);
     }.bind(this));
+    notepad.on("reset_notes_count", function(notes_count) {
+      this.notes.count = notes_count;
+    }.bind(this));
     notepad.on("append_notes", function(notes) {
       this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
+    }.bind(this));
+
+    notepad.on("reset_note_filters", function(items) {
+      this.note_filters = items;
     }.bind(this));
 
     notepad.on("working", function(working) {
@@ -368,6 +412,17 @@ export default {
     notepad_delete: function() {
       notepad.close();
       this.notepad_delete_mode = false;
+    },
+
+    note_filter_add_gui_show: function() {
+      this.add_note_filter_show = true;
+      this.$nextTick(function() {
+        this.$refs.new_note_filter_name.focus();
+      });
+    },
+
+    note_filter_click: function(tags) {
+      this.notes_filter_tags = _.cloneDeep(tags);
     },
 
     create_notepad_data: function() {
@@ -435,6 +490,7 @@ export default {
         on_scroll();
       });
       let on_scroll = function() {
+        // var scroll = window.document.getElementById("app").scrollTop;
         var scroll = window.scrollY;
         var delta = scroll - currenct_scrolltop;
         header_top -= delta;
@@ -455,6 +511,7 @@ export default {
         currenct_scrolltop = scroll;
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
+      // window.document.getElementById("app").addEventListener("scroll", on_scroll);
       on_scroll();
     },
 
@@ -504,7 +561,10 @@ export default {
       for(k = 0; k < notes.length; k++) {
         item = notes[k];
         let text = sanitize_html(item.text);
-        item.text_highlighted = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
+        if(this.fast_search.length > 0) {
+          text = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
+        }
+        item.text_highlighted = text;
       }
       return notes;
     },
@@ -535,7 +595,7 @@ export default {
 
     submit_note: function(data) {
       if(data.id == "__new_item__") {
-        notepad.create_note(data.text, + new Date(), data.tags);
+        notepad.create_note(data.text, data.creation_time, data.tags);
       } else {
         notepad.edit_note(data.id, data.text, data.creation_time, data.tags);
       }
@@ -613,6 +673,7 @@ export default {
     filter_tags: function() {
       // console.log("filter_tags");
     },
+
     add_tag: function() {
       this.tags.items.unshift({
         "id": "__new_item__",
@@ -622,6 +683,7 @@ export default {
         "count": 0,
       })
     },
+    
     add_note: function() {
       this.notes.items.unshift({
         "id": "__new_item__",
@@ -632,6 +694,26 @@ export default {
         "creation_time": + new Date(),
       })
     },
+
+    add_note_filter: function() {
+      if(this.new_note_filter.name == "") {
+        this.new_note_filter.error = "Укажите имя";
+        this.$refs.new_note_filter_name.focus();
+      } else {
+        notepad.create_note_filter(this.new_note_filter.name, this.notes_filter_tags);
+        this.cancel_note_filter();
+      }
+    },
+
+    cancel_note_filter: function() {
+      this.new_note_filter.name = "";
+      this.new_note_filter.error = null;
+      this.add_note_filter_show = false;
+    },
+
+    delete_note_filter: function(id) {
+      notepad.delete_note_filter(id);
+    }
   }
 
 }

@@ -34,9 +34,21 @@ export default {
   },
 
   watch: {
+    "initial_tags": function(values) {
+      this.enable_watch = false;
+      this.$nextTick(function() {
+        this.tags = _.cloneDeep(values);
+        this.$nextTick(function() {
+          this.enable_watch = true;
+        }.bind(this));
+      }.bind(this));
+    },
+  
     "tags": {
       handler: function(value) {
-        this.$emit("change", value);
+        if(this.enable_watch) {
+          this.$emit("change", value);
+        }
       },
       deep: true
     }
@@ -45,6 +57,7 @@ export default {
   data: function() {
     let data = {
       tags: _.cloneDeep(this.initial_tags),
+      enable_watch: true,
     };
     return data;
   },

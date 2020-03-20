@@ -46,26 +46,6 @@ p {
   height: 100%;
 }
 
-.fullscreenbox {
-  width: 100%;
-  height: 100%;
-  position: fixed;
-  left: 0px;
-  top: 0px;
-  background: white;
-}
-
-.fullscreenbox--order-top {
-  z-index: 2000;
-}
-
-.fullscreenbox > span {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  -webkit-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
-}
 #add_record {
   position: fixed;
   bottom: 30px;
@@ -102,3 +82,28 @@ i.active {
 .show_footer {
   padding-bottom: 60px;
 }
+
+/* body,
+#app {
+  position: absolute;
+  top: 0px;
+
+  width: 100%;
+  height: 100%;
+
+  margin: 0;
+
+  overflow-y: hidden;
+}
+
+#app {
+  overflow-y: auto;
+}
+
+body {
+  z-index: 1;
+}
+
+#app {
+  z-index: 2;
+} */

@@ -37,6 +37,7 @@ class Notepad {
             "notes_of_tag": {},
             "tags_of_note": {},
             "tag_notes": {},
+            "note_filters": {},
         };
     }
 
@@ -109,17 +110,30 @@ class Notepad {
             let key = object.id;
             switch(object.type) {
                 case "notepad":
-                    this._data.notepad = object;
+                    if(this._data.notepad == null) {
+                        this._data.notepad = object;
+                    } else {
+                        throw new Error("найден еще один объект notepad");
+                    }
                     this._working = true;
                     break;
                 case "tag":
                     this._data.tags[key] = object;
+                    if (this._data.notes_of_tag[key] == null) {
+                        this._data.notes_of_tag[key] = {};
+                    }
                     break;
                 case "note":
                     this._data.notes[key] = object;
+                    if (this._data.tags_of_note[key] == null) {
+                        this._data.tags_of_note[key] = {};
+                    }
                     break;
                 case "tag_note":
                     this.register_tag_note(object);
+                    break;
+                case "note_filter":
+                    this.register_note_filter(object);
                     break;
                 default:
                     // console.error("неизвестный тип объекта", object);
@@ -166,6 +180,7 @@ class Notepad {
     _reset_state() {
         this._reset_tags();
         this._reset_notes();
+        this._reset_note_filters();
     }
 
     _reset_tags() {
@@ -204,6 +219,7 @@ class Notepad {
         this._state.notes.items_shown_count = items_for_show_count;
         items_for_show = this._state.notes.items.slice(0, items_for_show_count);
         this.trigger("reset_notes", this._wrap_notes(items_for_show));
+        this.trigger("reset_notes_count", this._state.notes.items.length);
     }
 
     _wrap_notes(items) {
@@ -384,6 +400,39 @@ class Notepad {
     // list_tags(from, count) {
 
     // }
+
+    create_note_filter(name, tags) {
+        let filter_id = this._storage.create({
+            "type": "note_filter",
+            "name": name,
+            "tags": _.cloneDeep(tags),
+        });
+        return this.register_note_filter(this._storage.get(filter_id));
+    }
+
+    delete_note_filter(note_filter_id) {
+        this._storage.delete(note_filter_id);
+        delete this._data.note_filters[note_filter_id];
+        this._reset_note_filters();
+    }
+
+    register_note_filter(note_filter) {
+        this._data.note_filters[note_filter.id] = note_filter;
+        this._reset_note_filters();
+        return note_filter.id;
+    }
+
+    _reset_note_filters() {
+        let all_items = {
+            id: "internal_all",
+            name: "Все",
+            tags: [],
+        };
+        let items = _.values(this._data.note_filters);
+        items = _.sortBy(items, "name");
+        items.unshift(all_items);
+        this.trigger("reset_note_filters", items);
+    }
 
     create_note(text, stamp, tags) {
         let note_id = this._storage.create({

@@ -287,3 +287,45 @@ describe("notepad tags and notes", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 });
+
+describe("notepad parse initial data", function() {
+     it("parse empty storage", function() {
+        let storage = new VariableStorage();
+        let notepad = new Notepad(storage);
+        let working = false;
+        notepad.on("working", function(value) {
+            working = value;
+        });
+        notepad.sync();
+        assert.equal(working, false);
+    });
+
+    it("parse storage with one notepad", function() {
+        let storage = new VariableStorage();
+        storage.create({
+            "type": "notepad",
+            "name": "123",
+        });
+        let notepad = new Notepad(storage);
+        let working = false;
+        notepad.on("working", function(value) {
+            working = value;
+        });
+        notepad.sync();
+        assert.equal(working, true);
+    });
+
+    it("parse storage with two notepads", function() {
+        let storage = new VariableStorage();
+        storage.create({
+            "type": "notepad",
+            "name": "123",
+        });
+        storage.create({
+            "type": "notepad",
+            "name": "1234",
+        });
+        let notepad = new Notepad(storage);
+        assert.throws(function() { notepad.sync(); }, Error);
+    });
+});
