@@ -118,10 +118,7 @@ class Notepad {
                     this._working = true;
                     break;
                 case "tag":
-                    this._data.tags[key] = object;
-                    if (this._data.notes_of_tag[key] == null) {
-                        this._data.notes_of_tag[key] = {};
-                    }
+                    this.register_tag(object);
                     break;
                 case "note":
                     this._data.notes[key] = object;
@@ -141,6 +138,16 @@ class Notepad {
             }
         }.bind(this);
         this._storage.iterate(reader);
+    }
+
+    register_tag(object) {
+        let key = object.id;
+        this._data.tags[key] = object;
+        // при начальной регистрации информация о взаимосвязи может прийти
+        // раньше и тогда перетрется ее кеш
+        if (this._data.notes_of_tag[key] == null) {
+            this._data.notes_of_tag[key] = {};
+        }
     }
 
     tag_note_key(tag_id, note_id) {
@@ -357,8 +364,7 @@ class Notepad {
             "type": "tag",
             "name": name,
         });
-        this._data.notes_of_tag[tag_id] = {};
-        this._data.tags[tag_id] = this._storage.get(tag_id);
+        this.register_tag(this._storage.get(tag_id));
         this._reset_tags();
         return tag_id;
     }
