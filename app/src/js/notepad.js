@@ -110,12 +110,7 @@ class Notepad {
             let key = object.id;
             switch(object.type) {
                 case "notepad":
-                    if(this._data.notepad == null) {
-                        this._data.notepad = object;
-                    } else {
-                        throw new Error("найден еще один объект notepad");
-                    }
-                    this._working = true;
+                    this.register_notepad(object);
                     break;
                 case "tag":
                     this.register_tag(object);
@@ -135,6 +130,15 @@ class Notepad {
             }
         }.bind(this);
         this._storage.iterate(reader);
+    }
+
+    register_notepad(object) {
+        if(this._data.notepad == null) {
+            this._data.notepad = object;
+        } else {
+            throw new Error("найден еще один объект notepad");
+        }
+        this._working = true;
     }
 
     register_tag(object) {
