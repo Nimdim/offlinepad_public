@@ -455,10 +455,13 @@ class Notepad {
         let all_items = {
             id: "internal_all",
             name: "Все",
+            deletable: false,
             tags: [],
         };
         let items = _.values(this._data.note_filters);
+        items = _.cloneDeep(items)
         items = _.sortBy(items, "name");
+        _.forEach(items, (item) => item.deletable = true)
         items.unshift(all_items);
         this.trigger("reset_note_filters", items);
     }

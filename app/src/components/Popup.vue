@@ -1,8 +1,10 @@
 <template>
 <ul id="dropdown1" class="dropdown-content" :style="style">
-  <li v-for="item in items" :key="item.id">
-    <a href="#!" @click="on_item_click(item.id)">{{item.name}}</a>
-  </li>
+  <popup-item v-for="item in items" :key="item.id"
+    :data="item"
+    @click="on_item_click(item.id)"
+    @delete="$emit('delete', item.id)"
+  />
   <!-- <li class="divider"></li>
   <li><a href="#!">Разбор</a></li>
   <li><a href="#!">Задачи</a></li> -->
@@ -11,9 +13,15 @@
 
 <script>
 
+import PopupItem from "./PopupItem.vue"
+
 export default {
   props: {
     items: Array,
+  },
+
+  components: {
+    PopupItem,
   },
 
   data: function() {
@@ -42,7 +50,7 @@ export default {
     },
 
     on_item_click: function(id) {
-      this.style.display = "none";
+      this.hide();
       this.$emit("click", id);
     },
 
@@ -50,12 +58,20 @@ export default {
       this.style.display = "none";
     },
 
+    show_at: function(x, y) {
+      this.style.display = "block";
+      this.style.left = x + "px";
+      this.style.top = y + "px";
+      this.style.opacity = 1;
+    },
+
+    is_hidden: function() {
+      return this.style.display == "none";
+    },
+
     toggle: function(x, y) {
-      if(this.style.display == "none") {
-        this.style.display = "block";
-        this.style.left = x + "px";
-        this.style.top = y + "px";
-        this.style.opacity = 1;
+      if(this.is_hidden()) {
+        this.show_at(x, y);
       } else {
         this.hide();
       }

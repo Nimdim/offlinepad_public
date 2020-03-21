@@ -3,6 +3,7 @@
     <popup
       ref="notes_popup"
       :items="note_filters"
+      @delete="delete_note_filter($event)"
     />
     <popup
       ref="notepad_popup"
@@ -240,6 +241,7 @@ sanitize_html.defaults.allowedTags = [];
  
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
+import PartialFileReader from './js/partial_file_reader.js'
 
 // import streamSaver from 'streamsaver'
 
@@ -554,14 +556,11 @@ export default {
     do_upload: function() {
       let files = this.$refs.upload.files;
       let file = files[0];
-      let reader = new FileReader();
 
-      reader.onload = function(e) {
-        let objects = JSON.parse(e.target.result)
-        notepad.import(objects);
-      }.bind(this);
-
-      reader.readAsText(file);
+      let reader = new PartialFileReader(
+        file, function(import_data) {notepad.import(import_data)}
+      );
+      reader.start();      
     },
 
     wrap_notes: function(notes) {
