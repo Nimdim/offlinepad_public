@@ -35,7 +35,7 @@
           Записей: {{notes.count}}
           <a v-if="!add_note_filter_show"
             class="waves-effect waves-teal btn-small right tag_delete_btn"
-            @click.prevent.stop="note_filter_add_gui_show">
+            @click.prevent="note_filter_add_gui_show">
             Сохранить как
           </a>
         </p>
@@ -52,12 +52,12 @@
           />
           <a class="waves-effect waves-teal btn-small btn-flat right tag_delete_btn"
             style="margin-top: 12px; color: white;"
-            v-on:click.prevent.stop="cancel_note_filter">
+            v-on:click.prevent="cancel_note_filter">
             <font-awesome-icon icon="times-circle" />
           </a>
           <a class="waves-effect waves-teal btn-small right tag_delete_btn"
             style="margin-top: 12px; margin-right: 12px;"
-            v-on:click.prevent.stop="add_note_filter">
+            v-on:click.prevent="add_note_filter">
             <font-awesome-icon icon="save" />
           </a>
         </p>

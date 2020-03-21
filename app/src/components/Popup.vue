@@ -28,19 +28,36 @@ export default {
     return data;
   },
 
-methods: {
-    "on_item_click": function(id) {
+  mounted: function() {
+    window.document.body.addEventListener("click", this.body_click);
+  },
+
+  beforeDestroy: function() {
+    window.document.body.removeEventListener("click", this.body_click);
+  },
+
+  methods: {
+    body_click: function() {
+      this.hide();
+    },
+
+    on_item_click: function(id) {
       this.style.display = "none";
       this.$emit("click", id);
     },
-    "toggle": function(x, y) {
+
+    hide: function() {
+      this.style.display = "none";
+    },
+
+    toggle: function(x, y) {
       if(this.style.display == "none") {
         this.style.display = "block";
         this.style.left = x + "px";
         this.style.top = y + "px";
         this.style.opacity = 1;
       } else {
-        this.style.display = "none";
+        this.hide();
       }
     },
   }

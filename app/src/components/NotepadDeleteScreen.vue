@@ -2,11 +2,11 @@
     <full-screen-box>
         <p>при заркытии блокнота все данные будут потеряны</p>
         <a class="waves-effect waves-teal btn-small red"
-            v-on:click.prevent.stop="$emit('submit')">
+            v-on:click.prevent="$emit('submit')">
             закрыть
         </a>
         <a class="waves-effect waves-teal btn-small "
-            @click.prevent.stop="$emit('cancel')">
+            @click.prevent="$emit('cancel')">
             отмена
         </a>        
     </full-screen-box>

@@ -13,12 +13,12 @@
 
           <a class="waves-effect waves-teal btn-small right"
             key="edit_submit"
-            v-on:click.prevent.stop="submit">
+            v-on:click.prevent="submit">
             <font-awesome-icon icon="check" />
           </a>
           <a class="waves-effect waves-teal btn-small right red"
             key="edit_cancel"
-            @click.prevent.stop="cancel_edit">
+            @click.prevent="cancel_edit">
             <font-awesome-icon icon="times-circle" />
           </a>
         </p>
@@ -40,25 +40,25 @@
           <template v-if="delete_prompt">
             <a class="waves-effect waves-teal btn-small right"
               key="delete_cancel"
-              @click.prevent.stop="delete_prompt = false">
+              @click.prevent="delete_prompt = false">
               <font-awesome-icon icon="times-circle" />
             </a>
             <a class="waves-effect waves-teal btn-small right red"
             key="delete_submit"
-              v-on:click.prevent.stop="$emit('delete', data.id)">
+              v-on:click.prevent="$emit('delete', data.id)">
               <font-awesome-icon icon="trash" />
             </a>
           </template>
           <template v-else>
             <a class="waves-effect waves-teal btn-flat btn-small right"
               key="normal_delete"
-              @click.prevent.stop="delete_prompt = true"
+              @click.prevent="delete_prompt = true"
             >
               <font-awesome-icon icon="trash" class="grey_icon" />
             </a>
             <a class="waves-effect waves-teal btn-flat btn-small right"
               key="normal_edit"
-              @click.prevent.stop="edit_item"
+              @click.prevent="edit_item"
             >
               <font-awesome-icon icon="pen" class="grey_icon" />
             </a>
