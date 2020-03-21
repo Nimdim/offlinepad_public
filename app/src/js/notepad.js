@@ -107,7 +107,6 @@ class Notepad {
 
     _load_data() {
         let reader = function(object) {
-            let key = object.id;
             switch(object.type) {
                 case "notepad":
                     this.register_notepad(object);

@@ -2,7 +2,7 @@
   <li class="collection-item">
     <span>
       <template v-if="data.edit_state">
-        <p>
+        <p class="note-timestamp-controls">
           <span class="timestamp">
             <font-awesome-icon icon="calendar-alt" />&nbsp;
             <timestamp-picker
@@ -32,7 +32,7 @@
         <textarea ref="textarea" class="materialize-textarea" v-model="data.text"></textarea>
       </template>
       <template v-else>
-        <p>
+        <p class="note-timestamp-controls">
           <span class="timestamp">
             <font-awesome-icon icon="calendar-alt" class="grey_icon" style="width: 16px; height: 16px;" />&nbsp;
             <span>{{data.creation_time | note_datetime}}</span>
@@ -168,7 +168,7 @@ export default {
     },
 
     "submit": function() {
-      this.data.tags = _.filter(this.data.tags, function(tag) {return tag != 0;})
+      this.data.tags = _.filter(this.data.tags, function(tag) {return tag != "0";})
       this.data.edit_state = false;
       this.$emit('submit', this.data);
     },
@@ -197,4 +197,7 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+  .note-timestamp-controls {
+    margin-block-start: 0;
+  };
 </style>

@@ -235,12 +235,17 @@ import TagsList from './components/TagsList.vue'
 import Popup from './components/Popup.vue'
 
 import sanitize_html from 'sanitize-html'
+
 sanitize_html.defaults.allowedTags = [];
  
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 
 // import streamSaver from 'streamsaver'
+
+let escapeRegExp = function(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 var notepad = new Notepad(new LocalStorage());
 
@@ -318,12 +323,15 @@ export default {
     },
 
     "notes_filter_tags": function(value) {
+      let copy = _.cloneDeep(value);
+      copy = _.filter(copy, (item) => item != "0");
       notepad.set_notes_filter({
-        "tags": value,
+        "tags": copy,
       });
     },
   
     "fast_search": function(value) {
+      value = escapeRegExp(value);
       if(this.section == "tags") {
         notepad.set_tags_filter({
           "name": value,

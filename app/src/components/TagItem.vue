@@ -1,13 +1,12 @@
 <template>
   <li class="collection-item" v-on:click="$emit('click', data.id)">
-    <p>
+    <p style="margin-block-start: 0; margin-block-end: 0;">
       <input v-if="data.edit_state"
         placeholder="Название метки"
         type="text"
         class="validate tag_name"
         v-model="data.name" />
-      <span class="tag_name" v-else v-html="tag.name_highlighted"></span>
-      <span class="badge">{{data.count}}</span>
+      <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           key="edit_submit"
@@ -96,7 +95,7 @@
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
   input[type=text].tag_name {
-    width: calc(100% - 160px);
+    width: calc(100% - 95px);
     position: relative;
     top: -10px;
     margin: 0px;
