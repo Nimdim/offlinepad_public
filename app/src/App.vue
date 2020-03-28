@@ -589,7 +589,6 @@ export default {
     },
 
     submit_tag: function(data) {
-      debugger
       if(data.id == "__new_item__") {
         if(notepad.is_tag_with_name_exists(data.name)) {
           data.edit_state = true;

@@ -1,16 +1,21 @@
 <template>
   <li class="collection-item">
     <span>
-      <template v-if="data.edit_state">
-        <p class="note-timestamp-controls">
-          <span class="timestamp">
-            <font-awesome-icon icon="calendar-alt" />&nbsp;
-            <timestamp-picker
-              :value="data.creation_time"
-              @change="data.creation_time = $event"
-            />
+      <p class="note-timestamp-controls">
+        <span class="timestamp">
+          <font-awesome-icon
+            icon="calendar-alt"
+            class="grey_icon"
+            style="width: 16px; height: 16px;" />&nbsp;
+          <timestamp-picker v-if="data.edit_state"
+            :value="data.creation_time"
+            @change="data.creation_time = $event"
+          />
+          <span v-else>
+            {{data.creation_time | note_datetime}}
           </span>
-
+        </span>
+        <template v-if="data.edit_state">
           <a class="waves-effect waves-teal btn-small right"
             key="edit_submit"
             v-on:click.prevent="submit">
@@ -21,26 +26,8 @@
             @click.prevent="cancel_edit">
             <font-awesome-icon icon="times-circle" />
           </a>
-        </p>
-        <p>
-          <tags-list
-            :initial_tags="data.tags"
-            :all_tags="tags"
-            @change="data.tags = $event"
-          />
-        </p>
-        <textarea
-          ref="textarea"
-          class="materialize-textarea"
-          placeholder="Текст записи"
-          v-model="data.text" />
-      </template>
-      <template v-else>
-        <p class="note-timestamp-controls">
-          <span class="timestamp">
-            <font-awesome-icon icon="calendar-alt" class="grey_icon" style="width: 16px; height: 16px;" />&nbsp;
-            <span>{{data.creation_time | note_datetime}}</span>
-          </span>
+        </template>
+        <template v-else>
           <template v-if="delete_prompt">
             <a class="waves-effect waves-teal btn-small right"
               key="delete_cancel"
@@ -67,10 +54,28 @@
               <font-awesome-icon icon="pen" class="grey_icon" />
             </a>
           </template>
-        </p>
-        <p>
-          <span v-for="tag in data.tags" :key="tag.id" class="chip">{{get_tag_name(tag)}}</span>
-        </p>
+        </template>
+      </p>
+      <p>
+        <tags-list v-if="data.edit_state"
+          :initial_tags="data.tags"
+          :all_tags="tags"
+          @change="data.tags = $event"
+        />
+        <template v-else>
+          <span v-for="tag in data.tags" :key="tag.id"
+            class="chip"
+          >
+            {{get_tag_name(tag)}}
+          </span>
+        </template>
+      </p>
+      <textarea v-if="data.edit_state"
+        ref="textarea"
+        class="materialize-textarea"
+        placeholder="Текст записи"
+        v-model="data.text" />
+      <template v-else>
         <p v-for="(text_part, ix) in text_for_show(note)" :key="ix"
           class="multiline-text"
           v-html="text_part" />
