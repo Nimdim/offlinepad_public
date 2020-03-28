@@ -47,7 +47,9 @@
         </a>
       </template>
       <template v-if="data.edit_state">
-        <span v-if="data.error_existing_name">
+        <span v-if="data.error_existing_name"
+          class="red-text"
+        >
           метка с таким именем уже есть
         </span>
       </template>
@@ -96,9 +98,7 @@
 <style>
   input[type=text].tag_name {
     width: calc(100% - 95px);
-    position: relative;
-    top: -10px;
-    margin: 0px;
+    height: 2em;
   }
   span.tag_name {
     width: calc(100% - 160px);

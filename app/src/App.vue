@@ -43,21 +43,21 @@
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;" v-if="add_note_filter_show">
           <input
             ref="new_note_filter_name"
-            placeholder="Введите название фильтра"
+            placeholder="Введите название раздела"
             type="text"
             class="validate filter_name"
-            style="width: calc(100% - 108px); padding-left: 5px;"
-            :style="{'background': new_note_filter.error ? 'red': 'white'}"
+            :class="{'error': new_note_filter.error}"
+            style="width: calc(100% - 108px); padding-left: 5px; height: 2em;"
             v-model="new_note_filter.name"
             @keyup="new_note_filter.error = null"
           />
           <a class="waves-effect waves-teal btn-small btn-flat right tag_delete_btn"
-            style="margin-top: 12px; color: white;"
+            style="color: white;"
             v-on:click.prevent="cancel_note_filter">
             <font-awesome-icon icon="times-circle" />
           </a>
           <a class="waves-effect waves-teal btn-small right tag_delete_btn"
-            style="margin-top: 12px; margin-right: 12px;"
+            style="margin-right: 12px;"
             v-on:click.prevent="add_note_filter">
             <font-awesome-icon icon="save" />
           </a>
@@ -79,6 +79,7 @@
       class="collection records"
     >
       <note-item v-for="note in notes.items" :key="note.id"
+        ref="note_items"
         :note="note"
         :tags="all_tags"
         @submit="submit_note"
@@ -500,8 +501,19 @@ export default {
         on_scroll();
       });
       let on_scroll = function() {
-        // var scroll = window.document.getElementById("app").scrollTop;
         var scroll = window.scrollY;
+        if(this.$refs.note_items != null) {
+          let current_item_index = -1;
+          for(let k = 0; k < this.$refs.note_items.length; k++) {
+            let note_item = this.$refs.note_items[k];
+            if(currenct_scrolltop - header_height < note_item.$el.offsetTop) {
+              current_item_index = k;
+              break;
+            }
+          }
+          current_item_index;
+        }
+        //
         var delta = scroll - currenct_scrolltop;
         header_top -= delta;
         if(header_top + old_header_height == 0) {
@@ -577,14 +589,17 @@ export default {
     },
 
     submit_tag: function(data) {
+      debugger
       if(data.id == "__new_item__") {
         if(notepad.is_tag_with_name_exists(data.name)) {
+          data.edit_state = true;
           data.error_existing_name = true;
         } else {
           notepad.create_tag(data.name);
         }
       } else {
         if(notepad.is_tag_with_name_exists(data.name, data.id)) {
+          data.edit_state = true;
           data.error_existing_name = true;
         } else {
           notepad.edit_tag(data.id, data.name);
@@ -686,7 +701,7 @@ export default {
         "id": "__new_item__",
         "edit_state": true,
         "error_existing_name": false,
-        "name": "Новая метка",
+        "name": "",
         "count": 0,
       })
     },
@@ -697,14 +712,14 @@ export default {
         "tags": _.cloneDeep(this.notes_filter_tags),
         "checked": false,
         "edit_state": true,
-        "text": "Новая запись",
+        "text": "",
         "creation_time": + new Date(),
       })
     },
 
     add_note_filter: function() {
       if(this.new_note_filter.name == "") {
-        this.new_note_filter.error = "Укажите имя";
+        this.new_note_filter.error = true;
         this.$refs.new_note_filter_name.focus();
       } else {
         notepad.create_note_filter(this.new_note_filter.name, this.notes_filter_tags);

@@ -71,6 +71,19 @@ svg.mobile-menu-icon {
 .collection {
   max-width: 800px;
   margin: 0 auto;
+  margin-bottom: 86px;
+}
+
+input.validate.filter_name {
+  background: white;
+}
+
+input.validate.filter_name.error {
+  background: red;
+}
+
+input.validate.filter_name.error::placeholder {
+  color: white
 }
 
 select.browser-default {

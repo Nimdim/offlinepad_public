@@ -29,7 +29,11 @@
             @change="data.tags = $event"
           />
         </p>
-        <textarea ref="textarea" class="materialize-textarea" v-model="data.text"></textarea>
+        <textarea
+          ref="textarea"
+          class="materialize-textarea"
+          placeholder="Текст записи"
+          v-model="data.text" />
       </template>
       <template v-else>
         <p class="note-timestamp-controls">

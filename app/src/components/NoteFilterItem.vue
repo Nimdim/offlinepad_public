@@ -10,7 +10,7 @@
           <a class="waves-effect waves-teal btn-small right"
             key="delete_cancel"
             style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click="delete_prompt = false"
+            @click.stop="delete_prompt = false"
           >
             <font-awesome-icon v-if="note_filter.id.indexOf('internal_') == -1"
               icon="times-circle"
@@ -19,7 +19,7 @@
           <a class="waves-effect waves-teal btn-small red right"
             key="delete_submit"
             style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click="$emit('delete')"
+            @click.stop="$emit('delete')"
           >
             <font-awesome-icon v-if="note_filter.id.indexOf('internal_') == -1"
               icon="trash"
@@ -30,7 +30,7 @@
           <a class="waves-effect waves-teal btn-small btn-flat right"
             key="normal_delete"
             style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click="delete_prompt = true"
+            @click.stop="delete_prompt = true"
           >
             <font-awesome-icon
               icon="trash"

@@ -36,8 +36,22 @@
             @click="delete_tag(index)"/>
         </span>
         <span class="chip"
+            style="position: relative;"
             @click="add_tag">
             <font-awesome-icon icon="plus" />
+            <select v-if="tag_select_view == 'mobile_compact'"
+                style="position: absolute; left: 0; top: 0px; width: 100%; height: 100%; opacity: 0;"
+                class="browser-default"
+                v-model="add_new_tag"
+                @click.stop=""
+            >
+                <option value="0" disabled selected>Выберите</option>
+                <option v-for="global_tag in all_tags" :key="global_tag.id"
+                    :value="global_tag.id"
+                >
+                    {{global_tag.name}}
+                </option>
+            </select>
         </span>
     </span>
 </template>
@@ -72,6 +86,13 @@ export default {
       },
       deep: true
     },
+
+    "add_new_tag": function(value) {
+      if(value != "0") {
+        this.tags.splice(this.tags.length, 0, value);
+        this.add_new_tag = "0";
+      }
+    }
   },
 
   data: function() {
@@ -82,6 +103,7 @@ export default {
     let data = {
       tags: _.cloneDeep(this.initial_tags),
       enable_watch: true,
+      add_new_tag: "0",
       tag_select_view: tag_select_view,
     };
     return data;

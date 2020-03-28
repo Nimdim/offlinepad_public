@@ -83,27 +83,6 @@ i.active {
   padding-bottom: 60px;
 }
 
-/* body,
-#app {
-  position: absolute;
-  top: 0px;
-
-  width: 100%;
-  height: 100%;
-
-  margin: 0;
-
-  overflow-y: hidden;
-}
-
-#app {
-  overflow-y: auto;
-}
-
-body {
-  z-index: 1;
-}
-
-#app {
-  z-index: 2;
+/* .collection li.highlight.collection-item {
+  background: yellow;
 } */
