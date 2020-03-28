@@ -4,6 +4,9 @@
             icon="box-open"
             style="width: 200px; height: 200px; color: gray;"
         />
+        <p>
+            Блокнот еще не был создан. Создайте новый или откройте существующий файл через меню приложения.
+        </p>
     </full-screen-box>
 </template>
 
