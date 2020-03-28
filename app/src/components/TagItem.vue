@@ -5,6 +5,7 @@
         placeholder="Название метки"
         type="text"
         class="validate tag_name"
+        style="width: calc(100% - 95px); height: 2em;"
         v-model="data.name" />
       <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
       <template v-if="data.edit_state">
@@ -96,10 +97,6 @@
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
-  input[type=text].tag_name {
-    width: calc(100% - 95px);
-    height: 2em;
-  }
   span.tag_name {
     width: calc(100% - 160px);
     display: inline-block;
