@@ -244,7 +244,18 @@ import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 import PartialFileReader from './js/partial_file_reader.js'
 
-// import streamSaver from 'streamsaver'
+let sw_communicate = function(data) {
+  let promise = new Promise(function(resolve) {
+    let messageChannel = new MessageChannel();
+    let replyHandler = function(event) {
+      resolve([event.data, messageChannel.port1]);
+    };
+    // messageChannel.port1.addEventListener('message', replyHandler);
+    messageChannel.port1.onmessage = replyHandler;
+    navigator.serviceWorker.controller.postMessage(data, [messageChannel.port2]);
+  });
+  return promise;
+};
 
 let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -650,10 +661,35 @@ export default {
           this.upload();
           break;
         case "save": {
-          let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-          let filename = "data_" + stamp + ".txt";
-          let data = JSON.stringify(notepad.export());
-          this.download(filename, data);
+          // let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
+          // let filename = "data_" + stamp + ".txt";
+          // let data = JSON.stringify(notepad.export());
+          // this.download(filename, data);
+
+          // let wnd = window.open("/download", "_blank");
+          sw_communicate({command: "new_download"}).then(function(info) {
+            // debugger
+            let download_id = info[0];
+            let port = info[1];
+            console.log(download_id);
+            console.log(port);
+            // wnd.location = "/download?id=" + download_id;
+            location.href="/download?id=" + download_id;
+            // fetch("/download?id=" + download_id);
+            // setTimeout(
+            //   function() {
+            //     port.postMessage("123");
+            //     // port.postMessage("123");
+            //     // port.postMessage("123");
+            //     // port.postMessage("123");
+            //     // port.postMessage("123");
+            //     // port.postMessage("end");
+            //   },
+            //   1000
+            // )
+            // port.
+          });
+
           // const fileStream = streamSaver.createWriteStream('filename.txt'
           // // ,
           // // {
