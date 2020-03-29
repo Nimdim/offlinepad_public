@@ -661,24 +661,20 @@ export default {
           this.upload();
           break;
         case "save": {
-          // let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-          // let filename = "data_" + stamp + ".txt";
-          // let data = JSON.stringify(notepad.export());
+          let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
+          let filename = "data_" + stamp + ".txt";
+          let data = JSON.stringify(notepad.export());
           // this.download(filename, data);
 
-          // let wnd = window.open("/download", "_blank");
-          sw_communicate({command: "new_download"}).then(function(info) {
-            // debugger
+          sw_communicate({command: "new_download", "data": data, "filename": filename}).then(function(info) {
             let download_id = info[0];
-            let port = info[1];
-            console.log(download_id);
-            console.log(port);
-            // wnd.location = "/download?id=" + download_id;
+            // let port = info[1];
+            // console.log(download_id);
+            // console.log(port);
             location.href="/download?id=" + download_id;
-            // fetch("/download?id=" + download_id);
             // setTimeout(
             //   function() {
-            //     port.postMessage("123");
+            //     // port.postMessage("123");
             //     // port.postMessage("123");
             //     // port.postMessage("123");
             //     // port.postMessage("123");
@@ -687,7 +683,6 @@ export default {
             //   },
             //   1000
             // )
-            // port.
           });
 
           // const fileStream = streamSaver.createWriteStream('filename.txt'

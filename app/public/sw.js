@@ -32,6 +32,8 @@ function createStream (port) {
         console.log("download write");
         controller.enqueue(data)
       }
+    //   console.log("inside stream", controller.enqueue("123 123 123"));
+    //   controller.close();
     },
     cancel () {
       console.log('user aborted')
@@ -52,6 +54,8 @@ self.addEventListener('message', (event) => {
       let id = get_next_download_id();
       downloads[id] = {
         stream: createStream(event.ports[0]),
+        data: data.data,
+        filename: data.filename,
       }
       event.ports[0].postMessage(id);
       break;          
@@ -137,13 +141,14 @@ let process_download = function(url) {
   if (fileName) {
     // console.warn('Depricated')
     // Make filename RFC5987 compatible
-    fileName = encodeURIComponent(fileName).replace(/['()]/g, escape).replace(/\*/g, '%2A')
+    fileName = encodeURIComponent(downloads[id].filename).replace(/['()]/g, escape).replace(/\*/g, '%2A')
     responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
     // responseHeaders.set('Content-Disposition', "attachment; filename='" + fileName + "'");
   }
 
-  return new Response("test data data", { headers: responseHeaders });
-//   return new Response(downloads[id].stream, { headers: responseHeaders });
+  return new Response(downloads[id].data, { headers: responseHeaders });
+//   console.log(downloads[id].stream);
+  return new Response(downloads[id].stream, { headers: responseHeaders });
 
   //   return new Response("ok");
 }
