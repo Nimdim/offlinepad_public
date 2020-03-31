@@ -29,51 +29,81 @@ if ('serviceWorker' in navigator) {
   if(window.webpackHotUpdate != null) {
     dev = "1";
   }
-  navigator.serviceWorker.register('sw.js?dev=' + dev, {scope: '/'})
-  // .then((reg) => {
-  //   // регистрация сработала
-  //   console.log('Registration succeeded. Scope is ' + reg.scope);
-  //   // reg.installing.postMessage({dev: window.webpackHotUpdate != null});
-  //   // console.log("Done");
-  // }).catch((error) => {
-  //   // регистрация прошла неудачно
-  //   console.log('Registration failed with ' + error);
+  // navigator.serviceWorker.addEventListener('message', event => {
+  //   debugger
+  //   if(event.data.command == "updated") {
+  //     app.$children[0].update_done = event.data.version;
+  //   }
   // });
+  navigator.serviceWorker.register('sw.js?dev=' + dev, {scope: '/'})
+  .then(reg => {
+    let check_updates = function() {
+      if(reg.waiting != null) {
+        window.newWorker = reg.waiting;
+        sw_communicate({"command": "get_version"}, reg.waiting).then(
+          function(info) {
+            let id = info[0];
+            app.$children[0].update_available = id;
+          }
+        )
+      } else {
+        reg.update();
+      }
+    };
+    check_updates();
+    setInterval(check_updates, 5 * 1000);
+    sw_communicate({"command": "init"}).then(function(info) {
+      let data = info[0];
+      if(data.updated != null) {
+        app.$children[0].update_done = data.updated;
+      }
+    })
+  });
+
+  let refreshing;
+  // The event listener that is fired when the service worker updates
+  // Here we reload the page
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+     if (refreshing) return;
+     window.location.reload();
+     refreshing = true;
+  });
 }
 
-let sw_communicate = function(data) {
+let sw_communicate = function(data, worker) {
   let promise = new Promise(function(resolve) {
     let messageChannel = new MessageChannel();
     let replyHandler = function(event) {
-      resolve(event.data);
+      resolve([event.data, messageChannel.port1]);
     };
     // messageChannel.port1.addEventListener('message', replyHandler);
     messageChannel.port1.onmessage = replyHandler;
-    navigator.serviceWorker.controller.postMessage(data, [messageChannel.port2]);
+    if(worker == null) {
+      worker = navigator.serviceWorker.controller;
+    }
+    worker.postMessage(data, [messageChannel.port2]);
   });
   return promise;
 };
 
-window.func = function() {
-  debugger
-  sw_communicate({command: "ping"}).then(function(reply) {
-    debugger
-    console.log(reply.pong);
-  });
-}
+// window.fn = function() {
+//   sw_communicate({"command": "ping"}).then(function(info) {
+//     debugger
+//     console.log(info);
+//   })
+// };
 
-window.nd = function() {
-  debugger
-  sw_communicate({command: "new_download"}).then(function(reply) {
-    debugger
-    console.log(reply);
-  });
-}
+// window.fw = function() {
+//   sw_communicate({"command": "skip_waiting"}).then(function(info) {
+//     console.log(info);
+//   })
+// };
 
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 
 Vue.config.productionTip = false
 
-new Vue({
+let app = new Vue({
   render: h => h(App),
-}).$mount('#app')
+});
+app.$mount('#app');

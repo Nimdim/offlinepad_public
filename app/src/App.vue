@@ -195,6 +195,76 @@
       </div>
     </nav>
 
+    <transition name="fade">
+      <div v-if="update_available"
+        class="col s12 m7"
+        style="position: absolute; left: 10px; bottom: 10px;">
+        <div class="card horizontal">
+          <div class="card-stacked">
+            <div class="card-content" v-if="update_step == 'initial'">
+              <p>Доступно обновление: {{update_available}}</p>
+              <p>
+                <a class="waves-effect waves-teal btn-small"
+                  @click.prevent="update_step = 'confirm'">
+                  Обновить
+                </a>
+              </p>
+            </div>
+            <div class="card-content" v-else-if="update_step == 'confirm'">
+              <p>После обновления страница</p>
+              <p>будет перезагружена</p>
+              <a class="waves-effect waves-teal btn-small"
+                @click.prevent="update_step = 'initial'">
+                Отмена
+              </a>
+              <a class="waves-effect waves-teal btn-small red"
+                @click.prevent="update_sw">
+                Продолжить
+              </a>
+            </div>
+            <div class="card-content" v-else>
+              <p>Обновление</p>
+              <span>
+                <div class="preloader-wrapper big active">
+                  <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left">
+                    <div class="circle"></div>
+                    </div><div class="gap-patch">
+                    <div class="circle"></div>
+                    </div><div class="circle-clipper right">
+                      <div class="circle"></div>
+                    </div>
+                  </div>
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="update_done != null"
+        class="col s12 m7"
+        style="position: absolute; left: 10px; bottom: 10px;">
+        <div class="card horizontal teal accent-2">
+          <div class="card-stacked">
+            <div class="card-content">
+              <p>
+                Обновление выполнено
+                <font-awesome-icon
+                  class="grey_icon"
+                  icon="times"
+                  style="margin-left: 10px;"
+                  @click.prevent="update_done = null" />
+              </p>
+              <p>Текущая версия: {{update_done}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <a v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       :class="{hidden: add_button_hidden}"
@@ -244,7 +314,7 @@ import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 import PartialFileReader from './js/partial_file_reader.js'
 
-let sw_communicate = function(data) {
+let sw_communicate = function(data, worker) {
   let promise = new Promise(function(resolve) {
     let messageChannel = new MessageChannel();
     let replyHandler = function(event) {
@@ -252,7 +322,10 @@ let sw_communicate = function(data) {
     };
     // messageChannel.port1.addEventListener('message', replyHandler);
     messageChannel.port1.onmessage = replyHandler;
-    navigator.serviceWorker.controller.postMessage(data, [messageChannel.port2]);
+    if(worker == null) {
+      worker = navigator.serviceWorker.controller;
+    }
+    worker.postMessage(data, [messageChannel.port2]);
   });
   return promise;
 };
@@ -286,6 +359,9 @@ export default {
 
   data: function() {
     var data = {
+      update_available: false,
+      update_step: "initial",
+      update_done: null,
       note_filters: [],
 
       new_note_filter: {
@@ -431,6 +507,11 @@ export default {
       1000);
   },
   methods: {
+    update_sw: function() {
+      this.update_step = "updating";
+      sw_communicate({"command": "skip_waiting"}, window.newWorker);
+    },
+
     notepad_delete: function() {
       notepad.close();
       this.notepad_delete_mode = false;

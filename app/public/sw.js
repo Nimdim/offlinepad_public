@@ -1,10 +1,25 @@
+const APP_VERSION = "0.31";
+
+const RESOURCES = [
+  '/',
+  '/css/app.ba03b070.css',
+  '/css/materialize.css',
+  '/css/style.css',
+  '/js/app.c40a4832.js',
+  '/js/chunk-vendors.5c1fa6c0.js',
+  '/js/jquery-2.1.1.min.js',
+  '/js/materialize.js',
+  '/js/materialize.min.js',
+  '/favicon.ico',
+  '/index.html',
+  '/style.css',
+];
+
 let server = location.protocol + "//" + location.host;
 let dev = new URL(location).searchParams.get('dev');
 
-console.log("server", server);
-console.log("dev", dev);
-
 let downloads = {};
+let last_client = null;
 let get_next_download_id = function() {
   let id = 0;
   return function() {
@@ -17,23 +32,15 @@ function createStream (port) {
   return new ReadableStream({
     start (controller) {
       port.onmessage = ({ data }) => {
-        console.log("download port data", data);
         if (data === 'end') {
-          console.log("download end");
           return controller.close()
         }
-
         if (data === 'abort') {
-            console.log("download abort");
             controller.error('Aborted the download')
           return
         }
-
-        console.log("download write");
         controller.enqueue(data)
       }
-    //   console.log("inside stream", controller.enqueue("123 123 123"));
-    //   controller.close();
     },
     cancel () {
       console.log('user aborted')
@@ -42,13 +49,10 @@ function createStream (port) {
 }
 
 self.addEventListener('message', (event) => {
-  console.log("message", event.data);
-  // event.ports[0].postMessage(event.data);
   let data = event.data;
   switch(data.command) {
     case "ping":
-      event.ports[0].postMessage({"pong": "ok"});
-      console.log("pong posted");
+      event.ports[0].postMessage("pong");
       break;
     case "new_download": {
       let id = get_next_download_id();
@@ -60,19 +64,51 @@ self.addEventListener('message', (event) => {
       event.ports[0].postMessage(id);
       break;          
     }
+    case 'skip_waiting':
+      last_client = event.source.id
+      self.skipWaiting();
+      break;
+    case 'get_version':
+      console.log(event);
+      event.ports[0].postMessage(APP_VERSION);
+      break;
+    case 'init':
+      if(last_client != null) {
+        last_client = null;
+        event.ports[0].postMessage({"updated": APP_VERSION});
+      } else {
+        event.ports[0].postMessage({});
+      }
+      break;
   }
 });
 
-// self.addEventListener('install', e => {
-//   e.waitUntil(initial_promise);
-// //     new Promise((resolve, reject) => {
-// //       self.addEventListener('message', (data) => {
-// //         console.log("message", data);
-// //         resolve();
-// //       });
-// //     })
-// //   );
-// });
+addEventListener('install', installEvent => {
+  if(dev == "0") {
+    installEvent.waitUntil(
+      caches.open(APP_VERSION).then(cache => cache.addAll(RESOURCES))
+    )    
+  }
+});
+
+addEventListener('activate', activateEvent => {
+//   console.log(clients);
+//   clients.matchAll().then(function(clients) {
+//     clients.map(function(client) {
+//       console.log("send update done to client", client);
+//       client.postMessage({"command": "updated", "version": APP_VERSION});
+//     });
+//   });
+  if(dev == "0") {
+    activateEvent.waitUntil(
+      caches.keys().then(keyList => Promise.all(keyList.map(key => {
+        if (key !== APP_VERSION) {
+          return caches.delete(key);
+        }
+      })))
+    );    
+  }
+});
 
 let if_cacheable_resource = function(resource) {
   if(dev == "1") {
@@ -108,8 +144,7 @@ let process_download = function(url) {
   if(id == null) {
     return new Response("ok");
   }
-  console.log("fetch /download", id);
-  
+
   const responseHeaders = new Headers({
     'Content-Type': 'application/octet-stream; charset=utf-8',
 
@@ -121,40 +156,13 @@ let process_download = function(url) {
     'X-XSS-Protection': '1; mode=block'
   });
 
-//   let headers = new Headers(data.headers || {})
-
-//   if (headers.has('Content-Length')) {
-//     responseHeaders.set('Content-Length', headers.get('Content-Length'))
-//   }
-
-//   if (headers.has('Content-Disposition')) {
-//     responseHeaders.set('Content-Disposition', headers.get('Content-Disposition'))
-//   }
-
-//   // data, data.filename and size should not be used anymore
-//   if (data.size) {
-//     console.warn('Depricated')
-//     responseHeaders.set('Content-Length', data.size)
-//   }
-
-  let fileName = "download.txt";
-  if (fileName) {
-    // console.warn('Depricated')
-    // Make filename RFC5987 compatible
-    fileName = encodeURIComponent(downloads[id].filename).replace(/['()]/g, escape).replace(/\*/g, '%2A')
-    responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
-    // responseHeaders.set('Content-Disposition', "attachment; filename='" + fileName + "'");
-  }
-
+  let fileName = encodeURIComponent(downloads[id].filename).replace(/['()]/g, escape).replace(/\*/g, '%2A')
+  responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
   return new Response(downloads[id].data, { headers: responseHeaders });
-//   console.log(downloads[id].stream);
-  return new Response(downloads[id].stream, { headers: responseHeaders });
-
-  //   return new Response("ok");
+  // return new Response(downloads[id].stream, { headers: responseHeaders });
 }
 
 self.addEventListener('fetch', (event) => {
-  console.log("fetch", event.request.url);
   let resource = null;
   if(event.request.url.indexOf(server) == 0) {
     resource = event.request.url.replace(server, "");  
@@ -165,19 +173,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  let promise = null;
-  if(if_cacheable_resource(resource)) {
-    promise = caches.match(event.request).then((resp) => {
-      return resp || fetch(event.request).then((response) => {
-        return caches.open('v1').then((cache) => {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      });
-    });  
+  if(dev == "0") {
+    event.respondWith(caches.match(event.request));
   } else {
-    promise = fetch(event.request);
+    event.respondWith(fetch(event.request));
   }
-
-  event.respondWith(promise);
 });
