@@ -284,6 +284,7 @@
         v-if="warningscreen_visible"
         @accept="warningscreen_visible=false" />
     </transition>
+    <features-not-available-screen v-if="features_unawailable" />
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
@@ -299,6 +300,7 @@ moment.locale("ru");
 import LoadScreen from './components/LoadScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
 import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
+import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.vue'
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
@@ -312,23 +314,8 @@ sanitize_html.defaults.allowedTags = [];
  
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
+import sw_api from './js/service_worker.js'
 import PartialFileReader from './js/partial_file_reader.js'
-
-let sw_communicate = function(data, worker) {
-  let promise = new Promise(function(resolve) {
-    let messageChannel = new MessageChannel();
-    let replyHandler = function(event) {
-      resolve([event.data, messageChannel.port1]);
-    };
-    // messageChannel.port1.addEventListener('message', replyHandler);
-    messageChannel.port1.onmessage = replyHandler;
-    if(worker == null) {
-      worker = navigator.serviceWorker.controller;
-    }
-    worker.postMessage(data, [messageChannel.port2]);
-  });
-  return promise;
-};
 
 let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -350,6 +337,7 @@ export default {
     WarningScreen,
     NotepadDeleteScreen,
     NotepadEmptyScreen,
+    FeaturesNotAvailableScreen,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -359,6 +347,8 @@ export default {
 
   data: function() {
     var data = {
+      features_unawailable: false, // TODO показать скрин с недоступными функциями
+
       update_available: false,
       update_step: "initial",
       update_done: null,
@@ -456,60 +446,86 @@ export default {
   },
 
   mounted: function() {
-    this.scroll_init();
-    window.M.AutoInit();
-
-    notepad.on("reset_tags", function(tags) {
-      this.tags.items = this.wrap_tags(tags);
-    }.bind(this));
-    notepad.on("append_tags", function(tags) {
-      this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
-    }.bind(this));
-    notepad.on("all_tags", function(tags) {
-      this.all_tags = tags;
-    }.bind(this));
-
-    notepad.on("reset_notes", function(notes) {
-      this.notes.items = this.wrap_notes(notes);
-    }.bind(this));
-    notepad.on("reset_notes_count", function(notes_count) {
-      this.notes.count = notes_count;
-    }.bind(this));
-    notepad.on("append_notes", function(notes) {
-      this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
-    }.bind(this));
-
-    notepad.on("reset_note_filters", function(items) {
-      this.note_filters = items;
-    }.bind(this));
-
-    notepad.on("working", function(working) {
-      this.notepad_working = working;
-    }.bind(this));
-
-    notepad.on("reset_filter", function(filter) {
-      this.notes_filter_tags = filter.notes.tags;
-      if(this.section == "notes") {
-        this.sorting_order_asc = filter.notes.sorting_asc;
-        this.fast_search = filter.notes.text;
-      } else if(this.section == "tags") {
-        this.sorting_order_asc = filter.tags.sorting_asc;
-        this.fast_search = filter.tags.name;
-      } else {
-        throw new Error("error");
+    sw_api.on(
+      "update_available",
+      (id) => {
+        this.update_available = id;
       }
-    }.bind(this));
-
-    notepad.sync();
-
-    setTimeout(
-      function() {this.loadscreen_visible = false;}.bind(this),
-      1000);
+    );
+    let promise;
+    if(sw_api.is_available()) {
+      promise = sw_api.init().then((init_data) => {
+        if(init_data.updated != null) {
+          this.update_done = init_data.updated;
+        }
+        this.app_init();
+      });
+    } else {
+      this.features_unawailable = true;
+      promise = Promise.resolve();
+    }
+    promise.then(
+      () => {
+        setTimeout(() => {this.loadscreen_visible = false;}, 1000);
+      }
+    );
   },
   methods: {
+
+    app_init: function() {
+      this.scroll_init();
+      window.M.AutoInit();
+      this.notepad_init();
+    },
+
+    notepad_init: function() {
+      notepad.on("reset_tags", function(tags) {
+        this.tags.items = this.wrap_tags(tags);
+      }.bind(this));
+      notepad.on("append_tags", function(tags) {
+        this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
+      }.bind(this));
+      notepad.on("all_tags", function(tags) {
+        this.all_tags = tags;
+      }.bind(this));
+
+      notepad.on("reset_notes", function(notes) {
+        this.notes.items = this.wrap_notes(notes);
+      }.bind(this));
+      notepad.on("reset_notes_count", function(notes_count) {
+        this.notes.count = notes_count;
+      }.bind(this));
+      notepad.on("append_notes", function(notes) {
+        this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
+      }.bind(this));
+
+      notepad.on("reset_note_filters", function(items) {
+        this.note_filters = items;
+      }.bind(this));
+
+      notepad.on("working", function(working) {
+        this.notepad_working = working;
+      }.bind(this));
+
+      notepad.on("reset_filter", function(filter) {
+        this.notes_filter_tags = filter.notes.tags;
+        if(this.section == "notes") {
+          this.sorting_order_asc = filter.notes.sorting_asc;
+          this.fast_search = filter.notes.text;
+        } else if(this.section == "tags") {
+          this.sorting_order_asc = filter.tags.sorting_asc;
+          this.fast_search = filter.tags.name;
+        } else {
+          throw new Error("error");
+        }
+      }.bind(this));
+
+      notepad.sync();
+    },
+
     update_sw: function() {
       this.update_step = "updating";
-      sw_communicate({"command": "skip_waiting"}, window.newWorker);
+      sw_api.activate_new_worker();
     },
 
     notepad_delete: function() {
@@ -625,7 +641,6 @@ export default {
         currenct_scrolltop = scroll;
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
-      // window.document.getElementById("app").addEventListener("scroll", on_scroll);
       on_scroll();
     },
 
@@ -638,19 +653,6 @@ export default {
         item.error_existing_name = false;
       }
       return tags;
-    },
-
-    download: function(filename, text) {
-      var element = window.document.createElement('a');
-      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-      element.setAttribute('download', filename);
-
-      element.style.display = 'none';
-      window.document.body.appendChild(element);
-
-      element.click();
-
-      window.document.body.removeChild(element);
     },
 
     upload: function() {
@@ -747,7 +749,7 @@ export default {
           let data = JSON.stringify(notepad.export());
           // this.download(filename, data);
 
-          sw_communicate({command: "new_download", "data": data, "filename": filename}).then(function(info) {
+          sw_api.new_download(filename, data).then(function(info) {
             let download_id = info[0];
             // let port = info[1];
             // console.log(download_id);

@@ -1,4 +1,4 @@
-const APP_VERSION = "0.31";
+const APP_VERSION = "0.32";
 
 const RESOURCES = [
   '/',
@@ -92,13 +92,6 @@ addEventListener('install', installEvent => {
 });
 
 addEventListener('activate', activateEvent => {
-//   console.log(clients);
-//   clients.matchAll().then(function(clients) {
-//     clients.map(function(client) {
-//       console.log("send update done to client", client);
-//       client.postMessage({"command": "updated", "version": APP_VERSION});
-//     });
-//   });
   if(dev == "0") {
     activateEvent.waitUntil(
       caches.keys().then(keyList => Promise.all(keyList.map(key => {
