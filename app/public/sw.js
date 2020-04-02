@@ -1,4 +1,4 @@
-const APP_VERSION = "0.32";
+const APP_VERSION = "0.36";
 
 const RESOURCES = [
   '/',
@@ -98,7 +98,9 @@ addEventListener('activate', activateEvent => {
         if (key !== APP_VERSION) {
           return caches.delete(key);
         }
-      })))
+      }))).then(() => {
+        clients.claim();
+      })
     );    
   }
 });

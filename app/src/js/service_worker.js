@@ -33,7 +33,7 @@ class ServiceWorkerAPI {
   }
 
   communicate(data, worker) {
-    let promise = new Promise(function(resolve) {
+    let promise = new Promise((resolve) => {
       let messageChannel = new MessageChannel();
       let replyHandler = function(event) {
         resolve([event.data, messageChannel.port1]);
@@ -41,11 +41,21 @@ class ServiceWorkerAPI {
       // messageChannel.port1.addEventListener('message', replyHandler);
       messageChannel.port1.onmessage = replyHandler;
       if(worker == null) {
-        worker = navigator.serviceWorker.controller;
+        worker = this._worker;
       }
       worker.postMessage(data, [messageChannel.port2]);
     });
     return promise;
+  }
+
+  start_updates_checking() {
+    this.check_updates();
+    setInterval(
+      () => {
+        this.check_updates()
+      },
+      5 * 1000
+    );
   }
 
   check_updates() {
@@ -64,11 +74,6 @@ class ServiceWorkerAPI {
     }
   }
 
-  start_updates_checking() {
-    this.check_updates();
-    setInterval(() => this.check_updates, 5 * 1000);
-  }
-
   init() {
     let dev = "0";
     if(window.webpackHotUpdate != null) {
@@ -76,15 +81,25 @@ class ServiceWorkerAPI {
     }
 
     let promise = new Promise((resolve) => {
-      navigator.serviceWorker.register('sw.js?dev=' + dev, {scope: '/'})
-      .then((registration) => {
-        this._registration = registration;
-        this.start_updates_checking();
-        this.communicate({"command": "init"}).then(function(info) {
-          let data = info[0];
-          resolve(data);
-        })
-      });
+      navigator.serviceWorker.register('sw.js?dev=' + dev, {scope: '/'}).then(
+        (registration) => {
+          this._registration = registration;
+          let interval_id = setInterval(
+            () => {
+              if(registration.active != null) {
+                clearInterval(interval_id);
+                this._worker = registration.active;
+                this.start_updates_checking();
+                this.communicate({"command": "init"}).then(function(info) {
+                  let data = info[0];
+                  resolve(data);
+                })
+              }
+            },
+            500
+          );
+        }
+      );
   
       let refreshing;
       navigator.serviceWorker.addEventListener('controllerchange', function () {

@@ -282,7 +282,7 @@
     <transition name="fade">
       <warning-screen
         v-if="warningscreen_visible"
-        @accept="warningscreen_visible=false" />
+        @accept="warning_accept" />
     </transition>
     <features-not-available-screen v-if="features_unawailable" />
     <transition name="fade">
@@ -315,6 +315,7 @@ sanitize_html.defaults.allowedTags = [];
 import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 import sw_api from './js/service_worker.js'
+import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
 
 let escapeRegExp = function(string) {
@@ -446,15 +447,10 @@ export default {
   },
 
   mounted: function() {
-    sw_api.on(
-      "update_available",
-      (id) => {
-        this.update_available = id;
-      }
-    );
+    this.warning_init();
     let promise;
     if(sw_api.is_available()) {
-      promise = sw_api.init().then((init_data) => {
+      promise = this.service_worker_init().then((init_data) => {
         if(init_data.updated != null) {
           this.update_done = init_data.updated;
         }
@@ -471,6 +467,28 @@ export default {
     );
   },
   methods: {
+
+    warning_init: function() {
+      let accept = cookie_api.get("alpha_warn_accept");
+      if(accept == "1") {
+        this.warningscreen_visible = false;
+      }
+    },
+
+    warning_accept: function() {
+      this.warningscreen_visible = false;
+      cookie_api.set("alpha_warn_accept", "1");
+    },
+
+    service_worker_init: function() {
+      sw_api.on(
+        "update_available",
+        (id) => {
+          this.update_available = id;
+        }
+      );
+      return sw_api.init();
+    },
 
     app_init: function() {
       this.scroll_init();
