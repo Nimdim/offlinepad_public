@@ -2,14 +2,14 @@
   <span class="timestamp">
     <input
       type="text"
-      class="datepicker"
+      class="datepicker text-input--standart-style center"
       ref="date"
-      style="width: 90px;"
+      style="width: 76px;"
       :value="picker_date"
     />
     <input
       type="text"
-      class="timepicker"
+      class="timepicker text-input--standart-style center"
       ref="time"
       style="width: 45px; margin-left: 10px;"
       :value="picker_time"

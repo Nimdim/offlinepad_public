@@ -4,8 +4,8 @@
       <input v-if="data.edit_state"
         placeholder="Название метки"
         type="text"
-        class="validate tag_name"
-        style="width: calc(100% - 95px); height: 2em;"
+        class="validate tag_name text-input--standart-style"
+        style="width: calc(100% - 95px);"
         v-model="data.name" />
       <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
       <template v-if="data.edit_state">

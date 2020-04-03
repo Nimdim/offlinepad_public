@@ -195,3 +195,17 @@ footer.page-footer {
   position: relative;
   top: 7px;
 }
+
+input[type=text]:not(.browser-default) {
+  height: 2em;
+  margin-bottom: 4px;
+}
+
+textarea.materialize-textarea {
+  margin: 0;
+}
+
+input[type=text]:not(.browser-default),
+textarea.materialize-textarea {
+  font-size: 14px;
+}

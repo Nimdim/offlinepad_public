@@ -56,20 +56,25 @@
           </template>
         </template>
       </p>
-      <p>
-        <tags-list v-if="data.edit_state"
+      <p v-if="data.edit_state"
+        style="margin-bottom: 0px;"
+      >
+        <tags-list 
           :initial_tags="data.tags"
           :all_tags="tags"
           @change="data.tags = $event"
         />
-        <template v-else>
-          <span v-for="tag in data.tags" :key="tag.id"
-            class="chip"
-          >
-            {{get_tag_name(tag)}}
-          </span>
-        </template>
       </p>
+      <p v-else
+        style="margin-top: 0px; margin-bottom: 0px; line-height: 1.5em;">
+        <span v-for="tag in data.tags" :key="tag.id"
+          class="chip"
+        >
+          {{get_tag_name(tag)}}
+        </span>
+      </p>
+
+
       <textarea v-if="data.edit_state"
         ref="textarea"
         class="materialize-textarea"
@@ -208,5 +213,6 @@ export default {
 <style>
   .note-timestamp-controls {
     margin-block-start: 0;
+    margin-block-end: 0;
   };
 </style>

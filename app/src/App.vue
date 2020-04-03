@@ -45,9 +45,9 @@
             ref="new_note_filter_name"
             placeholder="Введите название раздела"
             type="text"
-            class="validate filter_name"
+            class="validate filter_name text-input--standart-style"
             :class="{'error': new_note_filter.error}"
-            style="width: calc(100% - 108px); padding-left: 5px; height: 2em;"
+            style="width: calc(100% - 108px); padding-left: 5px;"
             v-model="new_note_filter.name"
             @keyup="new_note_filter.error = null"
           />
