@@ -13,7 +13,10 @@
 
     <input type="file" ref="upload" style="display:none;" @change="do_upload" />
 
-    <notepad-empty-screen v-if="!notepad_working" />
+    <notepad-empty-screen v-if="!notepad_working"
+      @create="notepad_menu('create')"
+      @open="notepad_menu('open')"
+    />
     <notepad-delete-screen  v-if="notepad_delete_mode"
       @submit="notepad_delete"
       @cancel="notepad_delete_mode = false"
