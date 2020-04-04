@@ -78,14 +78,6 @@ input.validate.filter_name {
   background: white;
 }
 
-input.validate.filter_name.error {
-  background: red;
-}
-
-input.validate.filter_name.error::placeholder {
-  color: white
-}
-
 select.browser-default {
   position: relative;
   top: 1px;
@@ -208,4 +200,19 @@ textarea.materialize-textarea {
 input[type=text]:not(.browser-default),
 textarea.materialize-textarea {
   font-size: 14px;
+}
+
+.editing {
+  z-index: 3000;
+  position: relative;
+}
+
+.width-eq-parent {
+  width: 100%;
+}
+
+.message_popup {
+  position: fixed;
+  left: 10px;
+  bottom: -5px;
 }

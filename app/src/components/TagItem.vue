@@ -1,12 +1,18 @@
 <template>
-  <li class="collection-item" v-on:click="$emit('click', data.id)">
+  <li class="collection-item"
+    :class="{'editing': data.edit_state}"
+    v-on:click="$emit('click', data.id)"
+  >
     <p style="margin-block-start: 0; margin-block-end: 0;">
       <input v-if="data.edit_state"
+        ref="name"
         placeholder="Название метки"
         type="text"
         class="validate tag_name text-input--standart-style"
         style="width: calc(100% - 95px);"
-        v-model="data.name" />
+        v-model="data.name"
+        @keydown.enter="submit_edit"
+        />
       <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
@@ -62,9 +68,25 @@
   import _ from "lodash";
 
   export default {
+
     props: {
       tag: Object,
     },
+
+    mounted: function() {
+      if(this.data.id == "__new_item__") {
+        this.enter_edit_state();
+      }
+    },
+
+    watch: {
+      "data.edit_state": function(new_value) {
+        if(new_value) {
+          this.enter_edit_state();
+        }
+      },
+    },
+
     data: function() {
       let data = {
         delete_prompt: false,
@@ -73,23 +95,40 @@
       if(data.data.edit_state == null) {
         data.data.edit_state = false;
       }
+      this.$emit("edit_state_changed", data.data.edit_state);
       return data;
     },
+
     methods: {
+
+      change_edit_state: function(value) {
+        this.data.edit_state = value;
+        this.$emit("edit_state_changed", value);
+      },
+
+      enter_edit_state: function() {
+        this.$nextTick(() => {
+          this.$refs.name.focus();
+        });
+      },
+
       edit_item: function() {
         this.backup_name = this.data.name;
-        this.data.edit_state = true;
+        this.change_edit_state(true);
       },
 
       cancel_edit: function() {
-        this.data.error_existing_name = false;
-        this.data.edit_state = false;
-        this.data.name = this.backup_name;
+        if(this.data.id != "__new_item__") {
+          this.data.error_existing_name = false;
+          this.change_edit_state(false);
+          this.data.name = this.backup_name;
+        }
+        this.change_edit_state(false);
         this.$emit('cancel', this.data);
       },
 
       submit_edit: function() {
-        this.data.edit_state = false;
+        this.change_edit_state(false);
         this.$emit('submit', this.data);
       },
     }

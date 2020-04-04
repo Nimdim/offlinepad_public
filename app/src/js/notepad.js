@@ -445,6 +445,13 @@ class Notepad {
         this._reset_note_filters();
     }
 
+    edit_note_filter(note_filter_id, new_name) {
+        let data = this._data.note_filters[note_filter_id];
+        data.name = new_name;
+        this._storage.set(note_filter_id, data);
+        this._reset_note_filters();
+    }
+
     register_note_filter(note_filter) {
         this._data.note_filters[note_filter.id] = note_filter;
         this._reset_note_filters();
@@ -464,6 +471,20 @@ class Notepad {
         _.forEach(items, (item) => item.deletable = true)
         items.unshift(all_items);
         this.trigger("reset_note_filters", items);
+    }
+
+    is_note_filter_with_name_exists(name, current_id) {
+        let id, item;
+        for(id in this._data.note_filters) {
+            if(current_id == id) {
+                continue;
+            }
+            item = this._data.note_filters[id];
+            if(item.name == name) {
+                return true;
+            }
+        }
+        return false;
     }
 
     create_note(text, stamp, tags) {

@@ -1,42 +1,70 @@
 <template>
-  <li @click="$emit('click')">
+  <li
+    :class="{'editing': data.edit_state}"
+    @click="$emit('click')">
     <a href="#!"
       style="padding-right: 8px;"
     >
       <font-awesome-icon class="mobile-menu-icon" icon="th" />
-      {{note_filter.name}}
-      <template v-if="note_filter.id.indexOf('internal_') == -1">
-        <template v-if="delete_prompt">
-          <a class="waves-effect waves-teal btn-small right"
-            key="delete_cancel"
-            style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click.stop="delete_prompt = false"
-          >
-            <font-awesome-icon v-if="note_filter.id.indexOf('internal_') == -1"
-              icon="times-circle"
-            />
+      <input v-if="data.edit_state"
+        ref="name"
+        type="text"
+        style="width: calc(100% - 100px);"
+        @click.stop=""
+        v-model="data.name" />
+      <span v-else>
+        {{data.name}}
+      </span>
+      <template v-if="data.id.indexOf('internal_') == -1">
+        <template v-if="data.edit_state">
+          <a class="waves-effect waves-teal btn-small right note-filter-btn"
+            key="edit_submit"
+            v-on:click.prevent.stop="submit">
+            <font-awesome-icon icon="check" />
           </a>
-          <a class="waves-effect waves-teal btn-small red right"
-            key="delete_submit"
-            style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click.stop="$emit('delete')"
+          <a class="waves-effect waves-teal btn-small right red note-filter-btn"
+            key="edit_cancel"
+            @click.prevent.stop="cancel_edit">
+            <font-awesome-icon icon="times-circle" />
+          </a>
+        </template>
+        <template v-else-if="delete_prompt">
+          <a class="waves-effect waves-teal btn-small right note-filter-btn"
+            key="delete_cancel"
+            @click.prevent.stop="delete_prompt = false"
           >
-            <font-awesome-icon v-if="note_filter.id.indexOf('internal_') == -1"
-              icon="trash"
-            />
+            <font-awesome-icon icon="times-circle" />
+          </a>
+          <a class="waves-effect waves-teal btn-small red right note-filter-btn"
+            key="delete_submit"
+            @click.prevent.stop="$emit('delete')"
+          >
+            <font-awesome-icon icon="trash" />
           </a>
         </template>
         <template v-else>
-          <a class="waves-effect waves-teal btn-small btn-flat right"
+          <a class="waves-effect waves-teal btn-small btn-flat right note-filter-btn"
             key="normal_delete"
-            style="position: relative; top: 8px; padding: 0px 10px; margin: 0px"
-            @click.stop="delete_prompt = true"
+            @click.prevent.stop="delete_prompt = true"
           >
-            <font-awesome-icon
-              icon="trash"
-            />
+            <font-awesome-icon icon="trash" />
+          </a>
+          <a class="waves-effect waves-teal btn-small btn-flat right note-filter-btn"
+            key="normal_edit"
+            @click.prevent.stop="edit_item"
+          >
+            <font-awesome-icon icon="pen" />
           </a>
         </template>
+        <span v-if="error_text"
+          style="display: block;
+                position: relative;
+                top: -10px;
+                left: 10px;
+                font-size: 10px;
+                line-height: 10px;
+                color: red;"
+        >{{error_text}}</span>
       </template>
     </a>
   </li>
@@ -51,15 +79,62 @@ export default {
     note_filter: Object,
   },
 
+  computed: {
+    error_text: function() {
+      if(this.data.error == "existing") {
+        return "раздел с таким названием существует";
+      } else if (this.data.error == "empty") {
+        return "название не может быть пустым";
+      } else {
+        return null;
+      }
+    },
+  },
+
   data: function() {
     let data = {
       data: _.cloneDeep(this.note_filter),
       delete_prompt: false,
     };
+    data.data.error = null;
+    data.data.edit_state = false;
     return data;
   },
+
+  methods: {
+    submit: function() {
+      this.data.error = null;
+      this.data.edit_state = false;
+      this.$emit("edit_state_changed", this.data.edit_state);
+      this.$emit("submit", this.data);
+    },
+
+    cancel_edit: function() {
+      this.data.error = null;
+      this.data.name = this.old_name;
+      this.data.edit_state = false;
+      this.$emit("edit_state_changed", this.data.edit_state);
+    },
+
+    edit_item: function() {
+      this.old_name = this.data.name;
+      this.data.edit_state = true;
+      this.$emit("edit_state_changed", this.data.edit_state);
+      this.$nextTick(
+        () => {
+          this.$refs.name.focus();
+        }
+      )
+    },
+  }
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+  nav ul a.note-filter-btn {
+    position: relative;
+    top: 8px;
+    padding: 0px 10px;
+    margin: 0px;
+  }
 </style>

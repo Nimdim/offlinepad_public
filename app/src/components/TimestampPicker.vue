@@ -42,11 +42,74 @@ export default {
       onClose: function() {
         _this.submit();
       },
+      i18n: {
+        cancel: 'Отмена',
+        clear: 'Сбросить',
+        done: 'Ок',
+        previousMonth: '‹',
+        nextMonth: '›',
+        months:
+        [
+          'Январь',
+          'Февраль',
+          'Март',
+          'Апрель',
+          'Май',
+          'Июнь',
+          'Июль',
+          'Август',
+          'Сентябрь',
+          'Октябрь',
+          'Ноябрь',
+          'Декабрь'
+        ],
+        monthsShort:
+        [
+          'Янв',
+          'Фев',
+          'Мар',
+          'Апр',
+          'Май',
+          'Июн',
+          'Июл',
+          'Авг',
+          'Сен',
+          'Окт',
+          'Ноя',
+          'Дек'
+        ], 
+        weekdays:
+        [
+          'Воскресенье',
+          'Понедельник',
+          'Вторник',
+          'Среда',
+          'Четверг',
+          'Пятница',
+          'Суббота'
+        ],
+        weekdaysShort:
+        [
+          'Вск',
+          'Пн',
+          'Вт',
+          'Ср',
+          'Чтв',
+          'Пт',
+          'Сб'
+        ],
+        weekdaysAbbrev: ['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'],
+      },
     };
     let time_options = {
       twelveHour: false,
       onCloseEnd: function() {
         _this.submit();
+      },
+      i18n: {
+        cancel: 'Отмена',
+        clear: 'Очистить',
+        done: 'Ок',
       },
     };
     window.M.Datepicker.init(this.$refs.date, date_options);

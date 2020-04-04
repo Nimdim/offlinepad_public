@@ -1,11 +1,11 @@
-const APP_VERSION = "0.38";
+const APP_VERSION = "0.43";
 
 const RESOURCES = [
   '/',
-  '/css/app.ba03b070.css',
+  '/css/app.e1458a16.css',
   '/css/materialize.css',
   '/css/style.css',
-  '/js/app.e1ef2f30.js',
+  '/js/app.a6369d12.js',
   '/js/chunk-vendors.15858738.js',
   '/js/jquery-2.1.1.min.js',
   '/js/materialize.js',
@@ -69,7 +69,6 @@ self.addEventListener('message', (event) => {
       self.skipWaiting();
       break;
     case 'get_version':
-      console.log(event);
       event.ports[0].postMessage(APP_VERSION);
       break;
     case 'init':
@@ -165,6 +164,11 @@ self.addEventListener('fetch', (event) => {
 
   if(is_download(resource)) {
     event.respondWith(process_download(event.request.url));
+    return;
+  }
+
+  if(event.request.url.indexOf("https://i3.ytimg.com/vi/") == 0) {
+    event.respondWith(fetch(event.request));
     return;
   }
 

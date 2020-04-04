@@ -22,11 +22,11 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
     .fullscreenbox {
-        width: 100%;
-        height: 100%;
         position: fixed;
         left: 0px;
         top: 0px;
+        right: 0px;
+        bottom: 0px;
         background: white;
     }
 

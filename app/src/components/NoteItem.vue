@@ -1,5 +1,5 @@
 <template>
-  <li class="collection-item">
+  <li class="collection-item" :class="{'editing': data.edit_state}">
     <span>
       <p class="note-timestamp-controls">
         <span class="timestamp">
@@ -117,11 +117,33 @@ let replace_links_with_hrefs = function(text, protocol) {
     let end_part = src.slice(end);
     dst = dst + start_part;
     if(link_part.length > 0) {
-      dst = dst + "<a href='" + link_part + "'>" + link_part + "</a>";
+      dst = dst + make_link_representation(link_part);
     }
     src = end_part;
   }
   return dst;
+}
+
+let make_link_representation = function(link) {
+  let id = null;
+  if(link.indexOf("https://www.youtube.com/watch?v=") == 0) {
+    id = link.replace("https://www.youtube.com/watch?v=", "");
+  }
+  if(link.indexOf("https://youtu.be/") == 0) {
+    id = link.replace("https://youtu.be/", "");
+  }
+  let result;
+  if(id != null) {
+    id = "https://i3.ytimg.com/vi/" + id + "/hqdefault.jpg";
+    result = "<a class='width-eq-parent' href='" + link + "'><img class='width-eq-parent' style='max-width: 200px;' src='" + id + "' ></a>";
+  } else {
+    result = make_default_link(link);
+  }
+  return result;
+};
+
+let make_default_link = function(link) {
+  return "<a href='" + link + "'>" + link + "</a>";
 }
 
 export default {
@@ -157,6 +179,7 @@ export default {
     if(data.data.edit_state == null) {
       data.data.edit_state = false;
     }
+    this.$emit("edit_state_changed", data.data.edit_state);
     return data;
   },
 
@@ -168,22 +191,27 @@ export default {
 
   methods: {
     text_for_show: function(note) {
-      let text = replace_links_with_hrefs(note.text_highlighted, "https");
-      text = replace_links_with_hrefs(text, "http");
+      let text = replace_links_with_hrefs(note.text_highlighted, "http");
+      text = replace_links_with_hrefs(text, "https");
       let parts = text.split('\n');
       return parts;
     },
 
     enter_edit_state: function() {
-      let _this = this;
-      this.$nextTick(function() {
-        window.M.textareaAutoResize(_this.$refs.textarea);
-      })
+      this.$nextTick(() => {
+        this.$refs.textarea.focus();
+        window.M.textareaAutoResize(this.$refs.textarea);
+      });
+    },
+
+    edit_state_change: function(value) {
+      this.data.edit_state = value;
+      this.$emit("edit_state_changed", value);
     },
 
     "submit": function() {
       this.data.tags = _.filter(this.data.tags, function(tag) {return tag != "0";})
-      this.data.edit_state = false;
+      this.edit_state_change(false);
       this.$emit('submit', this.data);
     },
 
@@ -196,14 +224,17 @@ export default {
       this.backup_text = this.data.text;
       this.backup_tags = _.cloneDeep(this.data.tags);
       this.backup_creation_time = this.data.creation_time;
-      this.data.edit_state = true;
+      this.edit_state_change(true);
     },
 
     "cancel_edit": function() {
-      this.data.text = this.backup_text;
-      this.data.tags = this.backup_tags;
-      this.data.creation_time = this.backup_creation_time;
-      this.data.edit_state = false;
+      if(this.data.id != "__new_item__") {
+        this.data.text = this.backup_text;
+        this.data.tags = this.backup_tags;
+        this.data.creation_time = this.backup_creation_time;
+        this.edit_state_change(false);
+      }
+      this.edit_state_change(false);
       this.$emit('cancel', this.data);
     }
   }
@@ -214,5 +245,5 @@ export default {
   .note-timestamp-controls {
     margin-block-start: 0;
     margin-block-end: 0;
-  };
+  }
 </style>

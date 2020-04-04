@@ -1,9 +1,10 @@
 <template>
 <ul id="dropdown1" class="dropdown-content" :style="style">
   <popup-item v-for="item in items" :key="item.id"
-    :data="item"
+    :item_data="item"
     @click="on_item_click(item.id)"
     @delete="$emit('delete', item.id)"
+    @submit="$emit('submit', {id: item.id, data: $event})"
   />
   <!-- <li class="divider"></li>
   <li><a href="#!">Разбор</a></li>

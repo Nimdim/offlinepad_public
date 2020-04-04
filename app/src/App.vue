@@ -3,6 +3,7 @@
     <popup
       ref="notes_popup"
       :items="note_filters"
+      @submit="edit_note_filter($event.id, $event.data)"
       @delete="delete_note_filter($event)"
     />
     <popup
@@ -55,16 +56,27 @@
             @keyup="new_note_filter.error = null"
           />
           <a class="waves-effect waves-teal btn-small btn-flat right tag_delete_btn"
-            style="color: white;"
+            style="color: white; position: relative; top: -3px;"
             v-on:click.prevent="cancel_note_filter">
             <font-awesome-icon icon="times-circle" />
           </a>
           <a class="waves-effect waves-teal btn-small right tag_delete_btn"
-            style="margin-right: 12px;"
+            style="margin-right: 12px; position: relative; top: -3px;"
             v-on:click.prevent="add_note_filter">
             <font-awesome-icon icon="save" />
           </a>
         </p>
+        <span v-if="new_note_filter.error"
+          style="margin: 0px;
+            color: red;
+            font-size: 12px;
+            position: relative;
+            top: -17px;
+            float: left;
+            left: 19px;"
+        >
+          {{new_note_filter.error_text}}
+        </span>
       </li>
     </ul>
 
@@ -72,10 +84,13 @@
       class="collection tags"
     >
       <tag-item v-for="tag in tags.items" :key="tag.id"
+        ref="tag_items"
         :tag="tag"
         @submit="submit_tag"
         @cancel="cancel_tag"
-        @delete="remove_tag" />
+        @delete="remove_tag"
+        @edit_state_changed="blockerscreen_visible = $event"
+      />
     </ul>
 
     <ul v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
@@ -88,7 +103,8 @@
         @submit="submit_note"
         @cancel="cancel_note"
         @delete="remove_note"
-        />
+        @edit_state_changed="blockerscreen_visible = $event"
+      />
     </ul>
 
     <!-- <div class="tags_footer" v-if="section == 'tags'">
@@ -168,6 +184,7 @@
                 :note_filter="note_filter"
                 @click="note_filter_click(note_filter.tags)"
                 @delete="delete_note_filter(note_filter.id)"
+                @submit="edit_note_filter(note_filter.id, $event)"
               />
             </ul>
           </li>
@@ -200,15 +217,16 @@
 
     <transition name="fade">
       <div v-if="update_available"
-        class="col s12 m7"
-        style="position: absolute; left: 10px; bottom: 10px;">
+        class="col s12 m7 message_popup"
+        :class="{'editing': update_step != 'initial'}"
+      >
         <div class="card horizontal">
           <div class="card-stacked">
             <div class="card-content" v-if="update_step == 'initial'">
               <p>Доступно обновление: {{update_available}}</p>
               <p>
                 <a class="waves-effect waves-teal btn-small"
-                  @click.prevent="update_step = 'confirm'">
+                  @click.prevent="app_goto_update">
                   Обновить
                 </a>
               </p>
@@ -217,7 +235,7 @@
               <p>После обновления страница</p>
               <p>будет перезагружена</p>
               <a class="waves-effect waves-teal btn-small"
-                @click.prevent="update_step = 'initial'">
+                @click.prevent="update_cancel">
                 Отмена
               </a>
               <a class="waves-effect waves-teal btn-small red"
@@ -248,8 +266,8 @@
 
     <transition name="fade">
       <div v-if="update_done != null"
-        class="col s12 m7"
-        style="position: absolute; left: 10px; bottom: 10px;">
+        class="col s12 m7 message_popup"
+      >
         <div class="card horizontal teal accent-2">
           <div class="card-stacked">
             <div class="card-content">
@@ -287,6 +305,9 @@
         v-if="warningscreen_visible"
         @accept="warning_accept" />
     </transition>
+    <transition name="fade">
+      <blocker-screen v-if="blockerscreen_visible"/>
+    </transition>
     <features-not-available-screen v-if="features_unawailable" />
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
@@ -305,6 +326,7 @@ import WarningScreen from './components/WarningScreen.vue'
 import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
 import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.vue'
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
+import BlockerScreen from './components/BlockerScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
 import TagItem from './components/TagItem.vue'
@@ -342,6 +364,7 @@ export default {
     NotepadDeleteScreen,
     NotepadEmptyScreen,
     FeaturesNotAvailableScreen,
+    BlockerScreen,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -352,6 +375,11 @@ export default {
   data: function() {
     var data = {
       features_unawailable: false, // TODO показать скрин с недоступными функциями
+
+      note_index_in_viewspot: 0,
+      note_index_add: null,
+      tag_index_in_viewspot: 0,
+      tag_index_add: null,
 
       update_available: false,
       update_step: "initial",
@@ -366,6 +394,7 @@ export default {
       section: "notes",
 
       add_note_filter_show: false,
+      blockerscreen_visible: false,
       loadscreen_visible: true,
       warningscreen_visible: true,
 
@@ -373,7 +402,7 @@ export default {
       fast_search: "",
       sorting_order_asc: true,
 
-      add_button_hidden: false,
+      header_hidden: false,
 
       show_notes_filter: false,
 
@@ -447,6 +476,9 @@ export default {
         return NOTEPAD_CONTROLS.slice(0, 2);
       }
     },
+    "add_button_hidden": function() {
+      return this.header_hidden || this.blockerscreen_visible;
+    },
   },
 
   mounted: function() {
@@ -470,6 +502,16 @@ export default {
     );
   },
   methods: {
+
+    update_cancel: function() {
+      this.update_step = 'initial';
+      this.blockerscreen_visible = false;
+    },
+
+    app_goto_update: function() {
+      this.update_step = 'confirm';
+      this.blockerscreen_visible = true;
+    },
 
     warning_init: function() {
       let accept = cookie_api.get("alpha_warn_accept");
@@ -631,17 +673,6 @@ export default {
       });
       let on_scroll = function() {
         var scroll = window.scrollY;
-        if(this.$refs.note_items != null) {
-          let current_item_index = -1;
-          for(let k = 0; k < this.$refs.note_items.length; k++) {
-            let note_item = this.$refs.note_items[k];
-            if(currenct_scrolltop - header_height < note_item.$el.offsetTop) {
-              current_item_index = k;
-              break;
-            }
-          }
-          current_item_index;
-        }
         //
         var delta = scroll - currenct_scrolltop;
         header_top -= delta;
@@ -650,19 +681,49 @@ export default {
         }
         if(header_top < -header_height) {
           header_top = -header_height;
-          this.add_button_hidden = true;
+          this.header_hidden = true;
         }
         if(header_top > 0) {
           header_top = 0;
-          this.add_button_hidden = false;
+          this.header_hidden = false;
         }
         header.style.top = header_top + "px";
         this.header_top = header_top;
         this.header_bottom = header_top + header_height;
         currenct_scrolltop = scroll;
+        //
+        let scroll_with_header = scroll + this.header_bottom - header_height - 1;
+        this.process_note_items_scroll(scroll_with_header);
+        this.process_tag_items_scroll(scroll_with_header);
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
       on_scroll();
+    },
+
+    process_note_items_scroll: function(scroll_top) {
+      if(this.$refs.note_items != null) {
+        this.note_index_in_viewspot = this.find_item_in_viewspot(
+          scroll_top, this.$refs.note_items);
+      }
+    },
+
+    process_tag_items_scroll: function(scroll_top) {
+      if(this.$refs.tag_items != null) {
+        this.tag_index_in_viewspot = this.find_item_in_viewspot(
+          scroll_top, this.$refs.tag_items);
+      }
+    },
+
+    find_item_in_viewspot: function(scroll_top, items) {
+      let current_item_index = 0;
+      for(let k = 0; k < items.length; k++) {
+        let item = items[k];
+        if(scroll_top < item.$el.offsetTop) {
+          current_item_index = k;
+          break;
+        }
+      }
+      return current_item_index;
     },
 
     wrap_tags: function(tags) {
@@ -704,6 +765,7 @@ export default {
     },
 
     submit_tag: function(data) {
+      this.tag_index_add = null;
       if(data.id == "__new_item__") {
         if(notepad.is_tag_with_name_exists(data.name)) {
           data.edit_state = true;
@@ -720,25 +782,30 @@ export default {
         }
       }
     },
-    cancel_tag: function(data) {
-      if(data.id == "__new_item__") {
-        this.tags.items.shift();
+
+    cancel_tag: function() {
+      if(this.tag_index_add != null) {
+        this.tags.items.splice(this.tag_index_add, 1);
+        this.tag_index_add = null;
       }
     },
+
     remove_tag: function(tag_id) {
       notepad.delete_tag(tag_id);
     },
 
     submit_note: function(data) {
+      this.note_index_add = null;
       if(data.id == "__new_item__") {
         notepad.create_note(data.text, data.creation_time, data.tags);
       } else {
         notepad.edit_note(data.id, data.text, data.creation_time, data.tags);
       }
     },
-    cancel_note: function(data) {
-      if(data.id == "__new_item__") {
-        this.notes.items.shift();
+    cancel_note: function() {
+      if(this.note_index_add != null) {
+        this.notes.items.splice(this.note_index_add, 1);
+        this.note_index_add = null;
       }
     },
     remove_note: function(note_id) {
@@ -831,32 +898,43 @@ export default {
     },
 
     add_tag: function() {
-      this.tags.items.unshift({
+      let new_tag = {
         "id": "__new_item__",
         "edit_state": true,
         "error_existing_name": false,
         "name": "",
         "count": 0,
-      })
+      };
+      this.tag_index_add = this.tag_index_in_viewspot;
+      this.tags.items.splice(this.tag_index_add, 0, new_tag);
     },
     
     add_note: function() {
-      this.notes.items.unshift({
+      let new_note = {
         "id": "__new_item__",
         "tags": _.cloneDeep(this.notes_filter_tags),
         "checked": false,
         "edit_state": true,
         "text": "",
         "creation_time": + new Date(),
-      })
+      };
+      this.note_index_add = this.note_index_in_viewspot;
+      this.notes.items.splice(this.note_index_add, 0, new_note);
     },
 
     add_note_filter: function() {
-      if(this.new_note_filter.name == "") {
+      let name = this.new_note_filter.name;
+      let is_exists = notepad.is_note_filter_with_name_exists(name);
+      if(is_exists) {
         this.new_note_filter.error = true;
+        this.new_note_filter.error_text = "Раздел с таким названием уже существует";
+        this.$refs.new_note_filter_name.focus();
+      } else if(name == "") {
+        this.new_note_filter.error = true;
+        this.new_note_filter.error_text = "Введите название раздела";
         this.$refs.new_note_filter_name.focus();
       } else {
-        notepad.create_note_filter(this.new_note_filter.name, this.notes_filter_tags);
+        notepad.create_note_filter(name, this.notes_filter_tags);
         this.cancel_note_filter();
       }
     },
@@ -869,6 +947,19 @@ export default {
 
     delete_note_filter: function(id) {
       notepad.delete_note_filter(id);
+    },
+
+    edit_note_filter: function(id, data) {
+      let new_name = data.name;
+      if(new_name == "") {
+        data.edit_state = true;
+        data.error = "empty";
+      } else if(notepad.is_note_filter_with_name_exists(data.name, data.id)) {
+        data.edit_state = true;
+        data.error = "existing";
+      } else {
+        notepad.edit_note_filter(id, new_name);
+      }
     }
   }
 
