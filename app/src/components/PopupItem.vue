@@ -1,5 +1,5 @@
 <template>
-  <li @click="$emit('click')">
+  <li>
     <a href="#!" @click="on_item_click(data.id)">
       <input v-if="data.edit_state"
         ref="name"

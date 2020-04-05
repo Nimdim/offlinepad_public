@@ -478,11 +478,14 @@ export default {
   },
   computed: {
     "active_notepad_controls": function() {
+      let items = [];
       if(this.notepad_working) {
-        return NOTEPAD_CONTROLS.slice(2, 4);
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(2, 4));
       } else {
-        return NOTEPAD_CONTROLS.slice(0, 2);
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 2));
       }
+      items.push({id: "toggle_theme", name: "Переключить тему"});
+      return items;
     },
     "add_button_hidden": function() {
       return this.header_hidden || this.blockerscreen_visible;
@@ -917,6 +920,9 @@ export default {
         }
         case "close":
           this.notepad_delete_mode = true;
+          break;
+        case "toggle_theme":
+          this.toggle_theme();
           break;
       }
     },
