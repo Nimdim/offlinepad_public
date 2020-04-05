@@ -27,7 +27,6 @@ export default {
         top: 0px;
         right: 0px;
         bottom: 0px;
-        background: white;
     }
 
     .fullscreenbox--order-top {

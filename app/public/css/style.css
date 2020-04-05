@@ -6,6 +6,19 @@
  * Made By MaterializeCSS.com
  */
 
+.collection .collection-item {
+  background-color: unset;
+}
+
+#app {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+
 nav ul a,
 nav .brand-logo {
   color: #444;
@@ -174,8 +187,8 @@ footer.page-footer {
 }
 
 .add_btn {
-  bottom: 30px;
-  right: 30px;
+  bottom: 15px;
+  right: 15px;
   position: fixed;
 }
 

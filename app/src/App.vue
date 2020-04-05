@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="theme--background-color">
     <popup
       ref="notes_popup"
       :items="note_filters"
@@ -24,8 +24,8 @@
     />
 
     <ul v-if="(section == 'notes') && show_notes_filter"
-      class="collection notes_extended_filter"
-      style="position: fixed; width: 100%; z-index: 2; max-width: unset; background: #29b6f6;"
+      class="notes_extended_filter"
+      style="position: fixed; width: 100%; margin: 0; z-index: 2; max-width: unset;"
       :style="{'top': (header_bottom) + 'px'}"
     >
       <li>
@@ -114,7 +114,7 @@
       </p>
     </div> -->
 
-    <nav class="light-blue lighten-1 header" role="navigation" ref="header">
+    <nav class="header" role="navigation" ref="header">
       <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
 
         <a href="#" data-target="nav-mobile" class="sidenav-trigger">
@@ -197,11 +197,20 @@
           >
             <a href="#">{{menu_item.name}}</a>
           </li>
+          <li class="divider"></li>
+          <li @click="toggle_theme">
+            <a href="#" v-if="current_theme == 'light'">
+              Цветовое оформление: светлое
+            </a>
+            <a href="#" v-else>
+              Цветовое оформление: темное
+            </a>
+          </li>
         </ul>
 
         <a v-if="section == 'notes'"
-          class="btn-floating btn-small waves-effect waves-light"
-          :class="{'blue': (notes_filter_tags.length == 0), 'red': (notes_filter_tags.length > 0)}"
+          class="btn-floating btn-small waves-effect waves-light toggle-extended-filter-btn"
+          :class="{'active': (notes_filter_tags.length > 0)}"
           @click="show_notes_filter = !show_notes_filter"
           style="z-index: 1001; position: fixed; transition: unset; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); left: 50%;"
           :style="{'top': (header_bottom) + 'px'}"
@@ -268,7 +277,7 @@
       <div v-if="update_done != null"
         class="col s12 m7 message_popup"
       >
-        <div class="card horizontal teal accent-2">
+        <div class="card attention horizontal">
           <div class="card-stacked">
             <div class="card-content">
               <p>
@@ -288,14 +297,12 @@
 
     <a v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
-      :class="{hidden: add_button_hidden}"
       @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="plus" />
     </a>
     <a v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
-      :class="{hidden: add_button_hidden}"
       @click="add_note" id="add_note"
       >
       <font-awesome-icon icon="plus" />
@@ -374,6 +381,7 @@ export default {
 
   data: function() {
     var data = {
+      current_theme: "light",
       features_unawailable: false, // TODO показать скрин с недоступными функциями
 
       note_index_in_viewspot: 0,
@@ -482,6 +490,7 @@ export default {
   },
 
   mounted: function() {
+    this.load_theme();
     this.warning_init();
     let promise;
     if(sw_api.is_available()) {
@@ -502,6 +511,35 @@ export default {
     );
   },
   methods: {
+
+    load_theme: function() {
+      let theme = localStorage.getItem("internal_cfg_theme");
+      if(theme == null) {
+        theme = "light";
+      }
+      this.set_theme(theme);
+      this.current_theme = theme;
+    },
+
+    set_theme: function(theme) {
+      let theme_element = window.document.getElementById("theme-css");
+      if(theme == "light") {
+        theme_element.href = "css/light-theme.css";
+        this.current_theme = "light";
+      } else {
+        theme_element.href = "css/dark-theme.css";
+        this.current_theme = "dark";
+      }
+      localStorage.setItem("internal_cfg_theme", this.current_theme)
+    },
+
+    toggle_theme: function() {
+      if(this.current_theme == "light") {
+        this.set_theme("dark");
+      } else {
+        this.set_theme("light");
+      }
+    },
 
     update_cancel: function() {
       this.update_step = 'initial';
@@ -967,14 +1005,6 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
 .fade-enter-active, .fade-leave-active {
   transition: opacity .5s;
 }

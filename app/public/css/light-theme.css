@@ -1,0 +1,26 @@
+body,
+.collection .collection-item,
+.fullscreenbox {
+  background-color: white;
+}
+
+nav,
+.notes_extended_filter {
+  background-color: rgb(41, 182, 246);
+}
+
+.toggle-extended-filter-btn,
+.toggle-extended-filter-btn:focus,
+.toggle-extended-filter-btn:hover {
+  background-color: rgb(33, 150, 243);
+}
+
+.toggle-extended-filter-btn.active,
+.toggle-extended-filter-btn.active:focus,
+.toggle-extended-filter-btn.active:hover {
+  background-color: rgb(244, 67, 54);
+}
+
+.card.attention {
+  background-color: rgb(100, 255, 218);
+}

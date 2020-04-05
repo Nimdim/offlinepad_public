@@ -1,0 +1,107 @@
+body,
+.collection .collection-item,
+.fullscreenbox {
+  background-color:rgb(30, 42, 49);
+}
+
+#app {
+  color: rgb(220, 243, 255);
+}
+
+nav,
+.notes_extended_filter {
+  background-color: rgb(43, 60, 70);
+}
+
+nav ul a {
+  color: rgb(220, 243, 255);
+}
+
+.dropdown-content {
+  background-color: rgb(43, 60, 70);
+}
+.dropdown-content > li a {
+  color: rgb(220, 243, 255);
+}
+
+.divider {
+  background-color:rgb(63, 101, 123);
+}
+
+.sidenav {
+  background-color: rgb(43, 60, 70);
+}
+
+.sidenav li > a {
+  color: rgb(220, 243, 255);
+}
+
+.sidenav li.active {
+  background-color: rgb(74, 77, 100);
+}
+
+.chip {
+  background-color: #666;
+  color: rgb(220, 243, 255);
+}
+
+.grey_icon {
+  color: rgb(220, 243, 255);
+}
+
+.collection,
+.collection .collection-item {
+  border-bottom: 1px solid #777;
+}
+
+.collection {
+  border: 1px solid #777;
+}
+
+.theme--text-color {
+  color:white;
+}
+
+svg.mobile-menu-icon {
+  color: rgb(220, 243, 255);
+}
+
+input[type=text], textarea {
+  color: rgb(220, 243, 255);
+}
+
+.btn-flat {
+  color: rgb(220, 243, 255);
+}
+
+.toggle-extended-filter-btn,
+.toggle-extended-filter-btn:focus,
+.toggle-extended-filter-btn:hover {
+  background-color: #5a5a5a;
+}
+
+.toggle-extended-filter-btn.active,
+.toggle-extended-filter-btn.active:focus,
+.toggle-extended-filter-btn.active:hover {
+  background-color: rgb(244, 67, 54);
+}
+
+.modal {
+  background-color: rgb(43, 60, 70); 
+}
+
+.timepicker-plate {
+  background-color:rgb(30, 42, 49);
+}
+
+.timepicker-tick {
+  color:rgb(220, 243, 255);
+}
+
+.card {
+  background-color: rgb(43, 60, 70);
+}
+
+.card.attention {
+  background-color: #6c0292;
+}
