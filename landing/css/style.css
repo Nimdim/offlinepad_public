@@ -96,3 +96,8 @@ footer.page-footer {
   position: relative;
   top: 7px;
 }
+
+.taskstate {
+  position: relative;
+  top: -5px;
+}

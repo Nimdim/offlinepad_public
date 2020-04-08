@@ -1,0 +1,6 @@
+User-agent: Yandex
+Host: pr-cy.ru
+Allow: /
+
+User-agent: Googlebot
+Allow: /

@@ -92,3 +92,9 @@ i.active {
 .show_footer {
   padding-bottom: 60px;
 }
+
+
+.taskstate {
+  position: relative;
+  top: -5px;
+}
