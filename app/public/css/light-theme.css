@@ -24,3 +24,7 @@ nav,
 .card.attention {
   background-color: rgb(100, 255, 218);
 }
+
+input.validate.filter_name {
+  background: white;
+}

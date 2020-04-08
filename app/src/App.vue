@@ -89,7 +89,7 @@
         @submit="submit_tag"
         @cancel="cancel_tag"
         @delete="remove_tag"
-        @edit_state_changed="blockerscreen_visible = $event"
+        @edit_state_changed="tag_edit_state_changed($event)"
       />
     </ul>
 
@@ -103,7 +103,7 @@
         @submit="submit_note"
         @cancel="cancel_note"
         @delete="remove_note"
-        @edit_state_changed="blockerscreen_visible = $event"
+        @edit_state_changed="note_edit_state_changed($event)"
       />
     </ul>
 
@@ -192,7 +192,7 @@
             <a href="#">Метки</a>
           </li>
           <li class="divider"></li>
-          <li v-for="menu_item in active_notepad_controls" :key="menu_item.id"
+          <li v-for="menu_item in active_notepad_controls_mob" :key="menu_item.id"
             @click="notepad_menu_mob(menu_item.id)"
           >
             <a href="#">{{menu_item.name}}</a>
@@ -386,8 +386,10 @@ export default {
 
       note_index_in_viewspot: 0,
       note_index_add: null,
+      note_being_edited: null,
       tag_index_in_viewspot: 0,
       tag_index_add: null,
+      tag_being_edited: null,
 
       update_available: false,
       update_step: "initial",
@@ -477,7 +479,27 @@ export default {
     },
   },
   computed: {
-    "active_notepad_controls": function() {
+    item_being_edited: function() {
+      let item = null;
+      if(this.note_being_edited != null) {
+        for(let k = 0; k < this.$refs.note_items.length; k++) {
+          item = this.$refs.note_items[k];
+          if(item.data.id == this.note_being_edited) {
+            break;
+          }
+        }
+      } else if(this.tag_being_edited != null) {
+        for(let k = 0; k < this.$refs.tag_items.length; k++) {
+          item = this.$refs.tag_items[k];
+          if(item.data.id == this.tag_being_edited) {
+            break;
+          }
+        }
+      }
+      return item;
+    },
+
+    active_notepad_controls: function() {
       let items = [];
       if(this.notepad_working) {
         items.push.apply(items, NOTEPAD_CONTROLS.slice(2, 4));
@@ -487,7 +509,18 @@ export default {
       items.push({id: "toggle_theme", name: "Переключить тему"});
       return items;
     },
-    "add_button_hidden": function() {
+
+    active_notepad_controls_mob: function() {
+      let items = [];
+      if(this.notepad_working) {
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(2, 4));
+      } else {
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 2));
+      }
+      return items;
+    },
+
+    add_button_hidden: function() {
       return this.header_hidden || this.blockerscreen_visible;
     },
   },
@@ -515,6 +548,24 @@ export default {
   },
   methods: {
 
+    note_edit_state_changed: function(event) {
+      this.blockerscreen_visible = event.edit_state;
+      if(event.edit_state) {
+        this.note_being_edited = event.id;
+      } else {
+        this.note_being_edited = null;
+      }
+    },
+
+    tag_edit_state_changed: function(event) {
+      this.blockerscreen_visible = event.edit_state;
+      if(event.edit_state) {
+        this.tag_being_edited = event.id;
+      } else {
+        this.tag_being_edited = null;
+      }
+    },
+
     load_theme: function() {
       let theme = localStorage.getItem("internal_cfg_theme");
       if(theme == null) {
@@ -525,13 +576,16 @@ export default {
     },
 
     set_theme: function(theme) {
+      let mobile_tab_color = window.document.getElementById("mobile_tab_color");
       let theme_element = window.document.getElementById("theme-css");
       if(theme == "light") {
         theme_element.href = "css/light-theme.css";
         this.current_theme = "light";
+        mobile_tab_color.content = "white";
       } else {
         theme_element.href = "css/dark-theme.css";
         this.current_theme = "dark";
+        mobile_tab_color.content = "rgb(43, 60, 70)";
       }
       localStorage.setItem("internal_cfg_theme", this.current_theme)
     },
@@ -734,12 +788,30 @@ export default {
         currenct_scrolltop = scroll;
         //
         let scroll_with_header = scroll + this.header_bottom - header_height - 1;
+        let item_being_edited = this.item_being_edited;
+        if(item_being_edited != null) {
+          let scroll_top_bound = item_being_edited.$el.offsetTop;
+          let scroll_bottom_bound = item_being_edited.$el.offsetTop + item_being_edited.$el.offsetHeight;
+          if(scroll_with_header > scroll_bottom_bound) {
+            this.return_scroll_to_editable_element();
+          }
+          if(window.scrollY + window.innerHeight - this.header_bottom < scroll_top_bound) {
+            this.return_scroll_to_editable_element();
+          }
+        }
+        //
         this.process_note_items_scroll(scroll_with_header);
         this.process_tag_items_scroll(scroll_with_header);
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
       on_scroll();
     },
+
+    return_scroll_to_editable_element: _.debounce(function() {
+      if(this.item_being_edited != null) {
+        this.item_being_edited.$el.scrollIntoView();
+      }
+    }, 1000),
 
     process_note_items_scroll: function(scroll_top) {
       if(this.$refs.note_items != null) {
@@ -773,7 +845,6 @@ export default {
         item = tags[k];
         let text = sanitize_html(item.name);
         item.name_highlighted = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
-        item.error_existing_name = false;
       }
       return tags;
     },
@@ -806,18 +877,23 @@ export default {
     },
 
     submit_tag: function(data) {
-      this.tag_index_add = null;
+      if(data.name == "") {
+        data.error = "empty"
+        data.edit_state = true;
+        return;
+      }
       if(data.id == "__new_item__") {
         if(notepad.is_tag_with_name_exists(data.name)) {
           data.edit_state = true;
-          data.error_existing_name = true;
+          data.error = "existing";
         } else {
+          this.tag_index_add = null;
           notepad.create_tag(data.name);
         }
       } else {
         if(notepad.is_tag_with_name_exists(data.name, data.id)) {
           data.edit_state = true;
-          data.error_existing_name = true;
+          data.error = "existing";
         } else {
           notepad.edit_tag(data.id, data.name);
         }
@@ -945,7 +1021,6 @@ export default {
       let new_tag = {
         "id": "__new_item__",
         "edit_state": true,
-        "error_existing_name": false,
         "name": "",
         "count": 0,
       };
@@ -963,6 +1038,7 @@ export default {
         "creation_time": + new Date(),
       };
       this.note_index_add = this.note_index_in_viewspot;
+      this.note_being_edited = this.note_index_in_viewspot;
       this.notes.items.splice(this.note_index_add, 0, new_note);
     },
 

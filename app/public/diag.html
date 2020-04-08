@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  </head>
+  <body>
+    <script>
+      if('serviceWorker' in navigator) {
+        document.write("service worker available<br>");
+      } else {
+        document.write("service worker NOT available<br>");
+      }
+
+      if('ReadableStream' in window) {
+        document.write("readable stream available<br>");
+      } else {
+        document.write("readable stream NOT available<br>");
+      }
+    </script>
+  </body>
+</html>

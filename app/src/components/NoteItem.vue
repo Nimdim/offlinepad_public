@@ -126,8 +126,8 @@ let replace_links_with_hrefs = function(text, protocol) {
 
 let make_link_representation = function(link) {
   let id = null;
-  if(link.indexOf("https://www.youtube.com/watch?v=") == 0) {
-    id = link.replace("https://www.youtube.com/watch?v=", "");
+  if((link.indexOf("https://www.youtube.com/watch") == 0)) {
+    id = new URL(link).searchParams.get("v")
   }
   if(link.indexOf("https://youtu.be/") == 0) {
     id = link.replace("https://youtu.be/", "");
@@ -135,7 +135,7 @@ let make_link_representation = function(link) {
   let result;
   if(id != null) {
     id = "https://i3.ytimg.com/vi/" + id + "/hqdefault.jpg";
-    result = "<a class='width-eq-parent' href='" + link + "'><img class='width-eq-parent' style='max-width: 200px;' src='" + id + "' ></a>";
+    result = "<a class='width-eq-parent' target='_blank' href='" + link + "'><img class='width-eq-parent' style='max-width: 200px;' src='" + id + "' ></a>";
   } else {
     result = make_default_link(link);
   }
@@ -143,7 +143,7 @@ let make_link_representation = function(link) {
 };
 
 let make_default_link = function(link) {
-  return "<a href='" + link + "'>" + link + "</a>";
+  return "<a href='" + link + "' target='_blank'>" + link + "</a>";
 }
 
 export default {
@@ -179,7 +179,7 @@ export default {
     if(data.data.edit_state == null) {
       data.data.edit_state = false;
     }
-    this.$emit("edit_state_changed", data.data.edit_state);
+    this.$emit("edit_state_changed", data.data);
     return data;
   },
 
@@ -206,7 +206,7 @@ export default {
 
     edit_state_change: function(value) {
       this.data.edit_state = value;
-      this.$emit("edit_state_changed", value);
+      this.$emit("edit_state_changed", this.data);
     },
 
     "submit": function() {

@@ -23,6 +23,9 @@ nav ul a {
 .dropdown-content > li a {
   color: rgb(220, 243, 255);
 }
+.dropdown-content > li:hover a {
+  background-color: rgb(33, 45, 50);
+}
 
 .divider {
   background-color:rgb(63, 101, 123);
@@ -51,11 +54,11 @@ nav ul a {
 
 .collection,
 .collection .collection-item {
-  border-bottom: 1px solid #777;
+  border-bottom: 1px solid #444;
 }
 
 .collection {
-  border: 1px solid #777;
+  border: 1px solid #444;
 }
 
 .theme--text-color {
@@ -104,4 +107,17 @@ input[type=text], textarea {
 
 .card.attention {
   background-color: #6c0292;
+}
+
+::-webkit-input-placeholder {
+  color: #888;
+}
+::-moz-placeholder {
+  color: #888;
+}
+:-ms-input-placeholder {
+  color: #888;
+}
+::placeholder {
+  color: #888;
 }

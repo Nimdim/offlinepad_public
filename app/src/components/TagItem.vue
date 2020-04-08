@@ -54,10 +54,10 @@
         </a>
       </template>
       <template v-if="data.edit_state">
-        <span v-if="data.error_existing_name"
+        <span v-if="error_text"
           class="red-text"
         >
-          метка с таким именем уже есть
+          {{error_text}}
         </span>
       </template>
     </p>
@@ -81,8 +81,21 @@
 
     watch: {
       "data.edit_state": function(new_value) {
+        this.$emit("edit_state_changed", this.data);
         if(new_value) {
           this.enter_edit_state();
+        }
+      },
+    },
+
+    computed: {
+      error_text: function() {
+        if(this.data.error == "existing") {
+          return "раздел с таким названием существует";
+        } else if (this.data.error == "empty") {
+          return "название не может быть пустым";
+        } else {
+          return null;
         }
       },
     },
@@ -95,7 +108,8 @@
       if(data.data.edit_state == null) {
         data.data.edit_state = false;
       }
-      this.$emit("edit_state_changed", data.data.edit_state);
+      data.data.error = null;
+      this.$emit("edit_state_changed", data.data);
       return data;
     },
 
@@ -103,7 +117,7 @@
 
       change_edit_state: function(value) {
         this.data.edit_state = value;
-        this.$emit("edit_state_changed", value);
+        this.$emit("edit_state_changed", this.data);
       },
 
       enter_edit_state: function() {
@@ -119,7 +133,7 @@
 
       cancel_edit: function() {
         if(this.data.id != "__new_item__") {
-          this.data.error_existing_name = false;
+          this.data.error = null;
           this.change_edit_state(false);
           this.data.name = this.backup_name;
         }
