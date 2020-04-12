@@ -11,7 +11,7 @@
         class="validate tag_name text-input--standart-style"
         style="width: calc(100% - 95px);"
         v-model="data.name"
-        @keydown.enter="submit_edit"
+        @keydown.ctrl.enter="submit_edit"
         />
       <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
       <template v-if="data.edit_state">

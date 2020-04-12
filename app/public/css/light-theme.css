@@ -28,3 +28,7 @@ nav,
 input.validate.filter_name {
   background: white;
 }
+
+.social-button {
+  background-color: rgb(38, 166, 154);
+}

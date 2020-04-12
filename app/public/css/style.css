@@ -225,3 +225,10 @@ textarea.materialize-textarea {
   left: 10px;
   bottom: -5px;
 }
+
+.social-button {
+  margin-right: 0px;
+  margin-left: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}

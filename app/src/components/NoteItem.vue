@@ -79,7 +79,9 @@
         ref="textarea"
         class="materialize-textarea"
         placeholder="Текст записи"
-        v-model="data.text" />
+        v-model="data.text"
+        @keydown.ctrl.enter="submit"
+      />
       <template v-else>
         <p v-for="(text_part, ix) in text_for_show(note)" :key="ix"
           class="multiline-text"

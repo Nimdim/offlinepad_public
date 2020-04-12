@@ -101,3 +101,10 @@ footer.page-footer {
   position: relative;
   top: -5px;
 }
+
+.icon-block i.feature-icon {
+  display: block;
+  font-size: 45px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}

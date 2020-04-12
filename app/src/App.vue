@@ -176,37 +176,69 @@
           </li>
         </ul>
 
-        <ul id="nav-mobile" class="sidenav" style="z-index: 1003;" ref="nav_mobile">
-          <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
-            <a href="#">Записи</a>
-            <ul>
-              <note-filter-item v-for="note_filter in note_filters" :key="note_filter.id"
-                :note_filter="note_filter"
-                @click="note_filter_click(note_filter.tags)"
-                @delete="delete_note_filter(note_filter.id)"
-                @submit="edit_note_filter(note_filter.id, $event)"
-              />
-            </ul>
-          </li>
-          <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
-            <a href="#">Метки</a>
-          </li>
-          <li class="divider"></li>
-          <li v-for="menu_item in active_notepad_controls_mob" :key="menu_item.id"
-            @click="notepad_menu_mob(menu_item.id)"
+        <div
+          id="nav-mobile"
+          class="sidenav"
+          style="z-index: 1003;"
+          ref="nav_mobile"
+        >
+          <ul style="height: calc(100% - 70px); overflow-y: auto;"
           >
-            <a href="#">{{menu_item.name}}</a>
-          </li>
-          <li class="divider"></li>
-          <li @click="toggle_theme">
-            <a href="#" v-if="current_theme == 'light'">
-              Цветовое оформление: светлое
+            <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
+              <a href="#">Записи</a>
+              <ul>
+                <note-filter-item v-for="note_filter in note_filters" :key="note_filter.id"
+                  :note_filter="note_filter"
+                  @click="note_filter_click(note_filter.tags)"
+                  @delete="delete_note_filter(note_filter.id)"
+                  @submit="edit_note_filter(note_filter.id, $event)"
+                />
+              </ul>
+            </li>
+            <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
+              <a href="#">Метки</a>
+            </li>
+            <li class="divider"></li>
+            <li v-for="menu_item in active_notepad_controls_mob" :key="menu_item.id"
+              @click="notepad_menu_mob(menu_item.id)"
+            >
+              <a href="#">{{menu_item.name}}</a>
+            </li>
+            <li class="divider"></li>
+          </ul>
+          <a class="btn-flat btn-floating"
+            style="position: absolute;
+                   top: 8px;
+                   padding-left: 13px;
+                   right: 8px"
+            @click="toggle_theme"
+          >
+            <font-awesome-icon icon="sun" v-if="current_theme == 'light'" key="light_theme" />
+            <font-awesome-icon icon="moon" v-else key="dark_theme" />
+          </a>
+
+          <div style="position: absolute;
+                      bottom: 60px;
+                      width: 100%;
+                      box-shadow: 0 -2px 0 0 rgb(0, 0, 0, 0.2);"
+          >
+            <a
+              href="https://offlinepad.com"
+              target="_blank"
+              class="btn-floating left social-button"
+              style="padding-left: 4px;"
+            >
+              <span>www</span>
             </a>
-            <a href="#" v-else>
-              Цветовое оформление: темное
+            <a
+              href="https://vk.com/offlinepad"
+              target="_blank"
+              class="btn-floating left social-button"
+              style="padding-left: 12px;">
+              <font-awesome-icon v-if="!show_notes_filter" :icon="{'prefix': 'fab', 'iconName': 'vk'}" />
             </a>
-          </li>
-        </ul>
+          </div>
+        </div>
 
         <a v-if="section == 'notes'"
           class="btn-floating btn-small waves-effect waves-light toggle-extended-filter-btn"

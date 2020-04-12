@@ -4,25 +4,34 @@ body,
   background-color:rgb(30, 42, 49);
 }
 
-#app {
-  color: rgb(220, 243, 255);
-}
-
-nav,
-.notes_extended_filter {
-  background-color: rgb(43, 60, 70);
-}
-
-nav ul a {
-  color: rgb(220, 243, 255);
-}
-
-.dropdown-content {
-  background-color: rgb(43, 60, 70);
-}
+#app,
+.sidenav li > a,
+.chip,
+.grey_icon,
+nav ul a,
+svg.mobile-menu-icon,
+input[type=text],
+textarea,
+.btn-flat,
+.timepicker-tick,
 .dropdown-content > li a {
   color: rgb(220, 243, 255);
 }
+
+.month-prev svg,
+.month-next svg {
+  fill: rgb(220, 243, 255);
+}
+
+nav,
+.notes_extended_filter,
+.dropdown-content,
+.modal,
+.card,
+.sidenav {
+  background-color: rgb(43, 60, 70);
+}
+
 .dropdown-content > li:hover a {
   background-color: rgb(33, 45, 50);
 }
@@ -31,25 +40,12 @@ nav ul a {
   background-color:rgb(63, 101, 123);
 }
 
-.sidenav {
-  background-color: rgb(43, 60, 70);
-}
-
-.sidenav li > a {
-  color: rgb(220, 243, 255);
-}
-
 .sidenav li.active {
   background-color: rgb(74, 77, 100);
 }
 
 .chip {
   background-color: #666;
-  color: rgb(220, 243, 255);
-}
-
-.grey_icon {
-  color: rgb(220, 243, 255);
 }
 
 .collection,
@@ -65,18 +61,6 @@ nav ul a {
   color:white;
 }
 
-svg.mobile-menu-icon {
-  color: rgb(220, 243, 255);
-}
-
-input[type=text], textarea {
-  color: rgb(220, 243, 255);
-}
-
-.btn-flat {
-  color: rgb(220, 243, 255);
-}
-
 .toggle-extended-filter-btn,
 .toggle-extended-filter-btn:focus,
 .toggle-extended-filter-btn:hover {
@@ -89,20 +73,8 @@ input[type=text], textarea {
   background-color: rgb(244, 67, 54);
 }
 
-.modal {
-  background-color: rgb(43, 60, 70); 
-}
-
 .timepicker-plate {
   background-color:rgb(30, 42, 49);
-}
-
-.timepicker-tick {
-  color:rgb(220, 243, 255);
-}
-
-.card {
-  background-color: rgb(43, 60, 70);
 }
 
 .card.attention {
@@ -120,4 +92,12 @@ input[type=text], textarea {
 }
 ::placeholder {
   color: #888;
+}
+
+.social-button {
+  background-color: #5a5a5a;
+}
+
+input.validate.filter_name {
+  background: unset;
 }

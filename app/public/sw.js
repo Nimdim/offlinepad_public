@@ -1,14 +1,14 @@
-const APP_VERSION = "0.47";
+const APP_VERSION = "0.53";
 
 const RESOURCES = [
   '/',
-  '/css/app.2ddbc928.css',
+  '/css/app.css',
   '/css/dark-theme.css',
   '/css/light-theme.css',
   '/css/materialize.css',
   '/css/style.css',
-  '/js/app.d0198ece.js',
-  '/js/chunk-vendors.092dda43.js',
+  '/js/app.js',
+  '/js/chunk-vendors.js',
   '/js/jquery-2.1.1.min.js',
   '/js/materialize.js',
   '/js/materialize.min.js',

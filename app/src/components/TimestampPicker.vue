@@ -36,9 +36,13 @@ export default {
   },
 
   mounted: function() {
+    let selected_date = moment(this.picker_date, "DD.MM.YYYY").toDate();
     let _this = this;
     let date_options = {
       format: "dd.mm.yyyy",
+      firstDay: 1,
+      defaultDate: selected_date,
+      setDefaultDate: true,
       onClose: function() {
         _this.submit();
       },
