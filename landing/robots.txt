@@ -1,6 +1,8 @@
 User-agent: Yandex
 Host: pr-cy.ru
 Allow: /
+Sitemap: https://offlinepad.com/sitemap.xml
 
 User-agent: Googlebot
 Allow: /
+Sitemap: https://offlinepad.com/sitemap.xml
