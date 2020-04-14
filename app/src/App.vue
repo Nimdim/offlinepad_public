@@ -105,6 +105,21 @@
         @delete="remove_note"
         @edit_state_changed="note_edit_state_changed($event)"
       />
+      <li v-if="notes_preloading">
+        <span>
+          <div class="preloader-wrapper big active">
+            <div class="spinner-layer spinner-blue-only">
+              <div class="circle-clipper left">
+              <div class="circle"></div>
+              </div><div class="gap-patch">
+              <div class="circle"></div>
+              </div><div class="circle-clipper right">
+                <div class="circle"></div>
+              </div>
+            </div>
+          </div>
+        </span>
+      </li>
     </ul>
 
     <!-- <div class="tags_footer" v-if="section == 'tags'">
@@ -428,6 +443,8 @@ export default {
       develop_mode: false,
       develop_console: false,
 
+      notes_preloading: false,
+
       current_theme: "light",
       features_unawailable: false, // TODO показать скрин с недоступными функциями
 
@@ -730,6 +747,7 @@ export default {
       }.bind(this));
       notepad.on("append_notes", function(notes) {
         this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
+        this.notes_preloading = false;
       }.bind(this));
 
       notepad.on("reset_note_filters", function(items) {
@@ -879,6 +897,8 @@ export default {
         //
         this.process_note_items_scroll(scroll_with_header);
         this.process_tag_items_scroll(scroll_with_header);
+        //
+        this.process_notes_preload();
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
       on_scroll();
@@ -901,6 +921,17 @@ export default {
       if(this.$refs.tag_items != null) {
         this.tag_index_in_viewspot = this.find_item_in_viewspot(
           scroll_top, this.$refs.tag_items);
+      }
+    },
+
+    process_notes_preload: function() {
+      if(this.note_index_in_viewspot > this.notes.items.length - 20) {
+        if(this.notes.items.length < this.notes.count) {
+          if(!this.notes_preloading) {
+            this.notes_preloading = true;
+            notepad.load_next_notes();
+          }
+        }
       }
     },
 

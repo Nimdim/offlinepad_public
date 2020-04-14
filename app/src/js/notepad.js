@@ -10,8 +10,8 @@ class Notepad {
 
         _.extend(this, Backbone.Events);
         this._configuration = {
-            "tags_per_page": 999,//15,
-            "notes_per_page": 999,//10,
+            "tags_per_page": 99999,
+            "notes_per_page": 40,
         };
         this._storage = storage;
         this._reset_internal_state();
@@ -272,13 +272,29 @@ class Notepad {
         let items_for_show_count = this._configuration.notes_per_page;
         let items_for_show;
         this._state.notes.items = this._filter_notes();
-        if(items_for_show_count < this._state.notes.length) {
-            items_for_show_count = this._state.notes.length;
+        if(this._state.notes.items.length < items_for_show_count) {
+            items_for_show_count = this._state.notes.items.length;
         }
         this._state.notes.items_shown_count = items_for_show_count;
         items_for_show = this._state.notes.items.slice(0, items_for_show_count);
         this.trigger("reset_notes", this._wrap_notes(items_for_show));
         this.trigger("reset_notes_count", this._state.notes.items.length);
+    }
+
+    load_next_notes() {
+        let available_notes_count = this._state.notes.items.length - this._state.notes.items_shown_count;
+        if(available_notes_count > this._configuration.notes_per_page) {
+            available_notes_count = this._configuration.notes_per_page;
+        }
+        if(available_notes_count > 0) {
+            let items_for_show;
+            items_for_show = this._state.notes.items.slice(
+                this._state.notes.items_shown_count, 
+                this._state.notes.items_shown_count + available_notes_count
+            );
+            this._state.notes.items_shown_count += available_notes_count;
+            this.trigger("append_notes", this._wrap_notes(items_for_show));
+        }
     }
 
     _wrap_notes(items) {
