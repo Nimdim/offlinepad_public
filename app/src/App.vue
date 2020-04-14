@@ -17,6 +17,7 @@
     <notepad-empty-screen v-if="!notepad_working"
       @create="notepad_menu('create')"
       @open="notepad_menu('open')"
+      @test_create="test_create($event)"
     />
     <notepad-delete-screen  v-if="notepad_delete_mode"
       @submit="notepad_delete"
@@ -463,6 +464,7 @@ export default {
         () => {
       let copy = _.cloneDeep(value);
       copy = _.filter(copy, (item) => item != "0");
+      // console.time("filter_note");
       notepad.set_notes_filter({
         "tags": copy,
       });
@@ -997,6 +999,41 @@ export default {
     long_str: function() {
       let str = Array(20000000).join("z");
       return str;
+    },
+
+    test_create: function(number) {
+      notepad.create();
+
+      notepad.start_updates();
+      this.$refs.console.time("all");
+      notepad._storage.create({
+        type: "notepad",
+        name: "Дневник",
+      });
+      let tags = [
+        notepad.create_tag("метка 1"),
+        notepad.create_tag("метка 2"),
+        notepad.create_tag("метка 3"),
+        notepad.create_tag("метка 4"),
+        notepad.create_tag("метка 5"),
+        notepad.create_tag("метка 6"),
+        notepad.create_tag("метка 7"),
+        notepad.create_tag("метка 8"),
+        notepad.create_tag("метка 9"),
+        notepad.create_tag("метка 10"),
+      ];
+
+      for(let k = 0; k < number; k++) {
+        notepad.create_note(
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+          + new Date(),
+          tags.slice(0, k % 5)
+        );
+      }
+      this.$refs.console.timeEnd("all");
+      this.$refs.console.time("final");
+      notepad.end_updates();
+      this.$refs.console.timeEnd("final");
     },
 
     notepad_menu: function(command) {
