@@ -10,8 +10,8 @@ class Notepad {
 
         _.extend(this, Backbone.Events);
         this._configuration = {
-            "tags_per_page": 100,//15,
-            "notes_per_page": 100,//10,
+            "tags_per_page": 999,//15,
+            "notes_per_page": 999,//10,
         };
         this._storage = storage;
         this._reset_internal_state();
