@@ -327,6 +327,16 @@
       </div>
     </transition>
 
+    <develop-console-screen v-show="develop_console" ref="console" />
+
+    <a v-if="develop_mode"
+      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      style="left: 16px;"
+      @click="develop_console = !develop_console"
+    >
+      <font-awesome-icon icon="terminal" />
+    </a>
+
     <a v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       @click="add_tag"
@@ -366,6 +376,7 @@ import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
 import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.vue'
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
+import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
 import TagItem from './components/TagItem.vue'
@@ -404,6 +415,7 @@ export default {
     NotepadEmptyScreen,
     FeaturesNotAvailableScreen,
     BlockerScreen,
+    DevelopConsoleScreen,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -413,6 +425,9 @@ export default {
 
   data: function() {
     var data = {
+      develop_mode: false,
+      develop_console: false,
+
       current_theme: "light",
       features_unawailable: false, // TODO показать скрин с недоступными функциями
 
@@ -486,6 +501,7 @@ export default {
     },
   
     "fast_search": function(value) {
+      this._process_developer_commands(value);
       value = escapeRegExp(value);
       if(this.section == "tags") {
         notepad.set_tags_filter({
@@ -558,6 +574,7 @@ export default {
   },
 
   mounted: function() {
+    this._init_develop_mode();
     this.load_theme();
     this.warning_init();
     let promise;
@@ -579,6 +596,32 @@ export default {
     );
   },
   methods: {
+
+    _process_developer_commands: function(command) {
+      if(command == "develop=on") {
+        this._enable_develop();
+      }
+      if(command == "develop=off") {
+        this._disable_develop();
+      }
+    },
+
+    _init_develop_mode: function() {
+      let value = cookie_api.get("develop_mode");
+      if(value == "1") {
+        this.develop_mode = true;
+      }
+    },
+
+    _enable_develop: function() {
+      this.develop_mode = true;
+      cookie_api.set("develop_mode", "1");
+    },
+
+    _disable_develop: function() {
+      this.develop_mode = false;
+      cookie_api.set("develop_mode", "0");
+    },
 
     note_edit_state_changed: function(event) {
       this.blockerscreen_visible = event.edit_state;
@@ -710,7 +753,9 @@ export default {
         }
       }.bind(this));
 
+      this.$refs.console.time("sync");
       notepad.sync();
+      this.$refs.console.timeEnd("sync");
     },
 
     update_sw: function() {

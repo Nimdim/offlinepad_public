@@ -3,10 +3,15 @@ import _ from "lodash";
 
 class Notepad {
     constructor(storage) {
+        this._schedule_tags_update = false;
+        this._schedule_notes_update = false;
+        this._schedule_note_filters_update = false;
+        this._updates_state = null;
+
         _.extend(this, Backbone.Events);
         this._configuration = {
-            "tags_per_page": 999,//15,
-            "notes_per_page": 999,//10,
+            "tags_per_page": 100,//15,
+            "notes_per_page": 100,//10,
         };
         this._storage = storage;
         this._reset_internal_state();
@@ -203,6 +208,17 @@ class Notepad {
     }
 
     _reset_tags() {
+        if(this._updates_state == "pending") {
+            this._schedule_tags_update = true;
+            return
+        } else if(this._updates_state == "execute") {
+            if(this._schedule_tags_update) {
+                this._schedule_tags_update = false;
+            } else {
+                return;
+            }
+        }
+
         let items_for_show_count = this._configuration.tags_per_page;
         let items_for_show;
         this._state.tags.items = this._filter_tags();
@@ -213,6 +229,19 @@ class Notepad {
         items_for_show = this._state.tags.items.slice(0, items_for_show_count);
         this.trigger("reset_tags", this._wrap_tags(items_for_show));
         this.trigger("all_tags", _.sortBy(_.values(this._data.tags), "name"));
+    }
+
+    start_updates() {
+        this._schedule_tags_update = false;
+        this._schedule_notes_update = false;
+        this._schedule_note_filters_update = false;
+        this._updates_state = "pending";
+    }
+
+    end_updates() {
+        this._updates_state = "execute";
+        this._reset_state();
+        this._updates_state = null;
     }
 
     _wrap_tags(items) {
@@ -229,6 +258,17 @@ class Notepad {
     }
 
     _reset_notes() {
+        if(this._updates_state == "pending") {
+            this._schedule_notes_update = true;
+            return
+        } else if(this._updates_state == "execute") {
+            if(this._schedule_notes_update) {
+                this._schedule_notes_update = false;
+            } else {
+                return;
+            }
+        }
+        
         let items_for_show_count = this._configuration.notes_per_page;
         let items_for_show;
         this._state.notes.items = this._filter_notes();
@@ -436,7 +476,8 @@ class Notepad {
             "name": name,
             "tags": _.cloneDeep(tags),
         });
-        return this.register_note_filter(this._storage.get(filter_id));
+        this.register_note_filter(this._storage.get(filter_id));
+        return filter_id;
     }
 
     delete_note_filter(note_filter_id) {
@@ -459,6 +500,17 @@ class Notepad {
     }
 
     _reset_note_filters() {
+        if(this._updates_state == "pending") {
+            this._schedule_note_filters_update = true;
+            return
+        } else if(this._updates_state == "execute") {
+            if(this._schedule_note_filters_update) {
+                this._schedule_note_filters_update = false;
+            } else {
+                return;
+            }
+        }        
+
         let all_items = {
             id: "internal_all",
             name: "Все",

@@ -3,7 +3,7 @@
         class="fullscreenbox"
         :class="{'fullscreenbox--order-top': top}"
     >
-        <span>
+        <span :class="{'fullscreen': fullscreen}">
             <slot />
         </span>
     </div>
@@ -13,6 +13,10 @@
 export default {
     props: {
         "top": {
+            type: Boolean,
+            default: false,
+        },
+        "fullscreen": {
             type: Boolean,
             default: false,
         }
@@ -39,5 +43,15 @@ export default {
         left: 50%;
         -webkit-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
+    }
+
+    .fullscreenbox > span.fullscreen {
+        position: fixed;
+        top: 60px;
+        left: 0px;
+        right: 0px;
+        bottom: 0px;
+        -webkit-transform: unset;
+        transform: unset;
     }
 </style>
