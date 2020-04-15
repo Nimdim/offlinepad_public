@@ -106,19 +106,7 @@
         @edit_state_changed="note_edit_state_changed($event)"
       />
       <li v-if="notes_preloading">
-        <span>
-          <div class="preloader-wrapper big active">
-            <div class="spinner-layer spinner-blue-only">
-              <div class="circle-clipper left">
-              <div class="circle"></div>
-              </div><div class="gap-patch">
-              <div class="circle"></div>
-              </div><div class="circle-clipper right">
-                <div class="circle"></div>
-              </div>
-            </div>
-          </div>
-        </span>
+        <preloader />
       </li>
     </ul>
 
@@ -272,52 +260,11 @@
     </nav>
 
     <transition name="fade">
-      <div v-if="update_available"
-        class="col s12 m7 message_popup"
-        :class="{'editing': update_step != 'initial'}"
-      >
-        <div class="card horizontal">
-          <div class="card-stacked">
-            <div class="card-content" v-if="update_step == 'initial'">
-              <p>Доступно обновление: {{update_available}}</p>
-              <p>
-                <a class="waves-effect waves-teal btn-small"
-                  @click.prevent="app_goto_update">
-                  Обновить
-                </a>
-              </p>
-            </div>
-            <div class="card-content" v-else-if="update_step == 'confirm'">
-              <p>После обновления страница</p>
-              <p>будет перезагружена</p>
-              <a class="waves-effect waves-teal btn-small"
-                @click.prevent="update_cancel">
-                Отмена
-              </a>
-              <a class="waves-effect waves-teal btn-small red"
-                @click.prevent="update_sw">
-                Продолжить
-              </a>
-            </div>
-            <div class="card-content" v-else>
-              <p>Обновление</p>
-              <span>
-                <div class="preloader-wrapper big active">
-                  <div class="spinner-layer spinner-blue-only">
-                    <div class="circle-clipper left">
-                    <div class="circle"></div>
-                    </div><div class="gap-patch">
-                    <div class="circle"></div>
-                    </div><div class="circle-clipper right">
-                      <div class="circle"></div>
-                    </div>
-                  </div>
-                </div>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <update-popup v-if="update_available"
+        :version="update_available"
+        @focus="blockerscreen_visible = $event"
+        @update="update_service_worker"
+      />
     </transition>
 
     <transition name="fade">
@@ -367,7 +314,7 @@
       >
       <font-awesome-icon icon="edit" />
     </a>
-    <a v-if="section == 'notes' && notes_scroll_up.show"
+    <a v-if="section == 'notes' && notes_scroll_up_show"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       style="right: 80px;"
       @click="scroll_to_top"
@@ -407,6 +354,8 @@ import NoteFilterItem from './components/NoteFilterItem.vue'
 import TagItem from './components/TagItem.vue'
 import TagsList from './components/TagsList.vue'
 import Popup from './components/Popup.vue'
+import Preloader from './components/Preloader.vue'
+import UpdatePopup from './components/UpdatePopup.vue'
 
 import sanitize_html from 'sanitize-html'
 
@@ -417,6 +366,7 @@ import Notepad from './js/notepad.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
+import ScrollUpController from './js/scroll_up_controller.js'
 
 let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -446,6 +396,8 @@ export default {
     TagItem,
     TagsList,
     Popup,
+    Preloader,
+    UpdatePopup,
   },
 
   data: function() {
@@ -453,13 +405,7 @@ export default {
       develop_mode: false,
       develop_console: false,
 
-      notes_scroll_up: {
-        show: false,
-        scroll: null,
-        direction: null,
-        last_scroll: null,
-      },
-
+      notes_scroll_up_show: false,
       notes_preloading: false,
 
       current_theme: "light",
@@ -473,7 +419,6 @@ export default {
       tag_being_edited: null,
 
       update_available: false,
-      update_step: "initial",
       update_done: null,
       note_filters: [],
 
@@ -527,11 +472,16 @@ export default {
     },
 
     "notes_filter_tags": function(value) {
+      this.scroll_to_top();
+      setTimeout(
+        () => {
       let copy = _.cloneDeep(value);
       copy = _.filter(copy, (item) => item != "0");
       notepad.set_notes_filter({
         "tags": copy,
       });
+        }, 0
+      )
     },
   
     "fast_search": function(value) {
@@ -608,6 +558,8 @@ export default {
   },
 
   mounted: function() {
+    this.notes_scroll_up_controller = new ScrollUpController();
+    this.notes_scroll_up_controller.on("show", (value) => this.notes_scroll_up_show = value);
     this._init_develop_mode();
     this.load_theme();
     this.warning_init();
@@ -632,7 +584,7 @@ export default {
   methods: {
 
     scroll_to_top: function() {
-      this.notes_scroll_up.direction = "to_up";
+      this.notes_scroll_up_controller.scroll_top();
       window.scrollTo(0, 0);
     },
 
@@ -712,16 +664,6 @@ export default {
       }
     },
 
-    update_cancel: function() {
-      this.update_step = 'initial';
-      this.blockerscreen_visible = false;
-    },
-
-    app_goto_update: function() {
-      this.update_step = 'confirm';
-      this.blockerscreen_visible = true;
-    },
-
     warning_init: function() {
       let accept = cookie_api.get("alpha_warn_accept");
       if(accept == "1") {
@@ -798,8 +740,7 @@ export default {
       this.$refs.console.timeEnd("sync");
     },
 
-    update_sw: function() {
-      this.update_step = "updating";
+    update_service_worker: function() {
       sw_api.activate_new_worker();
     },
 
@@ -816,7 +757,6 @@ export default {
     },
 
     note_filter_click: function(tags) {
-      this.scroll_to_top();
       this.notes_filter_tags = _.cloneDeep(tags);
     },
 
@@ -922,7 +862,7 @@ export default {
         this.process_tag_items_scroll(scroll_with_header);
         //
         this.process_notes_preload();
-        this.process_notes_scroll_up(scroll);
+        this.notes_scroll_up_controller.process(scroll);
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
       on_scroll();
@@ -955,41 +895,6 @@ export default {
             this.notes_preloading = true;
             notepad.load_next_notes();
           }
-        }
-      }
-    },
-
-    process_notes_scroll_up: function(scroll) {
-      if(this.notes_scroll_up.direction == "to_up") {
-        this.notes_scroll_up.direction = "down";
-        this.notes_scroll_up.last_scroll = scroll;
-        this.notes_scroll_up.show = false;
-        return;
-      }
-      if(this.notes_scroll_up.scroll == null) {
-        this.notes_scroll_up.scroll = scroll;
-        this.notes_scroll_up.last_scroll = scroll;
-      }
-      let delta = scroll - this.notes_scroll_up.last_scroll;
-      this.notes_scroll_up.last_scroll = scroll;
-
-      let direction = this.notes_scroll_up.direction;
-      if(delta < 0) {
-        direction = "up";
-      }
-      if(delta > 0) {
-        direction = "down";
-      }
-
-      if(this.notes_scroll_up.direction != direction) {
-        this.notes_scroll_up.direction = direction;
-        this.notes_scroll_up.scroll = scroll;
-        this.notes_scroll_up.show = false;
-      }
-      if(this.notes_scroll_up.direction == "up") {
-        let all_delta = scroll - this.notes_scroll_up.scroll;
-        if(Math.abs(all_delta) > 100) {
-          this.notes_scroll_up.show = true;
         }
       }
     },
