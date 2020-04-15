@@ -268,25 +268,10 @@
     </transition>
 
     <transition name="fade">
-      <div v-if="update_done != null"
-        class="col s12 m7 message_popup"
-      >
-        <div class="card attention horizontal">
-          <div class="card-stacked">
-            <div class="card-content">
-              <p>
-                Обновление выполнено
-                <font-awesome-icon
-                  class="grey_icon"
-                  icon="times"
-                  style="margin-left: 10px;"
-                  @click.prevent="update_done = null" />
-              </p>
-              <p>Текущая версия: {{update_done}}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <update-done-popup v-if="update_done"
+        :version="update_done"
+        @close="update_done = null"
+      />
     </transition>
 
     <develop-console-screen v-show="develop_console"
@@ -356,6 +341,7 @@ import TagsList from './components/TagsList.vue'
 import Popup from './components/Popup.vue'
 import Preloader from './components/Preloader.vue'
 import UpdatePopup from './components/UpdatePopup.vue'
+import UpdateDonePopup from './components/UpdateDonePopup.vue'
 
 import sanitize_html from 'sanitize-html'
 
@@ -398,6 +384,7 @@ export default {
     Popup,
     Preloader,
     UpdatePopup,
+    UpdateDonePopup,
   },
 
   data: function() {
