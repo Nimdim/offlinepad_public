@@ -23,7 +23,7 @@
             Отмена
           </a>
           <a class="waves-effect waves-teal btn-small red"
-            @click.prevent="update_sw"
+            @click.prevent="do_update"
           >
             Продолжить
           </a>
@@ -64,7 +64,7 @@
         this.$emit("focus", true);
       },
 
-      update_sw: function() {
+      do_update: function() {
         this.update_step = "updating";
         this.$emit("update");
       },
