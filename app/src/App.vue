@@ -342,7 +342,10 @@
       </div>
     </transition>
 
-    <develop-console-screen v-show="develop_console" ref="console" />
+    <develop-console-screen v-show="develop_console"
+      ref="console"
+      @close="develop_console = false"
+    />
 
     <a v-if="develop_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
@@ -356,13 +359,20 @@
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       @click="add_tag"
       id="add_tag">
-      <font-awesome-icon icon="plus" />
+      <font-awesome-icon icon="edit" />
     </a>
     <a v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
-      @click="add_note" id="add_note"
+      @click="add_note"
       >
-      <font-awesome-icon icon="plus" />
+      <font-awesome-icon icon="edit" />
+    </a>
+    <a v-if="section == 'notes' && notes_scroll_up.show"
+      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      style="right: 80px;"
+      @click="scroll_to_top"
+      >
+      <font-awesome-icon icon="arrow-up" />
     </a>
     <transition name="fade">
       <warning-screen
@@ -442,6 +452,13 @@ export default {
     var data = {
       develop_mode: false,
       develop_console: false,
+
+      notes_scroll_up: {
+        show: false,
+        scroll: null,
+        direction: null,
+        last_scroll: null,
+      },
 
       notes_preloading: false,
 
@@ -613,6 +630,11 @@ export default {
     );
   },
   methods: {
+
+    scroll_to_top: function() {
+      this.notes_scroll_up.direction = "to_up";
+      window.scrollTo(0, 0);
+    },
 
     _process_developer_commands: function(command) {
       if(command == "develop=on") {
@@ -794,6 +816,7 @@ export default {
     },
 
     note_filter_click: function(tags) {
+      this.scroll_to_top();
       this.notes_filter_tags = _.cloneDeep(tags);
     },
 
@@ -899,6 +922,7 @@ export default {
         this.process_tag_items_scroll(scroll_with_header);
         //
         this.process_notes_preload();
+        this.process_notes_scroll_up(scroll);
       }.bind(this);
       window.document.addEventListener("scroll", on_scroll);
       on_scroll();
@@ -931,6 +955,41 @@ export default {
             this.notes_preloading = true;
             notepad.load_next_notes();
           }
+        }
+      }
+    },
+
+    process_notes_scroll_up: function(scroll) {
+      if(this.notes_scroll_up.direction == "to_up") {
+        this.notes_scroll_up.direction = "down";
+        this.notes_scroll_up.last_scroll = scroll;
+        this.notes_scroll_up.show = false;
+        return;
+      }
+      if(this.notes_scroll_up.scroll == null) {
+        this.notes_scroll_up.scroll = scroll;
+        this.notes_scroll_up.last_scroll = scroll;
+      }
+      let delta = scroll - this.notes_scroll_up.last_scroll;
+      this.notes_scroll_up.last_scroll = scroll;
+
+      let direction = this.notes_scroll_up.direction;
+      if(delta < 0) {
+        direction = "up";
+      }
+      if(delta > 0) {
+        direction = "down";
+      }
+
+      if(this.notes_scroll_up.direction != direction) {
+        this.notes_scroll_up.direction = direction;
+        this.notes_scroll_up.scroll = scroll;
+        this.notes_scroll_up.show = false;
+      }
+      if(this.notes_scroll_up.direction == "up") {
+        let all_delta = scroll - this.notes_scroll_up.scroll;
+        if(Math.abs(all_delta) > 100) {
+          this.notes_scroll_up.show = true;
         }
       }
     },

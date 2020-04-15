@@ -1,8 +1,18 @@
 <template>
-  <full-screen-box :fullscreen="true">
-    <p v-for="message in messages" :key="message">
-    {{message}}
-    </p>
+  <full-screen-box :top="true" :fullscreen="true">
+    <div style="width: 100%; height: 60px;">
+      Developer console
+      <a class="btn-flat waves-effect waves-light right"
+        @click="$emit('close')"
+      >
+        <font-awesome-icon icon="times" />
+      </a>
+    </div>
+    <div style="width: 100%; height: calc(100% - 60px);">
+      <p v-for="message in messages" :key="message">
+        {{message}}
+      </p>
+    </div>
   </full-screen-box>
 </template>
 

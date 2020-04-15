@@ -47,7 +47,7 @@ export default {
 
     .fullscreenbox > span.fullscreen {
         position: fixed;
-        top: 60px;
+        top: 0px;
         left: 0px;
         right: 0px;
         bottom: 0px;
