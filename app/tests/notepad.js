@@ -287,6 +287,28 @@ describe("notepad import export", function() {
         let exported_data = notepad.export();
         assert.deepEqual(exported_data, IMPORT_DATA);
     });
+
+    it("close notepad", function() {
+        reset_events();
+        let close_result = notepad.close();
+        assert.equal(close_result, true);
+        let EXPECTED_TAGS = [[]];
+        let EXPECTED_NOTES = [[]];
+        let EXPECTED_WORKING = [false];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+
+    it("second close notepad must fail", function() {
+        reset_events();
+        let close_result = notepad.close();
+        assert.equal(close_result, false);
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [];
+        let EXPECTED_WORKING = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
 });
 
 describe("notepad tags and notes", function() {
