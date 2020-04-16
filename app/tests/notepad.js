@@ -534,3 +534,524 @@ describe("notepad parse initial data", function() {
         assert.throws(function() { notepad.sync(); }, Error);
     });
 });
+
+describe("notepad filtering and sorting", function() {
+    let IMPORT_DATA = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+        "2": {
+            "type":"tag",
+            "name":"один"
+        },
+        "3": {
+            "type":"tag",
+            "name":"два"
+        },
+        "13": {
+            "type":"note",
+            "text":"Запись без меток",
+            "created_at":1586634372651
+        },
+        "16": {
+            "type":"note",
+            "text":"Запись с метками \"один\" и \"два\"",
+            "created_at":1586634372656
+        },
+        "17": {
+            "type":"tag_note",
+            "tag_id":"2",
+            "note_id":"16"
+        },
+        "18": {
+            "type":"tag_note",
+            "tag_id":"3",
+            "note_id":"16"
+        },
+        "19": {
+            "type":"note",
+            "text":"Запись с меткой \"один\"",
+            "created_at":1586634372660
+        },
+        "20": {
+            "type":"tag_note",
+            "tag_id":"2",
+            "note_id":"19"
+        },
+        "21": {
+            "type":"tag",
+            "name":"одинцово"
+        },
+    };
+
+    let notepad = new Notepad(new VariableStorage());
+    let tag_id;
+    let note_id;
+    let tags_events = [];
+    let notes_events = [];
+    let working_events = [];
+    notepad.on("reset_tags", function(tags) {
+        tags_events.push(tags);
+    })
+    notepad.on("reset_notes", function(notes) {
+        notes_events.push(notes);
+    });
+    notepad.on("working", function(working) {
+        working_events.push(working);
+    });
+    let reset_events = function() {
+        tags_events.splice(0, tags_events.length);
+        notes_events.splice(0, notes_events.length);
+        working_events.splice(0, working_events.length);
+    };
+    let assert_events = function(expected_tags, expected_notes) {
+        assert.deepEqual(tags_events, expected_tags);
+        assert.deepEqual(notes_events, expected_notes);
+    };
+    notepad.import(IMPORT_DATA);
+
+    it("sort notes desc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": false});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372651,
+                    "id": "13",
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("sort notes asc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372651,
+                    "id": "13",
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("sort tags desc", function() {
+        reset_events();
+        notepad.set_tags_filter({"sorting_asc": false});
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "id": "21",
+                    "count": 0,
+                    "name":"одинцово"
+                },
+                {
+                    "count": 2,
+                    "id": "2",
+                    "name": "один",
+                },
+                {
+                    "count": 1,
+                    "id": "3",
+                    "name": "два",
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("sort tags asc", function() {
+        reset_events();
+        notepad.set_tags_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 1,
+                    "id": "3",
+                    "name": "два",
+                },
+                {
+                    "count": 2,
+                    "id": "2",
+                    "name": "один",
+                },
+                {
+                    "id": "21",
+                    "count": 0,
+                    "name":"одинцово"
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by text desc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": false, "text": "один"});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by text asc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true, "text": "один"});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by not attached tag desc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": false, "tags": ["2"]});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by not attached tag asc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true, "tags": ["2"]});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter tags by name desc", function() {
+        reset_events();
+        notepad.set_tags_filter({"sorting_asc": false, "name": "один"});
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 0,
+                    "id": "21",
+                    "name": "одинцово",
+                },
+                {
+                    "count": 2,
+                    "id": "2",
+                    "name": "один",
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter tags by name asc", function() {
+        reset_events();
+        notepad.set_tags_filter({"sorting_asc": true, "name": "один"});
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 2,
+                    "id": "2",
+                    "name": "один",
+                },
+                {
+                    "count": 0,
+                    "id": "21",
+                    "name": "одинцово",
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by not attached tag desc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": false, "tags": ["21"]});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [[]];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("filter notes by not attached tag asc", function() {
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true, "tags": ["21"]});
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [[]];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+});
+
+describe("notepad pagination", function() {
+    let IMPORT_DATA_ZERO = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
+
+    let IMPORT_DATA_ONE_PAGE = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
+    for(let k = 0; k < 20; k++) {
+        let id = (k + 2).toString();
+        IMPORT_DATA_ONE_PAGE[id] = {
+            "type":"note",
+            "text":"Запись " + k,
+            "created_at": 1586634372660 + k,
+        };
+    }
+
+    let IMPORT_DATA_TWO_PAGES = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
+    for(let k = 0; k < 60; k++) {
+        let id = (k + 2).toString();
+        IMPORT_DATA_TWO_PAGES[id] = {
+            "type":"note",
+            "text":"Запись " + k,
+            "created_at": 1586634372660 + k,
+        };
+    }
+
+    let notepad = new Notepad(new VariableStorage());
+    let tag_id;
+    let note_id;
+    let tags_events = [];
+    let notes_events = [];
+    let working_events = [];
+    let append_events = []
+    notepad.on("reset_tags", function(tags) {
+        tags_events.push(tags);
+    })
+    notepad.on("reset_notes", function(notes) {
+        notes_events.push(notes);
+    });
+    notepad.on("working", function(working) {
+        working_events.push(working);
+    });
+    notepad.on("append_notes", function(notes) {
+        append_events.push(notes);
+    });
+    let reset_events = function() {
+        tags_events.splice(0, tags_events.length);
+        notes_events.splice(0, notes_events.length);
+        working_events.splice(0, working_events.length);
+        append_events.splice(0, working_events.length);
+    };
+    let assert_events = function(expected_tags, expected_notes) {
+        assert.deepEqual(tags_events, expected_tags);
+        assert.deepEqual(notes_events, expected_notes);
+    };
+
+    it("no records initial", function() {
+        notepad.close();
+        notepad.import(IMPORT_DATA_ZERO);
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+    });
+
+    it("records less than one page initial", function() {
+        notepad.close();
+        notepad.import(IMPORT_DATA_ONE_PAGE);
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        for(let k = 0; k < 20; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+    });
+
+    it("records less than two pages", function() {
+        notepad.close();
+        notepad.import(IMPORT_DATA_TWO_PAGES);
+        reset_events();
+        notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        for(let k = 0; k < 40; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        notepad.load_next_notes();
+        notes = [];
+        for(let k = 40; k < 60; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        assert.deepEqual(append_events, [notes]);
+    });
+});
+
