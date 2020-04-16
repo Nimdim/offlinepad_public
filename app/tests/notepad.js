@@ -4,21 +4,26 @@ import Notepad  from "./../src/js/notepad.js";
 import { assert } from "chai";
 
 
-describe("notepad simle tests", function() {
+describe("notepad simple tests", function() {
     let notepad = new Notepad(new VariableStorage());
     let tag_id;
     let note_id;
     let tags_events = [];
     let notes_events = [];
+    let working_events = [];
     notepad.on("reset_tags", function(tags) {
         tags_events.push(tags);
     })
     notepad.on("reset_notes", function(notes) {
         notes_events.push(notes);
     });
+    notepad.on("working", function(working) {
+        working_events.push(working);
+    });
     let reset_events = function() {
         tags_events.splice(0, tags_events.length);
         notes_events.splice(0, notes_events.length);
+        working_events.splice(0, working_events.length);
     };
     let assert_events = function(expected_tags, expected_notes) {
         assert.deepEqual(tags_events, expected_tags);
@@ -27,10 +32,24 @@ describe("notepad simle tests", function() {
 
     it("create notepad", function() {
         reset_events();
-        notepad.create();
+        let create_result = notepad.create();
+        assert.equal(create_result, true);
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
+        let EXPECTED_WORKING = [true];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+
+    it("second create notepad must fail", function() {
+        reset_events();
+        let create_result = notepad.create();
+        assert.equal(create_result, false);
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [];
+        let EXPECTED_WORKING = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
     });
 
     it("create tag", function() {
@@ -103,6 +122,170 @@ describe("notepad simle tests", function() {
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("close notepad", function() {
+        reset_events();
+        let close_result = notepad.close();
+        assert.equal(close_result, true);
+        let EXPECTED_TAGS = [[]];
+        let EXPECTED_NOTES = [[]];
+        let EXPECTED_WORKING = [false];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+
+    it("second close notepad must fail", function() {
+        reset_events();
+        let close_result = notepad.close();
+        assert.equal(close_result, false);
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [];
+        let EXPECTED_WORKING = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+});
+
+describe("notepad import export", function() {
+    let IMPORT_DATA = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+        "2": {
+            "type":"tag",
+            "name":"один"
+        },
+        "3": {
+            "type":"tag",
+            "name":"два"
+        },
+        "13": {
+            "type":"note",
+            "text":"Запись без меток",
+            "created_at":1586634372651
+        },
+        "16": {
+            "type":"note",
+            "text":"Запись с метками \"один\" и \"два\"",
+            "created_at":1586634372656
+        },
+        "17": {
+            "type":"tag_note",
+            "tag_id":"2",
+            "note_id":"16"
+        },
+        "18": {
+            "type":"tag_note",
+            "tag_id":"3",
+            "note_id":"16"
+        },
+        "19": {
+            "type":"note",
+            "text":"Запись с меткой \"один\"",
+            "created_at":1586634372660
+        },
+        "20": {
+            "type":"tag_note",
+            "tag_id":"2",
+            "note_id":"19"
+        }
+    };
+
+    let notepad = new Notepad(new VariableStorage());
+    let tag_id;
+    let note_id;
+    let tags_events = [];
+    let notes_events = [];
+    let working_events = [];
+    notepad.on("reset_tags", function(tags) {
+        tags_events.push(tags);
+    })
+    notepad.on("reset_notes", function(notes) {
+        notes_events.push(notes);
+    });
+    notepad.on("working", function(working) {
+        working_events.push(working);
+    });
+    let reset_events = function() {
+        tags_events.splice(0, tags_events.length);
+        notes_events.splice(0, notes_events.length);
+        working_events.splice(0, working_events.length);
+    };
+    let assert_events = function(expected_tags, expected_notes) {
+        assert.deepEqual(tags_events, expected_tags);
+        assert.deepEqual(notes_events, expected_notes);
+    }
+
+    it("import notepad", function() {
+        reset_events();
+        let result = notepad.import(IMPORT_DATA);
+        assert.equal(result, true);
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 1,
+                    "id": "3",
+                    "name": "два",
+                },
+                {
+                    "count": 2,
+                    "id": "2",
+                    "name": "один",
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": "19",
+                    "tags": [
+                        "2",
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": "16",
+                    "tags": [
+                        "3",
+                        "2",
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372651,
+                    "id": "13",
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        let EXPECTED_WORKING = [true];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+
+    it("second import notepad must fail", function() {
+        reset_events();
+        let result = notepad.import(IMPORT_DATA);
+        assert.equal(result, false);
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [];
+        let EXPECTED_WORKING = [];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(working_events, EXPECTED_WORKING);
+    });
+
+    it("export notepad", function() {
+        reset_events();
+        let exported_data = notepad.export();
+        assert.deepEqual(exported_data, IMPORT_DATA);
     });
 });
 

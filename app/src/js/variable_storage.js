@@ -46,6 +46,15 @@ class VariableStorage extends StorageInterface {
             callback(key);
         }
     }
+
+    _import_item(id, object) {
+        let id_int = parseInt(id);
+        this._autoincrement_id = Math.max(this._autoincrement_id, id_int);
+        if(this._storage[id] != null) {
+            throw new Error("Элемент с id=" + id + " уже сущестует в хранилище");
+        }
+        this._set_item(id, object);
+    }
 }
 
 export default VariableStorage;

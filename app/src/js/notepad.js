@@ -387,9 +387,14 @@ class Notepad {
     }
 
     close() {
-        this._reset_internal_state();
-        this._reset_state();
-        this._storage.clear();
+        if(this._working) {
+            this._reset_internal_state();
+            this._reset_state();
+            this._storage.clear();
+            return true;    
+        } else {
+            return false;
+        }
     }
 
     // open_notepad() {
@@ -397,8 +402,13 @@ class Notepad {
     // }
 
     import(objects) {
-        this._storage.import(objects);
-        this.sync();
+        if(!this._working) {
+            this._storage.import(objects);
+            this.sync();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     export() {
