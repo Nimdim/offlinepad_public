@@ -1,20 +1,428 @@
 import Backbone from "backbone";
 import _ from "lodash";
+import "fake-indexeddb/auto";
+
+let indexedDB;
+if(global == null) {
+    indexedDB = window.indexedDB;
+} else {
+    indexedDB = global.indexedDB;
+}
+
+class IndexedDBStorage {
+    constructor() {
+
+    }
+
+    set_options() {
+
+    }
+
+    clear() {
+        let promise = new Promise((resolve, reject) => {
+            let store_names = [
+                "tags",
+                "notes",
+                "tag_notes",
+                "notepads",
+                "note_filters",
+                "pin_codes",
+            ];
+            let transaction = this.db.transaction(store_names, "readwrite");
+            for(let k = 0; k < store_names.length; k++) {
+                let store_name = store_names[k];
+                let store = transaction.objectStore(store_name);
+                store.clear();
+            }
+            transaction.oncomplete = () => {
+                resolve();
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+
+    }
+
+    init() {
+        let promise = new Promise((resolve, reject) => {
+            let request = indexedDB.open("notes_db", 1);
+            request.onerror = (event) => {
+                reject(event);
+            };
+            // request.onversionchange = ;
+            // request.onblocked = ;
+            request.onupgradeneeded = function(event) { 
+                let db = event.target.result;
+                switch(event.oldVersion) {
+                    case 0: {
+                        let store_options = { keyPath: "id", autoIncrement: true};
+                        let index_options = {"unique": false};
+                        let notes = db.createObjectStore("notes", store_options);
+                        notes.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        let tags = db.createObjectStore("tags", store_options);
+                        tags.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        let tag_notes = db.createObjectStore("tag_notes", store_options);
+                        tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
+                        tag_notes.createIndex("note_id_idx", "note_id", index_options);
+                        tag_notes.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        let notepads = db.createObjectStore("notepads", store_options);
+                        notepads;
+                        let pin_codes = db.createObjectStore("pin_codes", store_options);
+                        pin_codes.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        let note_filters = db.createObjectStore("note_filters", store_options);
+                        note_filters.createIndex("notepad_id_idx", "notepad_id", index_options);
+                    }
+                }
+            };
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                resolve();
+            };    
+        });
+        return promise;
+    }
+
+    create_item_in_store(store_name, item) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readwrite");
+            let store = transaction.objectStore(store_name);
+            let new_id;
+            let request = store.add(item);
+            request.onsuccess = function() {
+                new_id = request.result.toString();
+            };
+            transaction.oncomplete = () => {
+                resolve(new_id);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    get_item_from_store(store_name, id) {
+        id = parseInt(id);
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let item = null;
+            let request = store.get(id);
+            request.onsuccess = function() {
+                item = request.result;
+            };
+            transaction.oncomplete = () => {
+                resolve(item);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    edit_item_in_store(store_name, id, new_values) {
+        id = parseInt(id);
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readwrite");
+            let store = transaction.objectStore(store_name);
+            let item;
+            let request = store.get(id);
+            request.onsuccess = function() {
+                item = request.result;
+                _.extend(item, new_values);
+                store.put(item);
+            };
+            transaction.oncomplete = () => {
+                resolve();
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    is_item_with_name_exists_in_store(store_name, name, id) {
+        id = parseInt(id);
+
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let request = store.openCursor();
+            let exists = false;
+
+            request.onsuccess = () => {
+                let cursor = request.result;
+                if(cursor) {
+                    let key = cursor.key;
+                    let value = cursor.value;
+                    if(key != id) {
+                        if(value.name == name) {
+                            exists = true;
+                        } else {
+                            cursor.continue();
+                        }
+                    }
+                }
+            };
+
+            transaction.oncomplete = () => {
+                resolve(exists);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    delete_item_in_store(store_name, id) {
+        id = parseInt(id);
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readwrite");
+            let store = transaction.objectStore(store_name);
+            store.delete(id);
+            transaction.oncomplete = () => {
+                resolve();
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    create_note_filter(name, tags, notepad_id) {
+        let note_filter = {
+            "notepad_id": notepad_id,
+            "name": name,
+            "tags": _.cloneDeep(tags),
+        };
+        return this.create_item_in_store("note_filters", note_filter)
+    }
+
+    edit_note_filter(id, name) {
+        let new_values = {"name": name};
+        return this.edit_item_in_store("note_filters", id, new_values);
+    }
+
+    delete_note_filter(id) {
+        return this.delete_item_in_store("note_filters", id);
+    }
+
+    get_note_filters() {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction("note_filters", "readonly");
+            let note_filters = transaction.objectStore("note_filters");
+
+            let request = note_filters.getAll();
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    resolve(request.result);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
+    is_note_filter_with_name_exists(name, id) {
+        return this.is_item_with_name_exists_in_store("note_filters", name, id);
+    }
+
+    create_tag(name, notepad_id) {
+        let tag = {
+            "notepad_id": notepad_id,
+            "name": name,
+        };
+        return this.create_item_in_store("tags", tag);
+    }
+
+    edit_tag(id, name) {
+        let new_values = {"name": name};
+        return this.edit_item_in_store("tags", id, new_values);
+    }
+
+    delete_tag(id) {
+        return this.delete_item_in_store("tags", id);
+    }
+
+    get_tags() {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction("tags", "readonly");
+            let store = transaction.objectStore("tags");
+
+            let request = store.getAll();
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    let tags = request.result;
+                    _.forEach(tags, (tag) => tag.id = tag.id.toString());
+                    resolve(request.result);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
+    is_tag_with_name_exists(name, id) {
+        return this.is_item_with_name_exists_in_store("tags", name, id);
+    }
+
+    create_note(text, stamp, notepad_id) {
+        let note = {
+            "text": text,
+            "created_at": stamp,
+            "notepad_id": notepad_id,
+        };    
+        return this.create_item_in_store("notes", note);
+    }
+
+    edit_note(id, text, stamp) {
+        let new_values = {
+            "text": text,
+            "created_at": stamp
+        };
+        return this.edit_item_in_store("notes", id, new_values);
+    }
+
+    delete_note(id) {
+        return this.delete_item_in_store("notes", id);
+    }
+
+    get_notes() {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction("notes", "readonly");
+            let store = transaction.objectStore("notes");
+
+            let request = store.getAll();
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    _.forEach(request.result, (item) => item.id = item.id.toString());
+                    resolve(request.result);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
+    async get_tags_of_note(note_id) {
+        let result = []
+        let tag_ids = await this.get_tag_ids_of_note(note_id);
+        for(let k = 0; k < tag_ids.length; k++) {
+            let tag_id = tag_ids[k];
+            let tag = await this.get_tag_by_id(tag_id);
+            result.push(tag);
+        }
+        return result;
+    }
+
+    get_tag_by_id(tag_id) {
+        return this.get_item_from_store("tags", tag_id);
+    }
+
+    async get_tag_ids_of_note(note_id) {
+        let tag_notes = await this.get_items_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
+        return _.map(tag_notes, (item) => item.tag_id);
+    }
+
+    // get_note_ids_of_tag(tag_id) {
+    //     return this.get_item_ids_from_store_using_index(
+    //         "tag_notes", "tag_id_idx", tag_id
+    //     );
+    // }
+
+    get_items_from_store_using_index(store_name, index_name, value) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let request = index.getAll(value);
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    resolve(request.result);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
+    get_item_ids_from_store_using_index(store_name, index_name, value) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let request = index.getAllKeys(value);
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    resolve(request.result);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
+    create_tag_note(tag_id, note_id, notepad_id) {
+        let tag_note = {
+            "tag_id": parseInt(tag_id),
+            "note_id": parseInt(note_id),
+            "notepad_id": parseInt(notepad_id),
+        };
+        return this.create_item_in_store("tag_notes", tag_note);
+    }
+
+    delete_tag_note(tag_note_id) {
+        return this.delete_item_in_store("tag_notes", tag_note_id);
+    }
+
+    async get_tag_note_id(tag_id, note_id) {
+        // TODO композитные ключи?
+        let by_tag_id = await this.get_item_ids_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        let by_note_id = await this.get_item_ids_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
+
+        let intersection = _.intersection(by_tag_id, by_note_id);
+        if(intersection.length == 1) {
+            return intersection[0];
+        } else {
+            throw new Error("get tag_note_id error");
+        }
+    }
+}
 
 class Notepad {
-    constructor(storage) {
+    constructor() {
+        _.extend(this, Backbone.Events);
         this._schedule_tags_update = false;
         this._schedule_notes_update = false;
         this._schedule_note_filters_update = false;
         this._updates_state = null;
-
-        _.extend(this, Backbone.Events);
         this._configuration = {
             "tags_per_page": 99999,
             "notes_per_page": 40,
         };
-        this._storage = storage;
+        this._storage = new IndexedDBStorage();
         this._reset_internal_state();
+    }
+
+    async init() {
+        await this._storage.init();
     }
 
     _reset_internal_state() {
@@ -35,6 +443,11 @@ class Notepad {
                 tags: [],
             },
         }
+        this._decrypted_cache = {
+            "notes": {},
+            "tags": {},
+        };
+        // TODO проверить что все поля нужны
         this._data = {
             "notepad": null,
             "notes": {},
@@ -42,7 +455,6 @@ class Notepad {
             "notes_of_tag": {},
             "tags_of_note": {},
             "tag_notes": {},
-            "note_filters": {},
         };
     }
 
@@ -80,7 +492,7 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
-    create() {
+    async create() {
         if(!this._working) {
             let options = {
                 with_password: false,
@@ -88,8 +500,8 @@ class Notepad {
             };
             this._storage.set_options(options);
             this._reset_filter();
-            this._load_data();
-            this._reset_state();
+            // this._load_data();
+            await this._reset_state();
             this._set_working(true);
             // this.unlock(password);
             return true;
@@ -98,9 +510,10 @@ class Notepad {
         }
     }
 
-    sync() {
+    sync(notepad_id) {
+        this._notepad_id = notepad_id;
         this._reset_filter();
-        this._load_data();
+        // this._load_data(notepad_id);
         this._reset_state();
         this._set_working(this._working);
     }
@@ -110,31 +523,31 @@ class Notepad {
         this.trigger("working", this._working);
     }
 
-    _load_data() {
-        let reader = function(object) {
-            switch(object.type) {
-                case "notepad":
-                    this.register_notepad(object);
-                    break;
-                case "tag":
-                    this.register_tag(object);
-                    break;
-                case "note":
-                    this.register_note(object);
-                    break;
-                case "tag_note":
-                    this.register_tag_note(object);
-                    break;
-                case "note_filter":
-                    this.register_note_filter(object);
-                    break;
-                default:
-                    // console.error("неизвестный тип объекта", object);
-                    break;
-            }
-        }.bind(this);
-        this._storage.iterate(reader);
-    }
+    // _load_data(notepad_id) {
+    //     let reader = function(object) {
+    //         switch(object.type) {
+    //             case "notepad":
+    //                 this.register_notepad(object);
+    //                 break;
+    //             case "tag":
+    //                 this.register_tag(object);
+    //                 break;
+    //             case "note":
+    //                 this.register_note(object);
+    //                 break;
+    //             case "tag_note":
+    //                 this.register_tag_note(object);
+    //                 break;
+    //             case "note_filter":
+    //                 this.register_note_filter(object);
+    //                 break;
+    //             default:
+    //                 // console.error("неизвестный тип объекта", object);
+    //                 break;
+    //         }
+    //     }.bind(this);
+    //     this._storage.iterate(reader);
+    // }
 
     register_notepad(object) {
         if(this._data.notepad == null) {
@@ -145,51 +558,50 @@ class Notepad {
         this._working = true;
     }
 
-    register_tag(object) {
-        let key = object.id;
-        this._data.tags[key] = object;
-        // при начальной регистрации информация о взаимосвязи может прийти
-        // раньше и тогда перетрется ее кеш
-        if (this._data.notes_of_tag[key] == null) {
-            this._data.notes_of_tag[key] = {};
-        }
-    }
+    // register_tag(object) {
+    //     let key = object.id;
+    //     this._data.tags[key] = object;
+    //     // при начальной регистрации информация о взаимосвязи может прийти
+    //     // раньше и тогда перетрется ее кеш
+    //     if (this._data.notes_of_tag[key] == null) {
+    //         this._data.notes_of_tag[key] = {};
+    //     }
+    // }
 
-    register_note(object) {
-        let key = object.id;
-        this._data.notes[key] = object;
-        // при начальной регистрации информация о взаимосвязи может прийти
-        // раньше и тогда перетрется ее кеш
-        if (this._data.tags_of_note[key] == null) {
-            this._data.tags_of_note[key] = {};
-        }
-
-    }
+    // register_note(object) {
+    //     let key = object.id;
+    //     this._data.notes[key] = object;
+    //     // при начальной регистрации информация о взаимосвязи может прийти
+    //     // раньше и тогда перетрется ее кеш
+    //     if (this._data.tags_of_note[key] == null) {
+    //         this._data.tags_of_note[key] = {};
+    //     }
+    // }
 
     tag_note_key(tag_id, note_id) {
         return tag_id + "_" + note_id;
     }
 
-    register_tag_note(object) {
-        let tag_note_key = this.tag_note_key(object.tag_id, object.note_id);
-        let note_ids, tag_ids;
+    // register_tag_note(object) {
+    //     let tag_note_key = this.tag_note_key(object.tag_id, object.note_id);
+    //     let note_ids, tag_ids;
 
-        this._data.tag_notes[tag_note_key] = object;
+    //     this._data.tag_notes[tag_note_key] = object;
 
-        note_ids = this._data.notes_of_tag[object.tag_id];
-        if(note_ids == null) {
-            note_ids = {};
-            this._data.notes_of_tag[object.tag_id] = note_ids;
-        }
-        note_ids[object.note_id] = true;
+    //     note_ids = this._data.notes_of_tag[object.tag_id];
+    //     if(note_ids == null) {
+    //         note_ids = {};
+    //         this._data.notes_of_tag[object.tag_id] = note_ids;
+    //     }
+    //     note_ids[object.note_id] = true;
 
-        tag_ids = this._data.tags_of_note[object.note_id];
-        if(tag_ids == null) {
-            tag_ids = {};
-            this._data.tags_of_note[object.note_id] = tag_ids;
-        }
-        tag_ids[object.tag_id] = true;
-    }
+    //     tag_ids = this._data.tags_of_note[object.note_id];
+    //     if(tag_ids == null) {
+    //         tag_ids = {};
+    //         this._data.tags_of_note[object.note_id] = tag_ids;
+    //     }
+    //     tag_ids[object.tag_id] = true;
+    // }
     
     _reset_filter() {
         this._filter.tags.sorting_asc = true;
@@ -201,13 +613,13 @@ class Notepad {
         this.trigger("reset_filter", data);
     }
 
-    _reset_state() {
-        this._reset_tags();
-        this._reset_notes();
-        this._reset_note_filters();
+    async _reset_state() {
+        await this._reset_tags();
+        await this._reset_notes();
+        await this._reset_note_filters();
     }
 
-    _reset_tags() {
+    async _reset_tags() {
         if(this._updates_state == "pending") {
             this._schedule_tags_update = true;
             return
@@ -221,14 +633,14 @@ class Notepad {
 
         let items_for_show_count = this._configuration.tags_per_page;
         let items_for_show;
-        this._state.tags.items = this._filter_tags();
+        this._state.tags.items = await this._filter_tags();
         if(items_for_show_count < this._state.tags.length) {
             items_for_show_count = this._state.tags.length;
         }
         this._state.tags.items_shown_count = items_for_show_count;
         items_for_show = this._state.tags.items.slice(0, items_for_show_count);
-        this.trigger("reset_tags", this._wrap_tags(items_for_show));
-        this.trigger("all_tags", _.sortBy(_.values(this._data.tags), "name"));
+        this.trigger("reset_tags", await this._wrap_tags(items_for_show));
+        this.trigger("all_tags", _.sortBy(_.values(this._state.tags.items), "name"));
     }
 
     start_updates() {
@@ -244,20 +656,23 @@ class Notepad {
         this._updates_state = null;
     }
 
-    _wrap_tags(items) {
+    async _wrap_tags(items) {
         let result = [];
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
+            let notes_of_tag = await this._storage.get_items_from_store_using_index(
+                "tag_notes", "tag_id_idx", parseInt(item.id)
+            );
             result.push({
                 id: item.id,
                 name: item.name,
-                count: _.keys(this._data.notes_of_tag[item.id]).length,
+                count: notes_of_tag.length,
             });
         }
         return result;
     }
 
-    _reset_notes() {
+    async _reset_notes() {
         if(this._updates_state == "pending") {
             this._schedule_notes_update = true;
             return
@@ -271,17 +686,17 @@ class Notepad {
         
         let items_for_show_count = this._configuration.notes_per_page;
         let items_for_show;
-        this._state.notes.items = this._filter_notes();
+        this._state.notes.items = await this._filter_notes();
         if(this._state.notes.items.length < items_for_show_count) {
             items_for_show_count = this._state.notes.items.length;
         }
         this._state.notes.items_shown_count = items_for_show_count;
         items_for_show = this._state.notes.items.slice(0, items_for_show_count);
-        this.trigger("reset_notes", this._wrap_notes(items_for_show));
+        this.trigger("reset_notes", await this._wrap_notes(items_for_show));
         this.trigger("reset_notes_count", this._state.notes.items.length);
     }
 
-    load_next_notes() {
+    async load_next_notes() {
         let available_notes_count = this._state.notes.items.length - this._state.notes.items_shown_count;
         if(available_notes_count > this._configuration.notes_per_page) {
             available_notes_count = this._configuration.notes_per_page;
@@ -293,21 +708,16 @@ class Notepad {
                 this._state.notes.items_shown_count + available_notes_count
             );
             this._state.notes.items_shown_count += available_notes_count;
-            this.trigger("append_notes", this._wrap_notes(items_for_show));
+            this.trigger("append_notes", await this._wrap_notes(items_for_show));
         }
     }
 
-    _wrap_notes(items) {
+    async _wrap_notes(items) {
         let result = [];
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
-            let tags = _.keys(this._data.tags_of_note[item.id]);
-            tags = _.map(
-                tags,
-                function(id) {
-                    return _.cloneDeep(this._data.tags[id])
-                }.bind(this)
-            );
+
+            let tags = await this._storage.get_tags_of_note(item.id);
             tags = _.orderBy(tags, "name");
             result.push({
                 id: item.id,
@@ -320,8 +730,8 @@ class Notepad {
         return result;
     }
 
-    _filter_tags() {
-        let tags = _.values(this._data.tags);
+    async _filter_tags() {
+        let tags = await this._storage.get_tags();
 
         // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
@@ -345,8 +755,8 @@ class Notepad {
         return tags;
     }
 
-    _filter_notes() {
-        let notes = _.cloneDeep(_.values(this._data.notes));
+    async _filter_notes() {
+        let notes = await this._storage.get_notes();
 
         // TODO сделать тесты и выделить в функцию
         if(this._filter.notes.text != "") {
@@ -358,21 +768,21 @@ class Notepad {
             )
         }
 
-        // TODO сделать тесты и выделить в функцию
-        if(this._filter.notes.tags.length > 0) {
-            for(let k = 0; k < this._filter.notes.tags.length; k++) {
-                let tag = this._filter.notes.tags[k];
-                if(tag) {
-                    let note_ids = this._data.notes_of_tag[tag];
-                    notes = _.filter(
-                        notes,
-                        function(note) {
-                            return note_ids[note.id] === true
-                        }
-                    );
-                }
-            }
-        }
+        // TODO сделать фильтр при помощи storage
+        // if(this._filter.notes.tags.length > 0) {
+        //     for(let k = 0; k < this._filter.notes.tags.length; k++) {
+        //         let tag = this._filter.notes.tags[k];
+        //         if(tag) {
+        //             let note_ids = this._data.notes_of_tag[tag];
+        //             notes = _.filter(
+        //                 notes,
+        //                 function(note) {
+        //                     return note_ids[note.id] === true
+        //                 }
+        //             );
+        //         }
+        //     }
+        // }
 
         // TODO сделать тесты и выделить в функцию
         let order;
@@ -386,11 +796,11 @@ class Notepad {
         return notes;
     }
 
-    close() {
+    async close() {
         if(this._working) {
             this._reset_internal_state();
-            this._reset_state();
-            this._storage.clear();
+            await this._reset_state();
+            await this._storage.clear();
             return true;    
         } else {
             return false;
@@ -431,101 +841,74 @@ class Notepad {
         this._password = password;
     }
 
-    is_tag_with_name_exists(name, current_tag_id) {
-        let tag_id, tag;
-        for(tag_id in this._data.tags) {
-            if(current_tag_id == tag_id) {
-                continue;
-            }
-            tag = this._data.tags[tag_id];
-            if(tag.name == name) {
-                return true;
-            }
-        }
-        return false;
+    async is_tag_with_name_exists(name, current_tag_id) {
+        let exists = await this._storage.is_tag_with_name_exists(name, current_tag_id);
+        return exists;
     }
 
-    create_tag(name) {
-        if(this.is_tag_with_name_exists(name)) {
+    async create_tag(name) {
+        let is_exists = await this.is_tag_with_name_exists(name);
+        if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        let tag_id = this._storage.create({
-            "type": "tag",
-            "name": name,
-        });
-        this.register_tag(this._storage.get(tag_id));
-        this._reset_tags();
+        let tag_id = await this._storage.create_tag(name, this._notepad_id);
+        await this._reset_tags();
         return tag_id;
     }
 
-    edit_tag(id, name) {
-        if(this.is_tag_with_name_exists(name, id)) {
+    async edit_tag(id, name) {
+        let is_exists = await this.is_tag_with_name_exists(name, id);
+        if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        let tag = this._data.tags[id];
-        tag.name = name;
-        this._storage.set(id, tag);
-
-        this._reset_tags();
+        await this._storage.edit_tag(id, name);
+        await this._reset_tags();
     }
 
-    delete_tag(id) {
-        this._storage.delete(id);
-        delete this._data.tags[id];
-        let note_ids = _.keys(this._data.notes_of_tag[id]);
-        for(let index = 0; index < note_ids.length; index++) {
-            let note_id = note_ids[index];
-            this.delete_tag_note(id, note_id);
+    async delete_tag(id) {
+        await this._storage.delete_tag(id);
+        // TODO в единую транзаецию
+        debugger
+        let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "tag_id_idx", parseInt(id)
+        );
+        for(let k = 0; k < tag_note_ids.length; k++) {
+            let tag_note_id = tag_note_ids[k];
+            await this._storage.delete_item_in_store("tag_notes", tag_note_id);
         }
-        delete this._data.notes_of_tag[id];
-        this._reset_notes();
-        this._reset_tags();
+
+        await this._reset_tags();
+        await this._reset_notes();
     }
 
-    delete_tag_note(tag_id, note_id) {
-        let tag_note_key = this.tag_note_key(tag_id, note_id);
-        let tag_note_id = this._data.tag_notes[tag_note_key].id;
-
-        this._storage.delete(tag_note_id);
-        delete this._data.tag_notes[tag_note_key];
-        delete this._data.tags_of_note[note_id][tag_id];
-        delete this._data.notes_of_tag[tag_id][note_id];
+    async delete_tag_note(tag_id, note_id) {
+        let tag_note_id = await this._storage.get_tag_note_id(tag_id, note_id);
+        await this._storage.delete_tag_note(tag_note_id);
     }
 
     // list_tags(from, count) {
 
     // }
 
-    create_note_filter(name, tags) {
-        let filter_id = this._storage.create({
-            "type": "note_filter",
-            "name": name,
-            "tags": _.cloneDeep(tags),
-        });
-        this.register_note_filter(this._storage.get(filter_id));
+    async create_note_filter(name, tags) {
+        let filter_id = await this._storage.create_note_filter(
+            name, tags, this._notepad_id
+        );
+        await this._reset_note_filters();
         return filter_id;
     }
 
-    delete_note_filter(note_filter_id) {
-        this._storage.delete(note_filter_id);
-        delete this._data.note_filters[note_filter_id];
-        this._reset_note_filters();
+    async delete_note_filter(note_filter_id) {
+        await this._storage.delete_note_filter(note_filter_id);
+        await this._reset_note_filters();
     }
 
-    edit_note_filter(note_filter_id, new_name) {
-        let data = this._data.note_filters[note_filter_id];
-        data.name = new_name;
-        this._storage.set(note_filter_id, data);
-        this._reset_note_filters();
+    async edit_note_filter(note_filter_id, new_name) {
+        await this._storage.edit_note_filter(note_filter_id, new_name);
+        await this._reset_note_filters();
     }
 
-    register_note_filter(note_filter) {
-        this._data.note_filters[note_filter.id] = note_filter;
-        this._reset_note_filters();
-        return note_filter.id;
-    }
-
-    _reset_note_filters() {
+    async _reset_note_filters() {
         if(this._updates_state == "pending") {
             this._schedule_note_filters_update = true;
             return
@@ -543,65 +926,44 @@ class Notepad {
             deletable: false,
             tags: [],
         };
-        let items = _.values(this._data.note_filters);
-        items = _.cloneDeep(items)
-        items = _.sortBy(items, "name");
-        _.forEach(items, (item) => item.deletable = true)
+        let items = await this._storage.get_note_filters();
+        _.forEach(items, (item) => {
+            item.deletable = true;
+            item.id = item.id.toString();
+        })
         items.unshift(all_items);
         this.trigger("reset_note_filters", items);
     }
 
-    is_note_filter_with_name_exists(name, current_id) {
-        let id, item;
-        for(id in this._data.note_filters) {
-            if(current_id == id) {
-                continue;
-            }
-            item = this._data.note_filters[id];
-            if(item.name == name) {
-                return true;
-            }
-        }
-        return false;
+    async is_note_filter_with_name_exists(name, current_id) {
+        let exists = await this._storage.is_note_filter_with_name_exists(
+            name, current_id
+        );
+        return exists;
     }
 
-    create_note(text, stamp, tags) {
-        let note_id = this._storage.create({
-            "type": "note",
-            "text": text,
-            "created_at": stamp,
-        });
-        this.register_note(this._storage.get(note_id));
-        this.apply_note_tags(note_id, tags);
+    async create_note(text, stamp, tags) {
+        let note_id = await this._storage.create_note(text, stamp, this._notepad_id);
+        await this.apply_note_tags(note_id, tags);
 
-        this._reset_notes();
-        this._reset_tags();
+        await this._reset_notes();
+        await this._reset_tags();
         return note_id;
     }
 
-    create_tag_note(tag_id, note_id) {
-        let tag_note_id = this._storage.create({
-            "type": "tag_note",
-            "tag_id": tag_id,
-            "note_id": note_id,
-        });
-        let tag_note = this._storage.get(tag_note_id);
-        this.register_tag_note(tag_note);
+    async create_tag_note(tag_id, note_id, notepad_id) {
+        await this._storage.create_tag_note(tag_id, note_id, notepad_id);
     }
 
-    edit_note(id, text, stamp, tags) {
-        let note = this._data.notes[id];
-        note.text = text;
-        note.created_at = stamp;
-        this._storage.set(id, note);
-
-        this.apply_note_tags(id, tags);
-        this._reset_notes();
-        this._reset_tags();
+    async edit_note(id, text, stamp, tags) {
+        await this._storage.edit_note(id, text, stamp);
+        await this.apply_note_tags(id, tags);
+        await this._reset_notes();
+        await this._reset_tags();
     }
 
-    apply_note_tags(note_id, tag_ids) {
-        let old_tag_ids = _.keys(this._data.tags_of_note[note_id]);
+    async apply_note_tags(note_id, tag_ids) {
+        let old_tag_ids = await this._storage.get_tag_ids_of_note(note_id);
 
         let new_tag_ids = _.difference(tag_ids, old_tag_ids);
         let deleted_tag_ids = _.difference(old_tag_ids, tag_ids);
@@ -609,21 +971,19 @@ class Notepad {
         let k, tag_id;
         for(k = 0; k < new_tag_ids.length; k++) {
             tag_id = new_tag_ids[k];
-            this.create_tag_note(tag_id, note_id);
+            await this.create_tag_note(tag_id, note_id, this._notepad_id);
         }
         for(k = 0; k < deleted_tag_ids.length; k++) {
             tag_id = deleted_tag_ids[k];
-            this.delete_tag_note(tag_id, note_id);
+            await this.delete_tag_note(tag_id, note_id);
         }
     }
 
-    delete_note(id) {
-        this._storage.delete(id);
-        delete this._data.notes[id];
-        this.apply_note_tags(id, []);
-        delete this._data.tags_of_note[id];
-        this._reset_notes();
-        this._reset_tags();
+    async delete_note(id) {
+        await this._storage.delete_note(id);
+        await this.apply_note_tags(id, []);
+        await this._reset_notes();
+        await this._reset_tags();
     }
 
     // list_notes(from, count) {

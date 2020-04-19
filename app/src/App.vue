@@ -347,7 +347,6 @@ import sanitize_html from 'sanitize-html'
 
 sanitize_html.defaults.allowedTags = [];
  
-import LocalStorage from "./js/local_storage.js"
 import Notepad from './js/notepad.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
@@ -358,7 +357,7 @@ let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-var notepad = new Notepad(new LocalStorage());
+var notepad = new Notepad();
 
 let NOTEPAD_CONTROLS = [
   {id: "create", name: "Создать"},
@@ -545,28 +544,30 @@ export default {
   },
 
   mounted: function() {
-    this.notes_scroll_up_controller = new ScrollUpController();
-    this.notes_scroll_up_controller.on("show", (value) => this.notes_scroll_up_show = value);
-    this._init_develop_mode();
-    this.load_theme();
-    this.warning_init();
-    let promise;
-    if(sw_api.is_available()) {
-      promise = this.service_worker_init().then((init_data) => {
-        if(init_data.updated != null) {
-          this.update_done = init_data.updated;
-        }
-        this.app_init();
-      });
-    } else {
-      this.features_unawailable = true;
-      promise = Promise.resolve();
-    }
-    promise.then(
-      () => {
-        setTimeout(() => {this.loadscreen_visible = false;}, 1000);
+    notepad.init().then(() => {
+      this.notes_scroll_up_controller = new ScrollUpController();
+      this.notes_scroll_up_controller.on("show", (value) => this.notes_scroll_up_show = value);
+      this._init_develop_mode();
+      this.load_theme();
+      this.warning_init();
+      let promise;
+      if(sw_api.is_available()) {
+        promise = this.service_worker_init().then((init_data) => {
+          if(init_data.updated != null) {
+            this.update_done = init_data.updated;
+          }
+          this.app_init();
+        });
+      } else {
+        this.features_unawailable = true;
+        promise = Promise.resolve();
       }
-    );
+      promise.then(
+        () => {
+          setTimeout(() => {this.loadscreen_visible = false;}, 1000);
+        }
+      );
+    });
   },
   methods: {
 
@@ -935,26 +936,28 @@ export default {
       return notes;
     },
 
-    submit_tag: function(data) {
+    submit_tag: async function(data) {
       if(data.name == "") {
         data.error = "empty"
         data.edit_state = true;
         return;
       }
       if(data.id == "__new_item__") {
-        if(notepad.is_tag_with_name_exists(data.name)) {
+        let is_exists = await notepad.is_tag_with_name_exists(data.name);
+        if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
         } else {
           this.tag_index_add = null;
-          notepad.create_tag(data.name);
+          await notepad.create_tag(data.name);
         }
       } else {
-        if(notepad.is_tag_with_name_exists(data.name, data.id)) {
+        let is_exists = await notepad.is_tag_with_name_exists(data.name, data.id);
+        if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
         } else {
-          notepad.edit_tag(data.id, data.name);
+          await notepad.edit_tag(data.id, data.name);
         }
       }
     },
@@ -1094,6 +1097,7 @@ export default {
         "checked": false,
         "edit_state": true,
         "text": "",
+        "text_highlighted": "",
         "creation_time": + new Date(),
       };
       this.note_index_add = this.note_index_in_viewspot;
@@ -1101,9 +1105,9 @@ export default {
       this.notes.items.splice(this.note_index_add, 0, new_note);
     },
 
-    add_note_filter: function() {
+    add_note_filter: async function() {
       let name = this.new_note_filter.name;
-      let is_exists = notepad.is_note_filter_with_name_exists(name);
+      let is_exists = await notepad.is_note_filter_with_name_exists(name);
       if(is_exists) {
         this.new_note_filter.error = true;
         this.new_note_filter.error_text = "Раздел с таким названием уже существует";
@@ -1113,7 +1117,7 @@ export default {
         this.new_note_filter.error_text = "Введите название раздела";
         this.$refs.new_note_filter_name.focus();
       } else {
-        notepad.create_note_filter(name, this.notes_filter_tags);
+        await notepad.create_note_filter(name, this.notes_filter_tags);
         this.cancel_note_filter();
       }
     },
@@ -1128,12 +1132,13 @@ export default {
       notepad.delete_note_filter(id);
     },
 
-    edit_note_filter: function(id, data) {
+    edit_note_filter: async function(id, data) {
       let new_name = data.name;
+      let is_exists = await notepad.is_note_filter_with_name_exists(data.name, data.id);
       if(new_name == "") {
         data.edit_state = true;
         data.error = "empty";
-      } else if(notepad.is_note_filter_with_name_exists(data.name, data.id)) {
+      } else if(is_exists) {
         data.edit_state = true;
         data.error = "existing";
       } else {
