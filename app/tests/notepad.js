@@ -2,7 +2,6 @@ import Notepad  from "./../src/js/notepad.js";
 
 import { assert } from "chai";
 
-
 describe("notepad simple tests", function() {
     let notepad;
     let tag_id;

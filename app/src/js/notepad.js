@@ -1,6 +1,5 @@
 import Backbone from "backbone";
 import _ from "lodash";
-import "fake-indexeddb/auto";
 
 let indexedDB;
 if(global == null) {
@@ -91,7 +90,7 @@ class IndexedDBStorage {
             let new_id;
             let request = store.add(item);
             request.onsuccess = function() {
-                new_id = request.result.toString();
+                new_id = request.result;
             };
             transaction.oncomplete = () => {
                 resolve(new_id);
@@ -104,7 +103,6 @@ class IndexedDBStorage {
     }
 
     get_item_from_store(store_name, id) {
-        id = parseInt(id);
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readonly");
             let store = transaction.objectStore(store_name);
@@ -124,7 +122,6 @@ class IndexedDBStorage {
     }
 
     edit_item_in_store(store_name, id, new_values) {
-        id = parseInt(id);
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readwrite");
             let store = transaction.objectStore(store_name);
@@ -146,8 +143,6 @@ class IndexedDBStorage {
     }
 
     is_item_with_name_exists_in_store(store_name, name, id) {
-        id = parseInt(id);
-
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readonly");
             let store = transaction.objectStore(store_name);
@@ -180,7 +175,6 @@ class IndexedDBStorage {
     }
 
     delete_item_in_store(store_name, id) {
-        id = parseInt(id);
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readwrite");
             let store = transaction.objectStore(store_name);
@@ -251,6 +245,24 @@ class IndexedDBStorage {
         return this.delete_item_in_store("tags", id);
     }
 
+    get_items_from_store(storage_name) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(storage_name, "readonly");
+            let store = transaction.objectStore(storage_name);
+
+            let request = store.getAll();
+            request.onsuccess = function() {
+                if(request.result != null) {
+                    let items = request.result;
+                    resolve(items);
+                } else {
+                    reject();
+                }
+            };
+        });
+        return promise;
+    }
+
     get_tags() {
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction("tags", "readonly");
@@ -260,8 +272,7 @@ class IndexedDBStorage {
             request.onsuccess = function() {
                 if(request.result != null) {
                     let tags = request.result;
-                    _.forEach(tags, (tag) => tag.id = tag.id.toString());
-                    resolve(request.result);
+                    resolve(tags);
                 } else {
                     reject();
                 }
@@ -303,7 +314,6 @@ class IndexedDBStorage {
             let request = store.getAll();
             request.onsuccess = function() {
                 if(request.result != null) {
-                    _.forEach(request.result, (item) => item.id = item.id.toString());
                     resolve(request.result);
                 } else {
                     reject();
@@ -347,13 +357,13 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let index = store.index(index_name);
             let request = index.getAll(value);
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    resolve(request.result);
-                } else {
-                    reject();
-                }
-            };
+            request.addEventListener("success", function (event) {
+                // console.log("From index:", event.target.result);
+                resolve(event.target.result);
+            });
+            request.addEventListener("error", () => {
+                reject();
+            });
         });
         return promise;
     }
@@ -364,22 +374,22 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let index = store.index(index_name);
             let request = index.getAllKeys(value);
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    resolve(request.result);
-                } else {
-                    reject();
-                }
-            };
+            request.addEventListener("success", function (event) {
+                resolve(event.target.result);
+            });
+            request.addEventListener("error", () => {
+                reject();
+            });
+
         });
         return promise;
     }
 
     create_tag_note(tag_id, note_id, notepad_id) {
         let tag_note = {
-            "tag_id": parseInt(tag_id),
-            "note_id": parseInt(note_id),
-            "notepad_id": parseInt(notepad_id),
+            "tag_id": tag_id,
+            "note_id": note_id,
+            "notepad_id": notepad_id,
         };
         return this.create_item_in_store("tag_notes", tag_note);
     }
@@ -396,8 +406,11 @@ class IndexedDBStorage {
         let by_note_id = await this.get_item_ids_from_store_using_index(
             "tag_notes", "note_id_idx", note_id
         );
+        // console.log("by_tag_id", by_tag_id);
+        // console.log("by_note_id", by_note_id);
 
         let intersection = _.intersection(by_tag_id, by_note_id);
+        // console.log("intersection", intersection);
         if(intersection.length == 1) {
             return intersection[0];
         } else {
@@ -661,7 +674,7 @@ class Notepad {
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
             let notes_of_tag = await this._storage.get_items_from_store_using_index(
-                "tag_notes", "tag_id_idx", parseInt(item.id)
+                "tag_notes", "tag_id_idx", item.id
             );
             result.push({
                 id: item.id,
@@ -868,9 +881,8 @@ class Notepad {
     async delete_tag(id) {
         await this._storage.delete_tag(id);
         // TODO в единую транзаецию
-        debugger
         let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
-            "tag_notes", "tag_id_idx", parseInt(id)
+            "tag_notes", "tag_id_idx", id
         );
         for(let k = 0; k < tag_note_ids.length; k++) {
             let tag_note_id = tag_note_ids[k];
@@ -929,7 +941,6 @@ class Notepad {
         let items = await this._storage.get_note_filters();
         _.forEach(items, (item) => {
             item.deletable = true;
-            item.id = item.id.toString();
         })
         items.unshift(all_items);
         this.trigger("reset_note_filters", items);
