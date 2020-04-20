@@ -352,11 +352,12 @@ class IndexedDBStorage {
         return _.map(tag_notes, (item) => item.tag_id);
     }
 
-    // get_note_ids_of_tag(tag_id) {
-    //     return this.get_item_ids_from_store_using_index(
-    //         "tag_notes", "tag_id_idx", tag_id
-    //     );
-    // }
+    async get_note_ids_of_tag(tag_id) {
+        let tag_notes = await this.get_items_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        return _.map(tag_notes, (item) => item.note_id);
+    }
 
     get_items_from_store_using_index(store_name, index_name, value) {
         let promise = new Promise((resolve, reject) => {
@@ -478,7 +479,7 @@ class Notepad {
         };
     }
 
-    set_tags_filter(options) {
+    async set_tags_filter(options) {
         let keys = ["sorting_asc", "name"];
         let k, key, value;
         for(k = 0; k < keys.length; k++) {
@@ -488,10 +489,10 @@ class Notepad {
                 this._filter.tags[key] = value;
             }
         }
-        this._reset_tags();
+        await this._reset_tags();
     }
 
-    set_notes_filter(options) {
+    async set_notes_filter(options) {
         let keys = ["sorting_asc", "text", "tags"];
         let k, key, value;
         for(k = 0; k < keys.length; k++) {
@@ -501,7 +502,7 @@ class Notepad {
                 this._filter.notes[key] = value;
             }
         }
-        this._reset_notes();
+        await this._reset_notes();
     }
 
     get_tags_filter() {
@@ -774,20 +775,20 @@ class Notepad {
         }
 
         // TODO сделать фильтр при помощи storage
-        // if(this._filter.notes.tags.length > 0) {
-        //     for(let k = 0; k < this._filter.notes.tags.length; k++) {
-        //         let tag = this._filter.notes.tags[k];
-        //         if(tag) {
-        //             let note_ids = this._data.notes_of_tag[tag];
-        //             notes = _.filter(
-        //                 notes,
-        //                 function(note) {
-        //                     return note_ids[note.id] === true
-        //                 }
-        //             );
-        //         }
-        //     }
-        // }
+        if(this._filter.notes.tags.length > 0) {
+            for(let k = 0; k < this._filter.notes.tags.length; k++) {
+                let tag = this._filter.notes.tags[k];
+                if(tag) {
+                    let note_ids = await this._storage.get_note_ids_of_tag(tag);
+                    notes = _.filter(
+                        notes,
+                        function(note) {
+                            return note_ids.indexOf(note.id) >= 0
+                        }
+                    );
+                }
+            }
+        }
 
         // TODO сделать тесты и выделить в функцию
         let order;
