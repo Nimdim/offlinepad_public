@@ -512,7 +512,7 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
-    async create(name) {
+    async create() {
         if(!this._working) {
             let options = {
                 with_password: false,
@@ -520,7 +520,7 @@ class Notepad {
             };
             this._storage.set_options(options);
             this._reset_filter();
-            this._notepad_id = await this._storage.create_notepad(name);
+            // this._notepad_id = await this._storage.create_notepad(name);
             // this._load_data();
             await this._reset_state();
             this._set_working(true);

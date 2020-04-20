@@ -624,47 +624,30 @@ describe("notepad tags and notes", function() {
     });
 });
 
-// describe("notepad parse initial data", function() {
-//      it("parse empty storage", async function() {
-//         let notepad = new Notepad();
-//         await notepad.init();
-//         let working = false;
-//         notepad.on("working", function(value) {
-//             working = value;
-//         });
-//         notepad.sync();
-//         assert.equal(working, false);
-//     });
+describe("notepad parse initial data", function() {
+     it("parse empty storage", async function() {
+        let notepad = new Notepad();
+        await notepad.init();
+        let working = false;
+        notepad.on("working", function(value) {
+            working = value;
+        });
+        await notepad.sync();
+        assert.equal(working, false);
+    });
 
-//     it("parse storage with one notepad", async function() {
-//         // storage.create({
-//         //     "type": "notepad",
-//         //     "name": "123",
-//         // });
-//         let notepad = new Notepad();
-//         await notepad.init();
-//         let working = false;
-//         notepad.on("working", function(value) {
-//             working = value;
-//         });
-//         notepad.sync();
-//         assert.equal(working, true);
-//     });
-
-//     it("parse storage with two notepads", async function() {
-//         // storage.create({
-//         //     "type": "notepad",
-//         //     "name": "123",
-//         // });
-//         // storage.create({
-//         //     "type": "notepad",
-//         //     "name": "1234",
-//         // });
-//         let notepad = new Notepad();
-//         await notepad.init();
-//         assert.throws(function() { notepad.sync(); }, Error);
-//     });
-// });
+    it("parse storage with one notepad", async function() {
+        let notepad = new Notepad();
+        await notepad.init();
+        await notepad._storage.create_notepad("123")
+        let working = false;
+        notepad.on("working", function(value) {
+            working = value;
+        });
+        await notepad.sync();
+        assert.equal(working, true);
+    });
+});
 
 // describe("notepad filtering and sorting", async function() {
 //     let IMPORT_DATA = {

@@ -724,8 +724,7 @@ export default {
       }.bind(this));
 
       this.$refs.console.time("sync");
-      notepad.sync();
-      this.$refs.console.timeEnd("sync");
+      notepad.sync().then(() => this.$refs.console.timeEnd("sync"));
     },
 
     update_service_worker: function() {
@@ -748,44 +747,43 @@ export default {
       this.notes_filter_tags = _.cloneDeep(tags);
     },
 
-    create_notepad_data: function() {
-      notepad._storage.create({
-          type: "notepad",
-          name: "Дневник",
-      });
-      let welcome_tag = notepad.create_tag("добро пожаловать");
-      let lesson_tag = notepad.create_tag("обучение");
+    create_notepad_data: async function() {
+      await notepad._storage.create_notepad("Дневник");
 
-      notepad.create_note(
+      notepad.start_updates();
+      let welcome_tag = await notepad.create_tag("добро пожаловать");
+      let lesson_tag = await notepad.create_tag("обучение");
+      await notepad.create_note(
         "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
         + new Date(),
         [welcome_tag, lesson_tag]
       );
-      notepad.create_note(
+      await notepad.create_note(
           "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
           + new Date() + 1,
           [welcome_tag, lesson_tag]
       );
-      notepad.create_note(
+      await notepad.create_note(
           "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
           + new Date() + 2,
           [welcome_tag, lesson_tag]
       );
-      notepad.create_note(
+      await notepad.create_note(
           "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
           + new Date() + 3,
           [welcome_tag, lesson_tag]
       );
-      notepad.create_note(
+      await notepad.create_note(
           "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
           + new Date() + 4,
           [welcome_tag, lesson_tag]
       );
-      notepad.create_note(
+      await notepad.create_note(
           "Добро пожаловать, это первая запись вашего дневника.",
           + new Date() + 5,
           [welcome_tag]
       );
+      notepad.end_updates();
     },
 
     show_notes_popup: function(e) {
