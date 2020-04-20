@@ -102,6 +102,13 @@ class IndexedDBStorage {
         return promise;
     }
 
+    async create_notepad(name) {
+        let notepad = {
+            name: name,
+        };
+        return await this.create_item_in_store("notepads", notepad);
+    }
+
     get_item_from_store(store_name, id) {
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readonly");
@@ -505,7 +512,7 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
-    async create() {
+    async create(name) {
         if(!this._working) {
             let options = {
                 with_password: false,
@@ -513,6 +520,7 @@ class Notepad {
             };
             this._storage.set_options(options);
             this._reset_filter();
+            this._notepad_id = await this._storage.create_notepad(name);
             // this._load_data();
             await this._reset_state();
             this._set_working(true);
@@ -523,11 +531,11 @@ class Notepad {
         }
     }
 
-    sync(notepad_id) {
+    async sync(notepad_id) {
         this._notepad_id = notepad_id;
         this._reset_filter();
-        // this._load_data(notepad_id);
-        this._reset_state();
+        await this._load_data();
+        await this._reset_state();
         this._set_working(this._working);
     }
 
@@ -536,31 +544,15 @@ class Notepad {
         this.trigger("working", this._working);
     }
 
-    // _load_data(notepad_id) {
-    //     let reader = function(object) {
-    //         switch(object.type) {
-    //             case "notepad":
-    //                 this.register_notepad(object);
-    //                 break;
-    //             case "tag":
-    //                 this.register_tag(object);
-    //                 break;
-    //             case "note":
-    //                 this.register_note(object);
-    //                 break;
-    //             case "tag_note":
-    //                 this.register_tag_note(object);
-    //                 break;
-    //             case "note_filter":
-    //                 this.register_note_filter(object);
-    //                 break;
-    //             default:
-    //                 // console.error("неизвестный тип объекта", object);
-    //                 break;
-    //         }
-    //     }.bind(this);
-    //     this._storage.iterate(reader);
-    // }
+    async _load_data(notepad_id) {
+        let notepads = await this._storage.get_items_from_store("notepads");
+        if(notepads.length > 0) {
+            let notepad = notepads[0];
+            this._notepad_id = notepad.id;
+            this._working = true;
+        }
+        notepad_id;
+    }
 
     register_notepad(object) {
         if(this._data.notepad == null) {
@@ -812,8 +804,8 @@ class Notepad {
     async close() {
         if(this._working) {
             this._reset_internal_state();
-            await this._reset_state();
             await this._storage.clear();
+            await this._reset_state();
             return true;    
         } else {
             return false;
@@ -824,18 +816,118 @@ class Notepad {
 
     // }
 
-    import(objects) {
+    async import(objects) {
         if(!this._working) {
-            this._storage.import(objects);
-            this.sync();
-            return true;
+            let sorted = this.sort_import_objects(objects);
+            // TODO validate
+            let maps = await this.create_objects(sorted);
+            await this.sync(sorted.notepad);
+            return maps;
         } else {
             return false;
         }
     }
 
-    export() {
-        return this._storage.export();
+    sort_import_objects(objects) {
+        let sorted = {
+            notepad: null,
+            notes: {},
+            tags: {},
+            tag_notes: {},
+            note_filters: [],
+        }
+        let keys = _.keys(objects);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let object = _.cloneDeep(objects[key]);
+            let object_type = object.type;
+            delete object.type;
+            switch(object_type) {
+                case "notepad":
+                    sorted.notepad = object;
+                    break;
+                case "tag":
+                    sorted.tags[key] = object;
+                    break;
+                case "note":
+                    sorted.notes[key] = object;
+                    break;
+                case "tag_note":
+                    sorted.tag_notes[key] = object;
+                    break;
+                case "note_filter":
+                    sorted.note_filters.push(object);
+                    break;
+                default:
+                    // console.error("неизвестный тип объекта", object);
+                    break;
+            }
+        }
+        return sorted;
+    }
+
+    async create_objects(sorted) {
+        let maps = {
+            notepad: null,
+            notes: {},
+            tags: {},
+            tag_notes: {},
+        };
+        maps.notepad = await this._storage.create_notepad(sorted.notepad.name);
+        let keys;
+        keys = _.keys(sorted.notes);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let note = sorted.notes[key];
+            maps.notes[key] = await this._storage.create_note(note.text, note.created_at, maps.notepad);
+        }
+        keys = _.keys(sorted.tags);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let tag = sorted.tags[key];
+            maps.tags[key] = await this._storage.create_tag(tag.name, maps.notepad);
+        }
+        keys = _.keys(sorted.tag_notes);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let tag_note = sorted.tag_notes[key];
+            maps.tag_notes[key] = await this._storage.create_tag_note(
+                maps.tags[tag_note.tag_id],
+                maps.notes[tag_note.note_id],
+                maps.notepad
+            );
+        }
+        for(let k = 0; k < sorted.note_filters.length; k++) {
+            let note_filter = sorted.note_filters[k];
+            await this._storage.create_note_filter(
+                note_filter.name,
+                _.map(note_filter.tags, (id) => maps.tags[id]),
+                maps.notepad
+            );
+        }
+        return maps;
+    }
+
+    async export() {
+        let result = [];
+        let STORE_NAMES = [
+            ["notepads", "notepad"],
+            ["tags", "tag"],
+            ["notes", "note"],
+            ["tag_notes", "tag_note"],
+            ["note_filters", "note_filter"],
+        ];
+        for(let i = 0; i < STORE_NAMES.length; i++) {
+            let store_name = STORE_NAMES[i][0];
+            let type = STORE_NAMES[i][1];
+            let items = await this._storage.get_items_from_store(store_name);
+            for(let k = 0; k < items.length; k++) {
+                let item = items[k];
+                item.type = type;
+                result.push(item);
+            }
+        }
+        return result;
     }
 
     // save_notepad() {
