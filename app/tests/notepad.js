@@ -170,10 +170,6 @@ describe("notepad simple tests", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
         assert.deepEqual(working_events, EXPECTED_WORKING);
     });
-
-    it("clear", async function() {
-        await notepad._storage.clear();
-    });
 });
 
 describe("notepad import export", function() {
@@ -438,10 +434,6 @@ describe("notepad import export", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
         assert.deepEqual(working_events, EXPECTED_WORKING);
     });
-
-    it("clear", async function() {
-        await notepad._storage.clear();
-    });
 });
 
 describe("notepad tags and notes", function() {
@@ -632,8 +624,9 @@ describe("notepad tags and notes", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
-    it("clear", async function() {
-        await notepad._storage.clear();
+    it("close", async function() {
+        let result = await notepad.close();
+        assert.equal(result, true);
     });
 });
 
@@ -647,7 +640,6 @@ describe("notepad parse initial data", function() {
         });
         await notepad.sync();
         assert.equal(working, false);
-        await notepad._storage.clear()
     });
 
     it("parse storage with one notepad", async function() {
@@ -660,7 +652,9 @@ describe("notepad parse initial data", function() {
         });
         await notepad.sync();
         assert.equal(working, true);
-        await notepad._storage.clear()
+
+        let result = await notepad.close();
+        assert.equal(result, true);
     });
 });
 
@@ -1069,148 +1063,158 @@ describe("notepad filtering and sorting", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
-    it("clear", async function() {
-        await notepad._storage.clear();
-    })
+    it("close", async function() {
+        let result = await notepad.close();
+        assert.equal(result, true);
+    });
 });
 
-// describe("notepad pagination", async function() {
-//     let IMPORT_DATA_ZERO = {
-//         "1": {
-//             "type":"notepad",
-//             "name":"Дневник"
-//         },
-//     };
+describe("notepad pagination", function() {
+    let IMPORT_DATA_ZERO = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
 
-//     let IMPORT_DATA_ONE_PAGE = {
-//         "1": {
-//             "type":"notepad",
-//             "name":"Дневник"
-//         },
-//     };
-//     for(let k = 0; k < 20; k++) {
-//         let id = (k + 2).toString();
-//         IMPORT_DATA_ONE_PAGE[id] = {
-//             "type":"note",
-//             "text":"Запись " + k,
-//             "created_at": 1586634372660 + k,
-//         };
-//     }
+    let IMPORT_DATA_ONE_PAGE = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
+    for(let k = 0; k < 20; k++) {
+        let id = (k + 2).toString();
+        IMPORT_DATA_ONE_PAGE[id] = {
+            "type":"note",
+            "text":"Запись " + k,
+            "created_at": 1586634372660 + k,
+        };
+    }
 
-//     let IMPORT_DATA_TWO_PAGES = {
-//         "1": {
-//             "type":"notepad",
-//             "name":"Дневник"
-//         },
-//     };
-//     for(let k = 0; k < 60; k++) {
-//         let id = (k + 2).toString();
-//         IMPORT_DATA_TWO_PAGES[id] = {
-//             "type":"note",
-//             "text":"Запись " + k,
-//             "created_at": 1586634372660 + k,
-//         };
-//     }
+    let IMPORT_DATA_TWO_PAGES = {
+        "1": {
+            "type":"notepad",
+            "name":"Дневник"
+        },
+    };
+    for(let k = 0; k < 60; k++) {
+        let id = (k + 2).toString();
+        IMPORT_DATA_TWO_PAGES[id] = {
+            "type":"note",
+            "text":"Запись " + k,
+            "created_at": 1586634372660 + k,
+        };
+    }
 
-//     let notepad = new Notepad();
-//     await notepad.init();
-//     let tag_id;
-//     let note_id;
-//     let tags_events = [];
-//     let notes_events = [];
-//     let working_events = [];
-//     let append_events = []
-//     notepad.on("reset_tags", function(tags) {
-//         tags_events.push(tags);
-//     })
-//     notepad.on("reset_notes", function(notes) {
-//         notes_events.push(notes);
-//     });
-//     notepad.on("working", function(working) {
-//         working_events.push(working);
-//     });
-//     notepad.on("append_notes", function(notes) {
-//         append_events.push(notes);
-//     });
-//     let reset_events = function() {
-//         tags_events.splice(0, tags_events.length);
-//         notes_events.splice(0, notes_events.length);
-//         working_events.splice(0, working_events.length);
-//         append_events.splice(0, working_events.length);
-//     };
-//     let assert_events = function(expected_tags, expected_notes) {
-//         assert.deepEqual(tags_events, expected_tags);
-//         assert.deepEqual(notes_events, expected_notes);
-//     };
+    let notepad;
+    let tags_events = [];
+    let notes_events = [];
+    let working_events = [];
+    let append_events = []
 
-//     it("no records initial", function() {
-//         notepad.close();
-//         notepad.import(IMPORT_DATA_ZERO);
-//         reset_events();
-//         notepad.set_notes_filter({"sorting_asc": true});
-//         let EXPECTED_TAGS = [];
-//         let notes = [];
-//         let EXPECTED_NOTES = [notes];
-//         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
-//         notepad.load_next_notes();
-//         assert.deepEqual(append_events, []);
-//     });
+    let reset_events = function() {
+        tags_events.splice(0, tags_events.length);
+        notes_events.splice(0, notes_events.length);
+        working_events.splice(0, working_events.length);
+        append_events.splice(0, working_events.length);
+    };
+    let assert_events = function(expected_tags, expected_notes) {
+        assert.deepEqual(tags_events, expected_tags);
+        assert.deepEqual(notes_events, expected_notes);
+    };
 
-//     it("records less than one page initial", function() {
-//         notepad.close();
-//         notepad.import(IMPORT_DATA_ONE_PAGE);
-//         reset_events();
-//         notepad.set_notes_filter({"sorting_asc": true});
-//         let EXPECTED_TAGS = [];
-//         let notes = [];
-//         for(let k = 0; k < 20; k++) {
-//             let id = (k + 2).toString();
-//             notes.push({
-//                 "id": id,
-//                 "tags": [],
-//                 "text_highlighted": undefined,
-//                 "text":"Запись " + k,
-//                 "creation_time": 1586634372660 + k,    
-//             });
-//         }
-//         let EXPECTED_NOTES = [notes];
-//         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
-//         notepad.load_next_notes();
-//         assert.deepEqual(append_events, []);
-//     });
+    it("init", async function() {
+        notepad = new Notepad();
+        await notepad.init();
+        notepad.on("reset_tags", function(tags) {
+            tags_events.push(tags);
+        })
+        notepad.on("reset_notes", function(notes) {
+            notes_events.push(notes);
+        });
+        notepad.on("working", function(working) {
+            working_events.push(working);
+        });
+        notepad.on("append_notes", function(notes) {
+            append_events.push(notes);
+        });        
+    });
 
-//     it("records less than two pages", function() {
-//         notepad.close();
-//         notepad.import(IMPORT_DATA_TWO_PAGES);
-//         reset_events();
-//         notepad.set_notes_filter({"sorting_asc": true});
-//         let EXPECTED_TAGS = [];
-//         let notes = [];
-//         for(let k = 0; k < 40; k++) {
-//             let id = (k + 2).toString();
-//             notes.push({
-//                 "id": id,
-//                 "tags": [],
-//                 "text_highlighted": undefined,
-//                 "text":"Запись " + k,
-//                 "creation_time": 1586634372660 + k,    
-//             });
-//         }
-//         let EXPECTED_NOTES = [notes];
-//         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
-//         notepad.load_next_notes();
-//         notes = [];
-//         for(let k = 40; k < 60; k++) {
-//             let id = (k + 2).toString();
-//             notes.push({
-//                 "id": id,
-//                 "tags": [],
-//                 "text_highlighted": undefined,
-//                 "text":"Запись " + k,
-//                 "creation_time": 1586634372660 + k,    
-//             });
-//         }
-//         assert.deepEqual(append_events, [notes]);
-//     });
-// });
+    it("no records initial", async function() {
+        let maps = await notepad.import(IMPORT_DATA_ZERO);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+        await notepad.close();
+    });
+
+    it("records less than one page initial", async function() {
+        let maps = await notepad.import(IMPORT_DATA_ONE_PAGE);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        for(let k = 0; k < 20; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        map_notes(notes, maps);
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+        await notepad.close();
+    });
+
+    it("records less than two pages", async function() {
+        let maps = await notepad.import(IMPORT_DATA_TWO_PAGES);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+        let notes = [];
+        for(let k = 0; k < 40; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        map_notes(notes, maps);
+        let EXPECTED_NOTES = [notes];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        await notepad.load_next_notes();
+        notes = [];
+        for(let k = 40; k < 60; k++) {
+            let id = (k + 2).toString();
+            notes.push({
+                "id": id,
+                "tags": [],
+                "text_highlighted": undefined,
+                "text":"Запись " + k,
+                "creation_time": 1586634372660 + k,    
+            });
+        }
+        map_notes(notes, maps);
+        assert.deepEqual(append_events, [notes]);
+        await notepad.close();
+    });
+});
 
