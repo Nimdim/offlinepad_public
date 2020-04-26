@@ -1,18 +1,40 @@
 <template>
-    <full-screen-box>
-        <font-awesome-icon
-            icon="box-open"
-            style="width: 200px; height: 200px; color: gray;"
-        />
-        <p>
-            Блокнот еще не был создан. <a href="#!" @click="$emit('create')">Создайте</a> новый или <a href="#!" @click="$emit('open')">откройте</a> резервную копию.
-        </p>
-    </full-screen-box>
+  <full-screen-box>
+    <font-awesome-icon
+      icon="box-open"
+      style="width: 200px; height: 200px; color: gray;"
+    />
+    <p>
+      Блокнот еще не был создан. <a href="#!" @click="$emit('create')">Создайте</a> новый или <a href="#!" @click="$emit('open')">откройте</a> резервную копию.
+    </p>
+    <template v-if="develop_mode">
+      <p>
+        <a href="#!" @click="$emit('test_create', 10)">Создать 10</a>
+      </p>
+      <p>
+        <a href="#!" @click="$emit('test_create', 100)">Создать 100</a>
+      </p>
+      <p>
+        <a href="#!" @click="$emit('test_create', 1000)">Создать 1000</a>
+      </p>
+      <p>
+        <a href="#!" @click="$emit('test_create', 10000)">Создать 10000</a>
+      </p>
+    </template>
+  </full-screen-box>
 </template>
 
 <script>
 import FullScreenBox from "./FullScreenBox.vue";
 export default {
+
+    props: {
+      develop_mode: {
+        type: Boolean,
+        default: false,
+      }
+    },
+
     components: {
         FullScreenBox,
     }

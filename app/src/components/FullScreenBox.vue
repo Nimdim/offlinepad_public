@@ -46,6 +46,7 @@ export default {
     }
 
     .fullscreenbox > span.fullscreen {
+        overflow-y: auto;
         position: fixed;
         top: 0px;
         left: 0px;

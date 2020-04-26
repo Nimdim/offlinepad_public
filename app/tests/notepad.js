@@ -237,6 +237,7 @@ describe("notepad import export", function() {
         notes_events.splice(0, notes_events.length);
         working_events.splice(0, working_events.length);
     };
+
     let assert_events = function(expected_tags, expected_notes) {
         assert.deepEqual(tags_events, expected_tags);
         assert.deepEqual(notes_events, expected_notes);
