@@ -1,491 +1,32 @@
 /* eslint no-fallthrough: "off" */
 import Backbone from "backbone";
 import _ from "lodash";
+import IndexedDBStorage from "./indexeddb_storage.js";
 
-let indexedDB;
-if(global == null) {
-    indexedDB = window.indexedDB;
-} else {
-    indexedDB = global.indexedDB;
+if(global != null) {
     var window = global;
 }
 
-class IndexedDBStorage {
-    constructor() {
-
-    }
-
-    set_options() {
-
-    }
-
-    clear() {
-        let promise = new Promise((resolve, reject) => {
-            let store_names = [
-                "tags",
-                "notes",
-                "tag_notes",
-                "settings",
-                "note_filters",
-            ];
-            let transaction = this.db.transaction(store_names, "readwrite");
-            for(let k = 0; k < store_names.length; k++) {
-                let store_name = store_names[k];
-                let store = transaction.objectStore(store_name);
-                store.clear();
+class NotepadStorage extends IndexedDBStorage {
+    _upgrade_needed(event) {
+        let db = event.target.result;
+        let store_options = { keyPath: "id", autoIncrement: true};
+        let index_options = {"unique": false};
+        let unique_index = {"unique": true};
+        switch(event.oldVersion) {
+            case 0: {
+                let notes = db.createObjectStore("notes", store_options);
+                notes.createIndex("created_at_idx", "created_at", index_options);
+                let tags = db.createObjectStore("tags", store_options);
+                tags;
+                let tag_notes = db.createObjectStore("tag_notes", store_options);
+                tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
+                tag_notes.createIndex("note_id_idx", "note_id", index_options);
+                let settings = db.createObjectStore("settings", store_options);
+                settings.createIndex("name_idx", "name", unique_index);
+                let note_filters = db.createObjectStore("note_filters", store_options);
+                note_filters;
             }
-            transaction.oncomplete = () => {
-                resolve();
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-
-    }
-
-    init() {
-        let promise = new Promise((resolve, reject) => {
-            let request = indexedDB.open("a_1", 1);
-            request.onerror = (event) => {
-                reject(event);
-            };
-            // request.onversionchange = ;
-            // request.onblocked = ;
-            request.onupgradeneeded = function(event) { 
-                let db = event.target.result;
-                let store_options = { keyPath: "id", autoIncrement: true};
-                let index_options = {"unique": false};
-                let unique_index = {"unique": true};
-                switch(event.oldVersion) {
-                    case 0: {
-                        let notes = db.createObjectStore("notes", store_options);
-                        notes.createIndex("created_at_idx", "created_at", index_options);
-                        let tags = db.createObjectStore("tags", store_options);
-                        tags;
-                        let tag_notes = db.createObjectStore("tag_notes", store_options);
-                        tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
-                        tag_notes.createIndex("note_id_idx", "note_id", index_options);
-                        let settings = db.createObjectStore("settings", store_options);
-                        settings.createIndex("name_idx", "name", unique_index);
-                        let note_filters = db.createObjectStore("note_filters", store_options);
-                        note_filters;
-                    }
-                }
-            };
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                resolve();
-            };    
-        });
-        return promise;
-    }
-
-    create_item_in_store(store_name, item) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readwrite");
-            let store = transaction.objectStore(store_name);
-            let new_id;
-            let request = store.add(item);
-            request.onsuccess = function() {
-                new_id = request.result;
-            };
-            transaction.oncomplete = () => {
-                resolve(new_id);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    create_items_in_store(store_name, items) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readwrite");
-            let store = transaction.objectStore(store_name);
-            let result = [];
-            for(let k = 0; k < items.length; k++) {
-                let item = items[k];
-                let request = store.add(item);
-                request.onsuccess = function() {
-                    result[k] = request.result;
-                };
-            }
-            transaction.oncomplete = () => {
-                resolve(result);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    get_store_items_count(store_name) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let count = null;
-            let request = store.count();
-            request.onsuccess = function() {
-                count = request.result;
-            };
-            transaction.oncomplete = () => {
-                resolve(count);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    get_store_items_count_using_index(store_name, index_name, value) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let count = null;
-            let request = index.count(value);
-            request.onsuccess = function() {
-                count = request.result;
-            };
-            transaction.oncomplete = () => {
-                resolve(count);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    get_store_items_count_using_index_series(store_name, index_name, values) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let result = {};
-            for(let k = 0; k < values.length; k++) {
-                let value = values[k];
-                (function(value) {
-                    let request = index.count(value);
-                    request.onsuccess = function() {
-                        result[value] = request.result;
-                    };        
-                })(value);
-            }
-            transaction.oncomplete = () => {
-                resolve(result);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    get_item_from_store(store_name, id) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let item = null;
-            let request = store.get(id);
-            request.onsuccess = function() {
-                item = request.result;
-            };
-            transaction.oncomplete = () => {
-                resolve(item);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    get_item_from_store_using_index(store_name, index_name, value) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let item = null;
-            let request = index.get(value);
-            request.onsuccess = function() {
-                item = request.result;
-            };
-            transaction.oncomplete = () => {
-                resolve(item);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    async get_items_by_id_list(store_name, ids) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let result = [];
-            for(let k = 0; k < ids.length; k++) {
-                let id = ids[k];
-                let request = store.get(id);
-                request.onsuccess = function() {
-                    result[k] = request.result;
-                };
-            }
-            transaction.oncomplete = () => {
-                resolve(result);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    edit_item_in_store(store_name, id, new_values) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readwrite");
-            let store = transaction.objectStore(store_name);
-            let item;
-            let request = store.get(id);
-            request.onsuccess = function() {
-                item = request.result;
-                _.extend(item, new_values);
-                store.put(item);
-            };
-            transaction.oncomplete = () => {
-                resolve();
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    is_item_with_name_exists_in_store(store_name, name, id) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let request = store.openCursor();
-            let exists = false;
-
-            request.onsuccess = () => {
-                let cursor = request.result;
-                if(cursor) {
-                    let key = cursor.key;
-                    let value = cursor.value;
-                    if(key != id) {
-                        if(value.name == name) {
-                            exists = true;
-                        } else {
-                            cursor.continue();
-                        }
-                    }
-                }
-            };
-
-            transaction.oncomplete = () => {
-                resolve(exists);
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    delete_item_in_store(store_name, id) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readwrite");
-            let store = transaction.objectStore(store_name);
-            store.delete(id);
-            transaction.oncomplete = () => {
-                resolve();
-            };
-            transaction.onerror = () => {
-                reject();
-            }
-        });
-        return promise;
-    }
-
-    is_note_filter_with_name_exists(name, id) {
-        return this.is_item_with_name_exists_in_store("note_filters", name, id);
-    }
-
-    get_items_from_store(storage_name) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(storage_name, "readonly");
-            let store = transaction.objectStore(storage_name);
-
-            let request = store.getAll();
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    let items = request.result;
-                    resolve(items);
-                } else {
-                    reject();
-                }
-            };
-        });
-        return promise;
-    }
-
-    is_tag_with_name_exists(name, id) {
-        return this.is_item_with_name_exists_in_store("tags", name, id);
-    }
-
-    async get_tags_of_note(note_id) {
-        let result = []
-        let tag_ids = await this.get_tag_ids_of_note(note_id);
-        for(let k = 0; k < tag_ids.length; k++) {
-            let tag_id = tag_ids[k];
-            let tag = await this.get_tag_by_id(tag_id);
-            result.push(tag);
-        }
-        return result;
-    }
-
-    get_tag_by_id(tag_id) {
-        return this.get_item_from_store("tags", tag_id);
-    }
-
-    async get_tag_ids_of_note(note_id) {
-        let tag_notes = await this.get_items_from_store_using_index(
-            "tag_notes", "note_id_idx", note_id
-        );
-        return _.map(tag_notes, (item) => item.tag_id);
-    }
-
-    async get_note_ids_of_tag(tag_id) {
-        let tag_notes = await this.get_items_from_store_using_index(
-            "tag_notes", "tag_id_idx", tag_id
-        );
-        return _.map(tag_notes, (item) => item.note_id);
-    }
-
-    get_items_from_store_using_index(store_name, index_name, value, count) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let request = index.getAll(value, count);
-            request.addEventListener("success", function (event) {
-                resolve(event.target.result);
-            });
-            request.addEventListener("error", () => {
-                reject();
-            });
-        });
-        return promise;
-    }
-
-    get_item_ids_from_store(store_name) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let request = store.getAllKeys();
-            request.addEventListener("success", function (event) {
-                resolve(event.target.result);
-            });
-            request.addEventListener("error", () => {
-                reject();
-            });
-
-        });
-        return promise;
-    }
-
-    get_item_ids_from_store_using_index(store_name, index_name, value) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let request = index.getAllKeys(value);
-            request.addEventListener("success", function (event) {
-                resolve(event.target.result);
-            });
-            request.addEventListener("error", () => {
-                reject();
-            });
-
-        });
-        return promise;
-    }
-
-    get_item_ids_from_store_using_index_ordered(store_name, index_name, value, asc, offset, limit) {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(store_name, "readonly");
-            let store = transaction.objectStore(store_name);
-            let index = store.index(index_name);
-            let order = "next";
-            if(!asc) {
-                order = "prev";
-            }
-            let result = [];
-            let request = index.openCursor(value, order);
-            
-            let is_offset_applied = false;
-            let limit_count = 0;
-
-            request.addEventListener("success", function (event) {
-                let cursor = event.target.result;
-                if (cursor) {
-                    if(offset != null) {
-                        if(!is_offset_applied) {
-                            is_offset_applied = true;
-                            if(offset > 0) {
-                                cursor.advance(offset);
-                                return;
-                            }
-                        }
-                    }
-                    result.push(cursor.value.id);
-                    if(limit != null) {
-                        limit_count += 1;
-                        if(limit_count >= limit) {
-                            resolve(result);
-                            return;
-                        }
-                    }
-                    cursor.continue();
-                }
-                else {
-                    resolve(result);
-                }
-            });
-            request.addEventListener("error", () => {
-                reject();
-            });
-
-        });
-        return promise;
-    }
-
-    async get_tag_note_id(tag_id, note_id) {
-        // TODO композитные ключи?
-        let by_tag_id = await this.get_item_ids_from_store_using_index(
-            "tag_notes", "tag_id_idx", tag_id
-        );
-        let by_note_id = await this.get_item_ids_from_store_using_index(
-            "tag_notes", "note_id_idx", note_id
-        );
-        // console.log("by_tag_id", by_tag_id);
-        // console.log("by_note_id", by_note_id);
-
-        let intersection = _.intersection(by_tag_id, by_note_id);
-        // console.log("intersection", intersection);
-        if(intersection.length == 1) {
-            return intersection[0];
-        } else {
-            throw new Error("get tag_note_id error");
         }
     }
 }
@@ -501,7 +42,7 @@ class Notepad {
             "tags_per_page": 99999,
             "notes_per_page": 40,
         };
-        this._storage = new IndexedDBStorage();
+        this._storage = new NotepadStorage();
         this._reset_internal_state();
     }
 
@@ -738,7 +279,7 @@ class Notepad {
             let promises = [];
             for(let k = 0; k < this._filter.notes.tags.length; k++) {
                 let tag = this._filter.notes.tags[k];
-                promises.push(this._storage.get_note_ids_of_tag(tag));
+                promises.push(this.get_note_ids_of_tag(tag));
             }
             let list_of_note_ids = await Promise.all(promises);
             for(let k = 0; k < list_of_note_ids.length; k++) {
@@ -777,6 +318,13 @@ class Notepad {
 
         this.trigger("reset_notes", await this._wrap_notes(notes_for_show));
         this.trigger("reset_notes_count", notes_total_count);
+    }
+
+    async get_note_ids_of_tag(tag_id) {
+        let tag_notes = await this._storage.get_items_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        return _.map(tag_notes, (item) => item.note_id);
     }
 
     async get_notes_sorted_ids_from_cache() {
@@ -848,7 +396,7 @@ class Notepad {
             let item = items[index];
 
             let tags_map = await this.get_tags_map_from_cache();
-            let tag_ids = await this._storage.get_tag_ids_of_note(item.id);
+            let tag_ids = await this.get_tag_ids_of_note(item.id);
             let tags = [];
             for(let k = 0; k < tag_ids.length; k++) {
                 let tag_id = tag_ids[k];
@@ -1017,7 +565,9 @@ class Notepad {
     }
 
     async is_tag_with_name_exists(name, current_tag_id) {
-        let exists = await this._storage.is_tag_with_name_exists(name, current_tag_id);
+        let exists = await this._storage.is_item_with_name_exists_in_store(
+            "tags", name, current_tag_id
+        );
         return exists;
     }
 
@@ -1065,9 +615,27 @@ class Notepad {
     }
 
     async delete_tag_note(tag_id, note_id) {
-        let tag_note_id = await this._storage.get_tag_note_id(tag_id, note_id);
+        let tag_note_id = await this.get_tag_note_id(tag_id, note_id);
         await this._storage.delete_item_in_store("tag_notes", tag_note_id);
     }
+
+    async get_tag_note_id(tag_id, note_id) {
+        // TODO композитные ключи?
+        let by_tag_id = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        let by_note_id = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
+
+        let intersection = _.intersection(by_tag_id, by_note_id);
+        if(intersection.length == 1) {
+            return intersection[0];
+        } else {
+            throw new Error("get tag_note_id error");
+        }
+    }
+
 
     async create_note_filter(name, tags) {
         let note_filter = {
@@ -1117,8 +685,8 @@ class Notepad {
     }
 
     async is_note_filter_with_name_exists(name, current_id) {
-        let exists = await this._storage.is_note_filter_with_name_exists(
-            name, current_id
+        let exists = await this.is_item_with_name_exists_in_store(
+            "note_filters", name, current_id
         );
         return exists;
     }
@@ -1159,7 +727,7 @@ class Notepad {
     }
 
     async apply_note_tags(note_id, tag_ids) {
-        let old_tag_ids = await this._storage.get_tag_ids_of_note(note_id);
+        let old_tag_ids = await this.get_tag_ids_of_note(note_id);
 
         let new_tag_ids = _.difference(tag_ids, old_tag_ids);
         let deleted_tag_ids = _.difference(old_tag_ids, tag_ids);
@@ -1181,6 +749,13 @@ class Notepad {
         await this.apply_note_tags(id, []);
         await this._reset_notes();
         await this._reset_tags();
+    }
+
+    async get_tag_ids_of_note(note_id) {
+        let tag_notes = await this._storage.get_items_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
+        return _.map(tag_notes, (item) => item.tag_id);
     }
 }
 
