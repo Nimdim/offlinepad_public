@@ -15,6 +15,7 @@
     <input type="file" ref="upload" style="display:none;" @change="do_upload" />
 
     <notepad-empty-screen v-if="!notepad_working"
+      :develop_mode="develop_mode"
       @create="notepad_menu('create')"
       @open="notepad_menu('open')"
       @test_create="test_create($event)"
@@ -324,6 +325,14 @@
 
 <script>
 
+// let sleep = function(s) {
+//   let promise = new Promise(function(resolve) {
+//     setTimeout(resolve, s * 1000);
+//   });
+//   return promise;
+// };
+import platform from 'platform'
+
 import moment from 'moment'
 import _ from 'lodash'
 moment.locale("ru");
@@ -389,6 +398,7 @@ export default {
 
   data: function() {
     var data = {
+      startup: true,
       develop_mode: false,
       develop_console: false,
 
@@ -460,41 +470,46 @@ export default {
 
     "notes_filter_tags": function(value) {
       this.scroll_to_top();
-      setTimeout(
-        () => {
-      let copy = _.cloneDeep(value);
-      copy = _.filter(copy, (item) => item != "0");
-      // console.time("filter_note");
-      notepad.set_notes_filter({
-        "tags": copy,
-      });
-        }, 0
-      )
+      if(!this.startup) {
+        setTimeout(
+          () => {
+            let copy = _.cloneDeep(value);
+            copy = _.filter(copy, (item) => item != "0");
+            notepad.set_notes_filter({
+              "tags": copy,
+            });
+          }, 0
+        );
+      }
     },
   
     "fast_search": function(value) {
       this._process_developer_commands(value);
-      value = escapeRegExp(value);
-      if(this.section == "tags") {
-        notepad.set_tags_filter({
-          "name": value,
-        });
-      } else if (this.section == "notes") {
-        notepad.set_notes_filter({
-          "text": value,
-        })
+      if(!this.startup) {
+        value = escapeRegExp(value);
+        if(this.section == "tags") {
+          notepad.set_tags_filter({
+            "name": value,
+          });
+        } else if (this.section == "notes") {
+          notepad.set_notes_filter({
+            "text": value,
+          })
+        }
       }
     },
   
     "sorting_order_asc": function(asc) {
-      if(this.section == "tags") {
-        notepad.set_tags_filter({
-          "sorting_asc": asc,
-        });
-      } else if (this.section == "notes") {
-        notepad.set_notes_filter({
-          "sorting_asc": asc,
-        })
+      if(!this.startup) {
+        if(this.section == "tags") {
+          notepad.set_tags_filter({
+            "sorting_asc": asc,
+          });
+        } else if (this.section == "notes") {
+          notepad.set_notes_filter({
+            "sorting_asc": asc,
+          })
+        }
       }
     },
   },
@@ -545,32 +560,31 @@ export default {
     },
   },
 
-  mounted: function() {
-    notepad.init().then(() => {
-      this.notes_scroll_up_controller = new ScrollUpController();
-      this.notes_scroll_up_controller.on("show", (value) => this.notes_scroll_up_show = value);
-      this._init_develop_mode();
-      this.load_theme();
-      this.warning_init();
-      let promise;
-      if(sw_api.is_available()) {
-        promise = this.service_worker_init().then((init_data) => {
-          if(init_data.updated != null) {
-            this.update_done = init_data.updated;
-          }
-          this.app_init();
-        });
-      } else {
-        this.features_unawailable = true;
-        promise = Promise.resolve();
+  mounted: async function() {
+    if(platform.os.family == "Android") {
+      window.console = this.$refs.console;
+    }
+
+    this.notes_scroll_up_controller = new ScrollUpController();
+    this.notes_scroll_up_controller.on("show", (value) => this.notes_scroll_up_show = value);
+
+    this._init_develop_mode();
+    this.load_theme();
+    this.warning_init();
+    if(sw_api.is_available()) {
+      let init_data = await this.service_worker_init();
+      if(init_data.updated != null) {
+        this.update_done = init_data.updated;
       }
-      promise.then(
-        () => {
-          setTimeout(() => {this.loadscreen_visible = false;}, 1000);
-        }
-      );
-    });
+      await this.app_init();
+    } else {
+      this.features_unawailable = true;
+    }
+
+    this.startup = false;
+    setTimeout(() => {this.loadscreen_visible = false;}, 1000);
   },
+
   methods: {
 
     scroll_to_top: function() {
@@ -676,43 +690,44 @@ export default {
       return sw_api.init();
     },
 
-    app_init: function() {
+    app_init: async function() {
       this.scroll_init();
       window.M.AutoInit();
-      this.notepad_init();
+      await this.notepad_init();
     },
 
-    notepad_init: function() {
-      notepad.on("reset_tags", function(tags) {
+    notepad_init: async function() {
+      await notepad.init();
+      notepad.on("reset_tags", (tags) => {
         this.tags.items = this.wrap_tags(tags);
-      }.bind(this));
-      notepad.on("append_tags", function(tags) {
+      });
+      notepad.on("append_tags", (tags) => {
         this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
-      }.bind(this));
-      notepad.on("all_tags", function(tags) {
+      });
+      notepad.on("all_tags", (tags) => {
         this.all_tags = tags;
-      }.bind(this));
+      });
 
-      notepad.on("reset_notes", function(notes) {
+      notepad.on("reset_notes", (notes) => {
         this.notes.items = this.wrap_notes(notes);
-      }.bind(this));
-      notepad.on("reset_notes_count", function(notes_count) {
+      });
+      notepad.on("reset_notes_count", (notes_count) => {
         this.notes.count = notes_count;
-      }.bind(this));
-      notepad.on("append_notes", function(notes) {
+      });
+      notepad.on("append_notes", (notes) => {
         this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
         this.notes_preloading = false;
-      }.bind(this));
+      });
 
-      notepad.on("reset_note_filters", function(items) {
+      notepad.on("reset_note_filters", (items) => {
         this.note_filters = items;
-      }.bind(this));
+      });
 
-      notepad.on("working", function(working) {
+      notepad.on("working", (working) => {
         this.notepad_working = working;
-      }.bind(this));
+      });
 
-      notepad.on("reset_filter", function(filter) {
+      notepad.on("reset_filter", (filter) => {
         this.notes_filter_tags = filter.notes.tags;
         if(this.section == "notes") {
           this.sorting_order_asc = filter.notes.sorting_asc;
@@ -723,18 +738,19 @@ export default {
         } else {
           throw new Error("error");
         }
-      }.bind(this));
+      });
 
-      this.$refs.console.time("sync");
-      notepad.sync().then(() => this.$refs.console.timeEnd("sync"));
+      window.console.time("sync");
+      await notepad.sync()
+      window.console.timeEnd("sync");
     },
 
     update_service_worker: function() {
       sw_api.activate_new_worker();
     },
 
-    notepad_delete: function() {
-      notepad.close();
+    notepad_delete: async function() {
+      await notepad.close();
       this.notepad_delete_mode = false;
     },
 
@@ -785,7 +801,7 @@ export default {
           + new Date() + 5,
           [welcome_tag]
       );
-      notepad.end_updates();
+      await notepad.end_updates();
     },
 
     show_notes_popup: function(e) {
@@ -1001,39 +1017,69 @@ export default {
       return str;
     },
 
-    test_create: function(number) {
-      notepad.create();
+    test_create: async function(number) {
+      await notepad.create();
 
       notepad.start_updates();
-      this.$refs.console.time("all");
-      notepad._storage.create({
-        type: "notepad",
-        name: "Дневник",
-      });
+      window.console.time("all");
+      await notepad._storage.create_notepad("Дневник");
       let tags = [
-        notepad.create_tag("метка 1"),
-        notepad.create_tag("метка 2"),
-        notepad.create_tag("метка 3"),
-        notepad.create_tag("метка 4"),
-        notepad.create_tag("метка 5"),
-        notepad.create_tag("метка 6"),
-        notepad.create_tag("метка 7"),
-        notepad.create_tag("метка 8"),
-        notepad.create_tag("метка 9"),
-        notepad.create_tag("метка 10"),
+        await notepad.create_tag("метка 1"),
+        await notepad.create_tag("метка 2"),
+        await notepad.create_tag("метка 3"),
+        await notepad.create_tag("метка 4"),
+        await notepad.create_tag("метка 5"),
+        await notepad.create_tag("метка 6"),
+        await notepad.create_tag("метка 7"),
+        await notepad.create_tag("метка 8"),
+        await notepad.create_tag("метка 9"),
+        await notepad.create_tag("метка 10"),
       ];
 
+      let notes = [];
       for(let k = 0; k < number; k++) {
-        notepad.create_note(
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-          + new Date(),
-          tags.slice(0, k % 5)
-        );
+        if(k % 100 == 0) {
+          notes = [];
+        }
+        notes.push({
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
+            "created_at": + new Date(),
+            "notepad_id": 0,
+        });
+        if(k % 100 == 99) {
+          let note_ids = await notepad._storage.create_items_in_store(
+            "notes", notes
+          )
+          let note_tags = [];
+          for(let i = 0; i < note_ids.length; i++) {
+            let note_id = note_ids[i];
+            let tags_for_note = (k + i) % 5;
+            for(let j = 0; j < tags_for_note; j++) {
+              let tag_id = tags[j];
+              note_tags.push({
+                "note_id": note_id,
+                "tag_id": tag_id,
+              });
+            }
+          }
+          await notepad._storage.create_items_in_store(
+            "tag_notes", note_tags
+          );
+          window.console.log("created " + (k + 1));
+        }
+
+
+        // await notepad.create_note(
+        //   "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        //   + new Date(),
+        //   tags.slice(0, k % 5)
+        // );
+        // window.console.log("created " + (k + 1));
       }
-      this.$refs.console.timeEnd("all");
-      this.$refs.console.time("final");
-      notepad.end_updates();
-      this.$refs.console.timeEnd("final");
+      window.console.timeEnd("all");
+      window.console.time("final");
+      await notepad.end_updates();
+      window.console.timeEnd("final");
     },
 
     notepad_menu: function(command) {

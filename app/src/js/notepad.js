@@ -1,3 +1,4 @@
+/* eslint no-fallthrough: "off" */
 import Backbone from "backbone";
 import _ from "lodash";
 
@@ -6,6 +7,7 @@ if(global == null) {
     indexedDB = window.indexedDB;
 } else {
     indexedDB = global.indexedDB;
+    var window = global;
 }
 
 class IndexedDBStorage {
@@ -46,7 +48,7 @@ class IndexedDBStorage {
 
     init() {
         let promise = new Promise((resolve, reject) => {
-            let request = indexedDB.open("notes_db", 1);
+            let request = indexedDB.open("notes_db", 2);
             request.onerror = (event) => {
                 reject(event);
             };
@@ -54,12 +56,13 @@ class IndexedDBStorage {
             // request.onblocked = ;
             request.onupgradeneeded = function(event) { 
                 let db = event.target.result;
+                let store_options = { keyPath: "id", autoIncrement: true};
+                let index_options = {"unique": false};
                 switch(event.oldVersion) {
                     case 0: {
-                        let store_options = { keyPath: "id", autoIncrement: true};
-                        let index_options = {"unique": false};
                         let notes = db.createObjectStore("notes", store_options);
                         notes.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        // notes.createIndex("created_at_idx", "created_at", index_options);
                         let tags = db.createObjectStore("tags", store_options);
                         tags.createIndex("notepad_id_idx", "notepad_id", index_options);
                         let tag_notes = db.createObjectStore("tag_notes", store_options);
@@ -72,6 +75,11 @@ class IndexedDBStorage {
                         pin_codes.createIndex("notepad_id_idx", "notepad_id", index_options);
                         let note_filters = db.createObjectStore("note_filters", store_options);
                         note_filters.createIndex("notepad_id_idx", "notepad_id", index_options);
+                    }
+                    case 1: {
+                        let transaction = event.currentTarget.transaction;
+                        let notes = transaction.objectStore("notes");
+                        notes.createIndex("created_at_idx", "created_at", index_options);
                     }
                 }
             };
@@ -102,11 +110,102 @@ class IndexedDBStorage {
         return promise;
     }
 
+    create_items_in_store(store_name, items) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readwrite");
+            let store = transaction.objectStore(store_name);
+            let result = [];
+            for(let k = 0; k < items.length; k++) {
+                let item = items[k];
+                let request = store.add(item);
+                request.onsuccess = function() {
+                    result[k] = request.result;
+                };
+            }
+            // let new_id;
+            // let request = store.add(item);
+            // request.onsuccess = function() {
+            //     new_id = request.result;
+            // };
+            transaction.oncomplete = () => {
+                resolve(result);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
     async create_notepad(name) {
         let notepad = {
             name: name,
         };
         return await this.create_item_in_store("notepads", notepad);
+    }
+
+    get_store_items_count(store_name) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let count = null;
+            let request = store.count();
+            request.onsuccess = function() {
+                count = request.result;
+            };
+            transaction.oncomplete = () => {
+                resolve(count);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    get_store_items_count_using_index(store_name, index_name, value) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let count = null;
+            let request = index.count(value);
+            request.onsuccess = function() {
+                count = request.result;
+            };
+            transaction.oncomplete = () => {
+                resolve(count);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    get_store_items_count_using_index_series(store_name, index_name, values) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let result = {};
+            for(let k = 0; k < values.length; k++) {
+                let value = values[k];
+                (function(value) {
+                    let request = index.count(value);
+                    request.onsuccess = function() {
+                        result[value] = request.result;
+                    };        
+                })(value);
+            }
+            transaction.oncomplete = () => {
+                resolve(result);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
     }
 
     get_item_from_store(store_name, id) {
@@ -120,6 +219,28 @@ class IndexedDBStorage {
             };
             transaction.oncomplete = () => {
                 resolve(item);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    async get_items_by_id_list(store_name, ids) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let result = [];
+            for(let k = 0; k < ids.length; k++) {
+                let id = ids[k];
+                let request = store.get(id);
+                request.onsuccess = function() {
+                    result[k] = request.result;
+                };
+            }
+            transaction.oncomplete = () => {
+                resolve(result);
             };
             transaction.onerror = () => {
                 reject();
@@ -297,7 +418,7 @@ class IndexedDBStorage {
             "text": text,
             "created_at": stamp,
             "notepad_id": notepad_id,
-        };    
+        };
         return this.create_item_in_store("notes", note);
     }
 
@@ -359,19 +480,34 @@ class IndexedDBStorage {
         return _.map(tag_notes, (item) => item.note_id);
     }
 
-    get_items_from_store_using_index(store_name, index_name, value) {
+    get_items_from_store_using_index(store_name, index_name, value, count) {
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readonly");
             let store = transaction.objectStore(store_name);
             let index = store.index(index_name);
-            let request = index.getAll(value);
+            let request = index.getAll(value, count);
             request.addEventListener("success", function (event) {
-                // console.log("From index:", event.target.result);
                 resolve(event.target.result);
             });
             request.addEventListener("error", () => {
                 reject();
             });
+        });
+        return promise;
+    }
+
+    get_item_ids_from_store(store_name) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let request = store.getAllKeys();
+            request.addEventListener("success", function (event) {
+                resolve(event.target.result);
+            });
+            request.addEventListener("error", () => {
+                reject();
+            });
+
         });
         return promise;
     }
@@ -384,6 +520,55 @@ class IndexedDBStorage {
             let request = index.getAllKeys(value);
             request.addEventListener("success", function (event) {
                 resolve(event.target.result);
+            });
+            request.addEventListener("error", () => {
+                reject();
+            });
+
+        });
+        return promise;
+    }
+
+    get_item_ids_from_store_using_index_ordered(store_name, index_name, value, asc, offset, limit) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let order = "next";
+            if(!asc) {
+                order = "prev";
+            }
+            let result = [];
+            let request = index.openCursor(value, order);
+            
+            let is_offset_applied = false;
+            let limit_count = 0;
+
+            request.addEventListener("success", function (event) {
+                let cursor = event.target.result;
+                if (cursor) {
+                    if(offset != null) {
+                        if(!is_offset_applied) {
+                            is_offset_applied = true;
+                            if(offset > 0) {
+                                cursor.advance(offset);
+                                return;
+                            }
+                        }
+                    }
+                    result.push(cursor.value.id);
+                    if(limit != null) {
+                        limit_count += 1;
+                        if(limit_count >= limit) {
+                            resolve(result);
+                            return;
+                        }
+                    }
+                    cursor.continue();
+                }
+                else {
+                    resolve(result);
+                }
             });
             request.addEventListener("error", () => {
                 reject();
@@ -477,6 +662,7 @@ class Notepad {
             "tags_of_note": {},
             "tag_notes": {},
         };
+        this._cache = {};
     }
 
     async set_tags_filter(options) {
@@ -564,51 +750,10 @@ class Notepad {
         this._working = true;
     }
 
-    // register_tag(object) {
-    //     let key = object.id;
-    //     this._data.tags[key] = object;
-    //     // при начальной регистрации информация о взаимосвязи может прийти
-    //     // раньше и тогда перетрется ее кеш
-    //     if (this._data.notes_of_tag[key] == null) {
-    //         this._data.notes_of_tag[key] = {};
-    //     }
-    // }
-
-    // register_note(object) {
-    //     let key = object.id;
-    //     this._data.notes[key] = object;
-    //     // при начальной регистрации информация о взаимосвязи может прийти
-    //     // раньше и тогда перетрется ее кеш
-    //     if (this._data.tags_of_note[key] == null) {
-    //         this._data.tags_of_note[key] = {};
-    //     }
-    // }
-
     tag_note_key(tag_id, note_id) {
         return tag_id + "_" + note_id;
     }
 
-    // register_tag_note(object) {
-    //     let tag_note_key = this.tag_note_key(object.tag_id, object.note_id);
-    //     let note_ids, tag_ids;
-
-    //     this._data.tag_notes[tag_note_key] = object;
-
-    //     note_ids = this._data.notes_of_tag[object.tag_id];
-    //     if(note_ids == null) {
-    //         note_ids = {};
-    //         this._data.notes_of_tag[object.tag_id] = note_ids;
-    //     }
-    //     note_ids[object.note_id] = true;
-
-    //     tag_ids = this._data.tags_of_note[object.note_id];
-    //     if(tag_ids == null) {
-    //         tag_ids = {};
-    //         this._data.tags_of_note[object.note_id] = tag_ids;
-    //     }
-    //     tag_ids[object.tag_id] = true;
-    // }
-    
     _reset_filter() {
         this._filter.tags.sorting_asc = true;
         this._filter.tags.name = "";
@@ -637,107 +782,14 @@ class Notepad {
             }
         }
 
-        let items_for_show_count = this._configuration.tags_per_page;
-        let items_for_show;
         this._state.tags.items = await this._filter_tags();
-        if(items_for_show_count < this._state.tags.length) {
-            items_for_show_count = this._state.tags.length;
-        }
-        this._state.tags.items_shown_count = items_for_show_count;
-        items_for_show = this._state.tags.items.slice(0, items_for_show_count);
-        this.trigger("reset_tags", await this._wrap_tags(items_for_show));
-        this.trigger("all_tags", _.sortBy(_.values(this._state.tags.items), "name"));
-    }
-
-    start_updates() {
-        this._schedule_tags_update = false;
-        this._schedule_notes_update = false;
-        this._schedule_note_filters_update = false;
-        this._updates_state = "pending";
-    }
-
-    end_updates() {
-        this._updates_state = "execute";
-        this._reset_state();
-        this._updates_state = null;
-    }
-
-    async _wrap_tags(items) {
-        let result = [];
-        for(let index = 0; index < items.length; index++) {
-            let item = items[index];
-            let notes_of_tag = await this._storage.get_items_from_store_using_index(
-                "tag_notes", "tag_id_idx", item.id
-            );
-            result.push({
-                id: item.id,
-                name: item.name,
-                count: notes_of_tag.length,
-            });
-        }
-        return result;
-    }
-
-    async _reset_notes() {
-        if(this._updates_state == "pending") {
-            this._schedule_notes_update = true;
-            return
-        } else if(this._updates_state == "execute") {
-            if(this._schedule_notes_update) {
-                this._schedule_notes_update = false;
-            } else {
-                return;
-            }
-        }
-        
-        let items_for_show_count = this._configuration.notes_per_page;
-        let items_for_show;
-        this._state.notes.items = await this._filter_notes();
-        if(this._state.notes.items.length < items_for_show_count) {
-            items_for_show_count = this._state.notes.items.length;
-        }
-        this._state.notes.items_shown_count = items_for_show_count;
-        items_for_show = this._state.notes.items.slice(0, items_for_show_count);
-        this.trigger("reset_notes", await this._wrap_notes(items_for_show));
-        this.trigger("reset_notes_count", this._state.notes.items.length);
-    }
-
-    async load_next_notes() {
-        let available_notes_count = this._state.notes.items.length - this._state.notes.items_shown_count;
-        if(available_notes_count > this._configuration.notes_per_page) {
-            available_notes_count = this._configuration.notes_per_page;
-        }
-        if(available_notes_count > 0) {
-            let items_for_show;
-            items_for_show = this._state.notes.items.slice(
-                this._state.notes.items_shown_count, 
-                this._state.notes.items_shown_count + available_notes_count
-            );
-            this._state.notes.items_shown_count += available_notes_count;
-            this.trigger("append_notes", await this._wrap_notes(items_for_show));
-        }
-    }
-
-    async _wrap_notes(items) {
-        let result = [];
-        for(let index = 0; index < items.length; index++) {
-            let item = items[index];
-
-            let tags = await this._storage.get_tags_of_note(item.id);
-            tags = _.orderBy(tags, "name");
-            result.push({
-                id: item.id,
-                tags: _.map(tags, function(item) {return item.id;}),
-                text: item.text,
-                text_highlighted: item.text_highlighted,
-                creation_time: item.created_at,
-            });
-        }
-        return result;
+        this.trigger("reset_tags", await this._wrap_tags(this._state.tags.items));
+        this.trigger("all_tags", _.sortBy(_.values(this._state.tags.all_items), "name"));
     }
 
     async _filter_tags() {
-        let tags = await this._storage.get_tags();
+        let tags = await this.get_tags_from_cache();
+        this._state.tags.all_items = tags;
 
         // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
@@ -761,45 +813,200 @@ class Notepad {
         return tags;
     }
 
-    async _filter_notes() {
-        let notes = await this._storage.get_notes();
+    async get_tags_from_cache() {
+        await this.refresh_tags_cache();
+        return this._cache.tags.list;
+    }
 
-        // TODO сделать тесты и выделить в функцию
-        if(this._filter.notes.text != "") {
-            notes = _.filter(
-                notes,
-                function(note) {
-                    return note.text.indexOf(this._filter.notes.text) >= 0
-                }.bind(this)
+    async get_tags_map_from_cache() {
+        await this.refresh_tags_cache();
+        return this._cache.tags.items_map;
+    }
+
+    async refresh_tags_cache() {
+        if(this._cache.tags == null) {
+            let list = await this._storage.get_tags();
+            let map = {};
+            _.forEach(list, (item) => {map[item.id] = item;});
+            this._cache.tags = {
+                list: list,
+                items_map: map,
+            }
+        }
+    }
+
+    invalidate_tags_cache() {
+        this._cache.tags = null;
+    }
+
+    async _wrap_tags(items) {
+        window.console.time("_wrap_tags");
+        let result = [];
+        for(let index = 0; index < items.length; index++) {
+            let item = items[index];
+            let count = await this._storage.get_store_items_count_using_index(
+                "tag_notes", "tag_id_idx", item.id
             )
+            result.push({
+                id: item.id,
+                name: item.name,
+                count: count,
+            });
+        }
+        window.console.timeEnd("_wrap_tags");
+        return result;
+    }
+
+    async _reset_notes() {
+        if(this._updates_state == "pending") {
+            this._schedule_notes_update = true;
+            return
+        } else if(this._updates_state == "execute") {
+            if(this._schedule_notes_update) {
+                this._schedule_notes_update = false;
+            } else {
+                return;
+            }
+        }
+        await this._filter_notes();
+    }
+
+    async _filter_notes() {
+        window.console.time("_filter_notes");
+        let note_ids = await this.get_notes_sorted_ids_from_cache();
+        let notes_map = await this.get_notes_map_from_cache();
+
+        if(!this._filter.notes.sorting_asc) {
+            note_ids.reverse();
         }
 
-        // TODO сделать фильтр при помощи storage
         if(this._filter.notes.tags.length > 0) {
+            let promises = [];
             for(let k = 0; k < this._filter.notes.tags.length; k++) {
                 let tag = this._filter.notes.tags[k];
-                if(tag) {
-                    let note_ids = await this._storage.get_note_ids_of_tag(tag);
-                    notes = _.filter(
-                        notes,
-                        function(note) {
-                            return note_ids.indexOf(note.id) >= 0
-                        }
-                    );
-                }
+                promises.push(this._storage.get_note_ids_of_tag(tag));
+            }
+            let list_of_note_ids = await Promise.all(promises);
+            for(let k = 0; k < list_of_note_ids.length; k++) {
+                let filter_note_ids = list_of_note_ids[k];
+                note_ids = _.intersection(note_ids, filter_note_ids);
             }
         }
 
-        // TODO сделать тесты и выделить в функцию
-        let order;
-        if(this._filter.notes.sorting_asc) {
-            order = ["asc"];
-        } else {
-            order = ["desc"];
+        if(this._filter.notes.text != "") {
+            note_ids = _.filter(note_ids, (note_id) => {
+                let note = notes_map[note_id];
+                return note.text.indexOf(this._filter.notes.text) >= 0;
+            });
         }
-        notes = _.orderBy(notes, ["created_at"], order);
 
-        return notes;
+        let notes_total_count;
+        let note_ids_for_show;
+        notes_total_count = await note_ids.length;
+
+        let notes_show_count = this._configuration.notes_per_page;
+        if(notes_total_count < notes_show_count) {
+            notes_show_count = notes_total_count;
+        }
+
+        note_ids_for_show = note_ids.slice(0, notes_show_count);
+
+        this._state.notes.ids = note_ids;
+        this._state.notes.items_map = notes_map;
+        this._state.notes.total_count = notes_total_count;
+        this._state.notes.items_shown_count = notes_show_count;
+
+        let notes_for_show = _.map(note_ids_for_show, (note_id) => {
+            return notes_map[note_id];
+        });
+        window.console.timeEnd("_filter_notes");
+
+        this.trigger("reset_notes", await this._wrap_notes(notes_for_show));
+        this.trigger("reset_notes_count", notes_total_count);
+    }
+
+    async get_notes_sorted_ids_from_cache() {
+        await this.refresh_notes_cache();
+        return _.clone(this._cache.notes.ids);
+    }
+
+    async get_notes_map_from_cache() {
+        await this.refresh_notes_cache();
+        return this._cache.notes.map;
+    }
+
+    async refresh_notes_cache() {
+        if(this._cache.notes == null) {
+            let data = await Promise.all([
+                this._storage.get_items_from_store("notes"),
+                this._storage.get_item_ids_from_store_using_index(
+                    "notes", "created_at_idx"
+                )
+            ])
+            let notes = data[0];
+            let note_ids = data[1];
+            let notes_map = {};
+            _.forEach(notes, (note) => {
+                notes_map[note.id] = note;
+            });
+
+            this._cache.notes = {
+                ids: note_ids,
+                map: notes_map,
+            };
+        }
+    }
+
+    invalidate_notes_cache() {
+        this._cache.notes = null;
+    }
+
+    async load_next_notes() {
+        let available_notes_count = this._state.notes.total_count - this._state.notes.items_shown_count;
+        if(available_notes_count > this._configuration.notes_per_page) {
+            available_notes_count = this._configuration.notes_per_page;
+        }
+        if(available_notes_count > 0) {
+            window.console.time("load_next_notes");
+            let note_ids_for_show = this._state.notes.ids.slice(
+                this._state.notes.items_shown_count,
+                this._state.notes.items_shown_count + available_notes_count
+            );
+
+            let notes_for_show = _.map(note_ids_for_show, (note_id) => {
+                return this._state.notes.items_map[note_id];
+            });
+            window.console.timeEnd("load_next_notes");
+    
+            this._state.notes.items_shown_count += available_notes_count;
+            this.trigger("append_notes", await this._wrap_notes(notes_for_show));
+        }
+    }
+
+    async _wrap_notes(items) {
+        window.console.time("_wrap_notes");
+        let result = [];
+        for(let index = 0; index < items.length; index++) {
+            let item = items[index];
+
+            let tags_map = await this.get_tags_map_from_cache();
+            let tag_ids = await this._storage.get_tag_ids_of_note(item.id);
+            let tags = [];
+            for(let k = 0; k < tag_ids.length; k++) {
+                let tag_id = tag_ids[k];
+                tags.push(tags_map[tag_id]);
+            }
+            tags = _.orderBy(tags, "name");
+            result.push({
+                id: item.id,
+                tags: _.map(tags, function(item) {return item.id;}),
+                text: item.text,
+                text_highlighted: item.text_highlighted,
+                creation_time: item.created_at,
+            });
+        }
+        window.console.timeEnd("_wrap_notes");
+        return result;
     }
 
     async close() {
@@ -813,12 +1020,26 @@ class Notepad {
         }
     }
 
+    start_updates() {
+        this._schedule_tags_update = false;
+        this._schedule_notes_update = false;
+        this._schedule_note_filters_update = false;
+        this._updates_state = "pending";
+    }
+
+    async end_updates() {
+        this._updates_state = "execute";
+        await this._reset_state();
+        this._updates_state = null;
+    }
+
     // open_notepad() {
 
     // }
 
     async import(objects) {
         if(!this._working) {
+            this._cache = {};
             let sorted = this.sort_import_objects(objects);
             // TODO validate
             let maps = await this.create_objects(sorted);
@@ -953,6 +1174,7 @@ class Notepad {
     }
 
     async create_tag(name) {
+        this.invalidate_tags_cache();
         let is_exists = await this.is_tag_with_name_exists(name);
         if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
@@ -963,6 +1185,7 @@ class Notepad {
     }
 
     async edit_tag(id, name) {
+        this.invalidate_tags_cache();
         let is_exists = await this.is_tag_with_name_exists(name, id);
         if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
@@ -972,6 +1195,7 @@ class Notepad {
     }
 
     async delete_tag(id) {
+        this.invalidate_tags_cache();
         await this._storage.delete_tag(id);
         // TODO в единую транзаецию
         let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
@@ -1047,6 +1271,7 @@ class Notepad {
     }
 
     async create_note(text, stamp, tags) {
+        this.invalidate_notes_cache();
         let note_id = await this._storage.create_note(text, stamp, this._notepad_id);
         await this.apply_note_tags(note_id, tags);
 
@@ -1060,6 +1285,7 @@ class Notepad {
     }
 
     async edit_note(id, text, stamp, tags) {
+        this.invalidate_notes_cache();
         await this._storage.edit_note(id, text, stamp);
         await this.apply_note_tags(id, tags);
         await this._reset_notes();
@@ -1084,6 +1310,7 @@ class Notepad {
     }
 
     async delete_note(id) {
+        this.invalidate_notes_cache();
         await this._storage.delete_note(id);
         await this.apply_note_tags(id, []);
         await this._reset_notes();
