@@ -25,9 +25,8 @@ class IndexedDBStorage {
                 "tags",
                 "notes",
                 "tag_notes",
-                "notepads",
+                "settings",
                 "note_filters",
-                "pin_codes",
             ];
             let transaction = this.db.transaction(store_names, "readwrite");
             for(let k = 0; k < store_names.length; k++) {
@@ -48,7 +47,7 @@ class IndexedDBStorage {
 
     init() {
         let promise = new Promise((resolve, reject) => {
-            let request = indexedDB.open("notes_db", 2);
+            let request = indexedDB.open("a_1", 1);
             request.onerror = (event) => {
                 reject(event);
             };
@@ -58,28 +57,20 @@ class IndexedDBStorage {
                 let db = event.target.result;
                 let store_options = { keyPath: "id", autoIncrement: true};
                 let index_options = {"unique": false};
+                let unique_index = {"unique": true};
                 switch(event.oldVersion) {
                     case 0: {
                         let notes = db.createObjectStore("notes", store_options);
-                        notes.createIndex("notepad_id_idx", "notepad_id", index_options);
-                        // notes.createIndex("created_at_idx", "created_at", index_options);
+                        notes.createIndex("created_at_idx", "created_at", index_options);
                         let tags = db.createObjectStore("tags", store_options);
-                        tags.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        tags;
                         let tag_notes = db.createObjectStore("tag_notes", store_options);
                         tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
                         tag_notes.createIndex("note_id_idx", "note_id", index_options);
-                        tag_notes.createIndex("notepad_id_idx", "notepad_id", index_options);
-                        let notepads = db.createObjectStore("notepads", store_options);
-                        notepads;
-                        let pin_codes = db.createObjectStore("pin_codes", store_options);
-                        pin_codes.createIndex("notepad_id_idx", "notepad_id", index_options);
+                        let settings = db.createObjectStore("settings", store_options);
+                        settings.createIndex("name_idx", "name", unique_index);
                         let note_filters = db.createObjectStore("note_filters", store_options);
-                        note_filters.createIndex("notepad_id_idx", "notepad_id", index_options);
-                    }
-                    case 1: {
-                        let transaction = event.currentTarget.transaction;
-                        let notes = transaction.objectStore("notes");
-                        notes.createIndex("created_at_idx", "created_at", index_options);
+                        note_filters;
                     }
                 }
             };
@@ -122,11 +113,6 @@ class IndexedDBStorage {
                     result[k] = request.result;
                 };
             }
-            // let new_id;
-            // let request = store.add(item);
-            // request.onsuccess = function() {
-            //     new_id = request.result;
-            // };
             transaction.oncomplete = () => {
                 resolve(result);
             };
@@ -135,13 +121,6 @@ class IndexedDBStorage {
             }
         });
         return promise;
-    }
-
-    async create_notepad(name) {
-        let notepad = {
-            name: name,
-        };
-        return await this.create_item_in_store("notepads", notepad);
     }
 
     get_store_items_count(store_name) {
@@ -214,6 +193,26 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let item = null;
             let request = store.get(id);
+            request.onsuccess = function() {
+                item = request.result;
+            };
+            transaction.oncomplete = () => {
+                resolve(item);
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    get_item_from_store_using_index(store_name, index_name, value) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let item = null;
+            let request = index.get(value);
             request.onsuccess = function() {
                 item = request.result;
             };
@@ -317,60 +316,8 @@ class IndexedDBStorage {
         return promise;
     }
 
-    create_note_filter(name, tags, notepad_id) {
-        let note_filter = {
-            "notepad_id": notepad_id,
-            "name": name,
-            "tags": _.cloneDeep(tags),
-        };
-        return this.create_item_in_store("note_filters", note_filter)
-    }
-
-    edit_note_filter(id, name) {
-        let new_values = {"name": name};
-        return this.edit_item_in_store("note_filters", id, new_values);
-    }
-
-    delete_note_filter(id) {
-        return this.delete_item_in_store("note_filters", id);
-    }
-
-    get_note_filters() {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction("note_filters", "readonly");
-            let note_filters = transaction.objectStore("note_filters");
-
-            let request = note_filters.getAll();
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    resolve(request.result);
-                } else {
-                    reject();
-                }
-            };
-        });
-        return promise;
-    }
-
     is_note_filter_with_name_exists(name, id) {
         return this.is_item_with_name_exists_in_store("note_filters", name, id);
-    }
-
-    create_tag(name, notepad_id) {
-        let tag = {
-            "notepad_id": notepad_id,
-            "name": name,
-        };
-        return this.create_item_in_store("tags", tag);
-    }
-
-    edit_tag(id, name) {
-        let new_values = {"name": name};
-        return this.edit_item_in_store("tags", id, new_values);
-    }
-
-    delete_tag(id) {
-        return this.delete_item_in_store("tags", id);
     }
 
     get_items_from_store(storage_name) {
@@ -391,64 +338,8 @@ class IndexedDBStorage {
         return promise;
     }
 
-    get_tags() {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction("tags", "readonly");
-            let store = transaction.objectStore("tags");
-
-            let request = store.getAll();
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    let tags = request.result;
-                    resolve(tags);
-                } else {
-                    reject();
-                }
-            };
-        });
-        return promise;
-    }
-
     is_tag_with_name_exists(name, id) {
         return this.is_item_with_name_exists_in_store("tags", name, id);
-    }
-
-    create_note(text, stamp, notepad_id) {
-        let note = {
-            "text": text,
-            "created_at": stamp,
-            "notepad_id": notepad_id,
-        };
-        return this.create_item_in_store("notes", note);
-    }
-
-    edit_note(id, text, stamp) {
-        let new_values = {
-            "text": text,
-            "created_at": stamp
-        };
-        return this.edit_item_in_store("notes", id, new_values);
-    }
-
-    delete_note(id) {
-        return this.delete_item_in_store("notes", id);
-    }
-
-    get_notes() {
-        let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction("notes", "readonly");
-            let store = transaction.objectStore("notes");
-
-            let request = store.getAll();
-            request.onsuccess = function() {
-                if(request.result != null) {
-                    resolve(request.result);
-                } else {
-                    reject();
-                }
-            };
-        });
-        return promise;
     }
 
     async get_tags_of_note(note_id) {
@@ -578,19 +469,6 @@ class IndexedDBStorage {
         return promise;
     }
 
-    create_tag_note(tag_id, note_id, notepad_id) {
-        let tag_note = {
-            "tag_id": tag_id,
-            "note_id": note_id,
-            "notepad_id": notepad_id,
-        };
-        return this.create_item_in_store("tag_notes", tag_note);
-    }
-
-    delete_tag_note(tag_note_id) {
-        return this.delete_item_in_store("tag_notes", tag_note_id);
-    }
-
     async get_tag_note_id(tag_id, note_id) {
         // TODO композитные ключи?
         let by_tag_id = await this.get_item_ids_from_store_using_index(
@@ -649,19 +527,6 @@ class Notepad {
                 tags: [],
             },
         }
-        this._decrypted_cache = {
-            "notes": {},
-            "tags": {},
-        };
-        // TODO проверить что все поля нужны
-        this._data = {
-            "notepad": null,
-            "notes": {},
-            "tags": {},
-            "notes_of_tag": {},
-            "tags_of_note": {},
-            "tag_notes": {},
-        };
         this._cache = {};
     }
 
@@ -707,19 +572,15 @@ class Notepad {
             };
             this._storage.set_options(options);
             this._reset_filter();
-            // this._notepad_id = await this._storage.create_notepad(name);
-            // this._load_data();
             await this._reset_state();
             this._set_working(true);
-            // this.unlock(password);
             return true;
         } else {
             return false;
         }
     }
 
-    async sync(notepad_id) {
-        this._notepad_id = notepad_id;
+    async sync() {
         this._reset_filter();
         await this._load_data();
         await this._reset_state();
@@ -731,23 +592,16 @@ class Notepad {
         this.trigger("working", this._working);
     }
 
-    async _load_data(notepad_id) {
-        let notepads = await this._storage.get_items_from_store("notepads");
-        if(notepads.length > 0) {
-            let notepad = notepads[0];
-            this._notepad_id = notepad.id;
-            this._working = true;
+    async _load_data() {
+        let info = await this._storage.get_item_from_store_using_index(
+            "settings", "name_idx", "info"
+        );
+        if(info == null) {
+            this._working = false;
+        } else{
+            this._state.info = info;
+            this._working = true;    
         }
-        notepad_id;
-    }
-
-    register_notepad(object) {
-        if(this._data.notepad == null) {
-            this._data.notepad = object;
-        } else {
-            throw new Error("найден еще один объект notepad");
-        }
-        this._working = true;
     }
 
     tag_note_key(tag_id, note_id) {
@@ -825,7 +679,7 @@ class Notepad {
 
     async refresh_tags_cache() {
         if(this._cache.tags == null) {
-            let list = await this._storage.get_tags();
+            let list = await this._storage.get_items_from_store("tags");
             let map = {};
             _.forEach(list, (item) => {map[item.id] = item;});
             this._cache.tags = {
@@ -957,6 +811,10 @@ class Notepad {
         }
     }
 
+    invalidate_cache() {
+        this._cache = {};
+    }
+
     invalidate_notes_cache() {
         this._cache.notes = null;
     }
@@ -1033,17 +891,13 @@ class Notepad {
         this._updates_state = null;
     }
 
-    // open_notepad() {
-
-    // }
-
     async import(objects) {
         if(!this._working) {
-            this._cache = {};
+            this.invalidate_cache();
             let sorted = this.sort_import_objects(objects);
             // TODO validate
             let maps = await this.create_objects(sorted);
-            await this.sync(sorted.notepad);
+            await this.sync();
             return maps;
         } else {
             return false;
@@ -1052,7 +906,7 @@ class Notepad {
 
     sort_import_objects(objects) {
         let sorted = {
-            notepad: null,
+            settings: {},
             notes: {},
             tags: {},
             tag_notes: {},
@@ -1065,8 +919,8 @@ class Notepad {
             let object_type = object.type;
             delete object.type;
             switch(object_type) {
-                case "notepad":
-                    sorted.notepad = object;
+                case "setting":
+                    sorted.settings[key] = object;
                     break;
                 case "tag":
                     sorted.tags[key] = object;
@@ -1090,50 +944,60 @@ class Notepad {
 
     async create_objects(sorted) {
         let maps = {
-            notepad: null,
+            settings: {},
             notes: {},
             tags: {},
             tag_notes: {},
         };
-        maps.notepad = await this._storage.create_notepad(sorted.notepad.name);
+        // TODO create INFO
         let keys;
+        keys = _.keys(sorted.settings);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let setting = sorted.settings[key];
+            maps.settings[key] = await this._storage.create_item_in_store("settings", setting);
+        }
         keys = _.keys(sorted.notes);
         for(let k = 0; k < keys.length; k++) {
             let key = keys[k];
             let note = sorted.notes[key];
-            maps.notes[key] = await this._storage.create_note(note.text, note.created_at, maps.notepad);
+            maps.notes[key] = await this._storage.create_item_in_store("notes", note);
         }
         keys = _.keys(sorted.tags);
         for(let k = 0; k < keys.length; k++) {
             let key = keys[k];
             let tag = sorted.tags[key];
-            maps.tags[key] = await this._storage.create_tag(tag.name, maps.notepad);
+            maps.tags[key] = await this._storage.create_item_in_store("tags", tag);
         }
         keys = _.keys(sorted.tag_notes);
         for(let k = 0; k < keys.length; k++) {
             let key = keys[k];
             let tag_note = sorted.tag_notes[key];
-            maps.tag_notes[key] = await this._storage.create_tag_note(
-                maps.tags[tag_note.tag_id],
-                maps.notes[tag_note.note_id],
-                maps.notepad
+            tag_note = {
+                "tag_id": maps.tags[tag_note.tag_id],
+                "note_id": maps.notes[tag_note.note_id],
+            };
+            maps.tag_notes[key] = await this._storage.create_item_in_store(
+                "tag_notes", tag_note
             );
         }
         for(let k = 0; k < sorted.note_filters.length; k++) {
             let note_filter = sorted.note_filters[k];
-            await this._storage.create_note_filter(
-                note_filter.name,
-                _.map(note_filter.tags, (id) => maps.tags[id]),
-                maps.notepad
-            );
+            let mapped_tag_ids = _.map(note_filter.tags, (id) => maps.tags[id]);
+            note_filter = {
+                name: note_filter.name,
+                tags: mapped_tag_ids,
+            };
+            await this.create_item_in_store("note_filters", note_filter);
         }
         return maps;
     }
 
     async export() {
         let result = [];
+        // TODO export info
         let STORE_NAMES = [
-            ["notepads", "notepad"],
+            ["settings", "setting"],
             ["tags", "tag"],
             ["notes", "note"],
             ["tag_notes", "tag_note"],
@@ -1152,22 +1016,6 @@ class Notepad {
         return result;
     }
 
-    // save_notepad() {
-
-    // }
-
-    lock() {
-        this._password = null;
-        // удаляем все расшифрованные данные и удаляем ключ
-    }
-
-    unlock(password) {
-        // сохраняем ключ, выполняем расшифровку необходимых данных
-        // и формируем начальное состоянин
-
-        this._password = password;
-    }
-
     async is_tag_with_name_exists(name, current_tag_id) {
         let exists = await this._storage.is_tag_with_name_exists(name, current_tag_id);
         return exists;
@@ -1179,7 +1027,11 @@ class Notepad {
         if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        let tag_id = await this._storage.create_tag(name, this._notepad_id);
+
+        let tag = {
+            "name": name,
+        };
+        let tag_id = await this._storage.create_item_in_store("tags", tag);
         await this._reset_tags();
         return tag_id;
     }
@@ -1190,13 +1042,15 @@ class Notepad {
         if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        await this._storage.edit_tag(id, name);
+        
+        let new_values = {"name": name};
+        await this._storage.edit_item_in_store("tags", id, new_values);
         await this._reset_tags();
     }
 
     async delete_tag(id) {
         this.invalidate_tags_cache();
-        await this._storage.delete_tag(id);
+        await this._storage.delete_item_in_store("tags", id);
         // TODO в единую транзаецию
         let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
             "tag_notes", "tag_id_idx", id
@@ -1212,28 +1066,27 @@ class Notepad {
 
     async delete_tag_note(tag_id, note_id) {
         let tag_note_id = await this._storage.get_tag_note_id(tag_id, note_id);
-        await this._storage.delete_tag_note(tag_note_id);
+        await this._storage.delete_item_in_store("tag_notes", tag_note_id);
     }
 
-    // list_tags(from, count) {
-
-    // }
-
     async create_note_filter(name, tags) {
-        let filter_id = await this._storage.create_note_filter(
-            name, tags, this._notepad_id
-        );
+        let note_filter = {
+            "name": name,
+            "tags": _.cloneDeep(tags),
+        };
+        let filter_id = await this._storage.create_item_in_store("note_filters", note_filter);
         await this._reset_note_filters();
         return filter_id;
     }
 
     async delete_note_filter(note_filter_id) {
-        await this._storage.delete_note_filter(note_filter_id);
+        await this._storage.delete_item_in_store("note_filters", note_filter_id);
         await this._reset_note_filters();
     }
 
     async edit_note_filter(note_filter_id, new_name) {
-        await this._storage.edit_note_filter(note_filter_id, new_name);
+        let new_values = {"name": new_name};
+        await this._storage.edit_item_in_store("note_filters", note_filter_id, new_values);
         await this._reset_note_filters();
     }
 
@@ -1255,7 +1108,7 @@ class Notepad {
             deletable: false,
             tags: [],
         };
-        let items = await this._storage.get_note_filters();
+        let items = await this._storage.get_items_from_store("note_filters");
         _.forEach(items, (item) => {
             item.deletable = true;
         })
@@ -1272,7 +1125,11 @@ class Notepad {
 
     async create_note(text, stamp, tags) {
         this.invalidate_notes_cache();
-        let note_id = await this._storage.create_note(text, stamp, this._notepad_id);
+        let note = {
+            "text": text,
+            "created_at": stamp,
+        };
+        let note_id = await this._storage.create_item_in_store("notes", note);
         await this.apply_note_tags(note_id, tags);
 
         await this._reset_notes();
@@ -1280,13 +1137,22 @@ class Notepad {
         return note_id;
     }
 
-    async create_tag_note(tag_id, note_id, notepad_id) {
-        await this._storage.create_tag_note(tag_id, note_id, notepad_id);
+    async create_tag_note(tag_id, note_id) {
+        let tag_note = {
+            "tag_id": tag_id,
+            "note_id": note_id,
+        };
+        return await this._storage.create_item_in_store("tag_notes", tag_note);
     }
 
     async edit_note(id, text, stamp, tags) {
         this.invalidate_notes_cache();
-        await this._storage.edit_note(id, text, stamp);
+
+        let new_values = {
+            "text": text,
+            "created_at": stamp
+        };
+        await this._storage.edit_item_in_store("notes", id, new_values);
         await this.apply_note_tags(id, tags);
         await this._reset_notes();
         await this._reset_tags();
@@ -1301,7 +1167,7 @@ class Notepad {
         let k, tag_id;
         for(k = 0; k < new_tag_ids.length; k++) {
             tag_id = new_tag_ids[k];
-            await this.create_tag_note(tag_id, note_id, this._notepad_id);
+            await this.create_tag_note(tag_id, note_id);
         }
         for(k = 0; k < deleted_tag_ids.length; k++) {
             tag_id = deleted_tag_ids[k];
@@ -1311,15 +1177,11 @@ class Notepad {
 
     async delete_note(id) {
         this.invalidate_notes_cache();
-        await this._storage.delete_note(id);
+        await this._storage.delete_item_in_store("notes", id);
         await this.apply_note_tags(id, []);
         await this._reset_notes();
         await this._reset_tags();
     }
-
-    // list_notes(from, count) {
-
-    // }
 }
 
 export default Notepad;

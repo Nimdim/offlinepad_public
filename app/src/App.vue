@@ -1067,14 +1067,6 @@ export default {
           );
           window.console.log("created " + (k + 1));
         }
-
-
-        // await notepad.create_note(
-        //   "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        //   + new Date(),
-        //   tags.slice(0, k % 5)
-        // );
-        // window.console.log("created " + (k + 1));
       }
       window.console.timeEnd("all");
       window.console.time("final");

@@ -175,54 +175,47 @@ describe("notepad simple tests", function() {
 describe("notepad import export", function() {
     let IMPORT_DATA = {
         1: {
-            "type":"notepad",
-            "name":"Дневник"
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
         },
         2: {
             "type":"tag",
             "name":"один",
-            "notepad_id": 1,
         },
         3: {
             "type":"tag",
             "name":"два",
-            "notepad_id": 1,
         },
         13: {
             "type":"note",
             "text":"Запись без меток",
             "created_at":1586634372651,
-            "notepad_id": 1,
         },
         16: {
             "type":"note",
             "text":"Запись с метками \"один\" и \"два\"",
             "created_at":1586634372656,
-            "notepad_id": 1,
         },
         17: {
             "type":"tag_note",
             "tag_id": 2,
             "note_id": 16,
-            "notepad_id": 1,
         },
         18: {
             "type":"tag_note",
             "tag_id": 3,
             "note_id": 16,
-            "notepad_id": 1,
         },
         19: {
             "type":"note",
             "text":"Запись с меткой \"один\"",
             "created_at":1586634372660,
-            "notepad_id": 1,
         },
         20: {
             "type":"tag_note",
             "tag_id": 2,
             "note_id": 19,
-            "notepad_id": 1,
         }
     };
 
@@ -245,32 +238,29 @@ describe("notepad import export", function() {
 
     let map_import_data = function(import_data, maps) {
         let sorted = {
-            "notepad": null,
+            "settings": {},
             "tags": {},
             "notes": {},
             "tag_notes": {},
             "note_filters": {},
         }
-        // let result = [];
+
         let keys = _.keys(import_data);
         for(let k = 0; k < keys.length; k++) {
             let key = keys[k];
             let object = _.cloneDeep(import_data[key]);
             let type = object.type;
             switch(type) {
-                case "notepad":
-                    sorted.notepad = object;
+                case "setting":
+                    sorted.settings[maps.settings[key]] = object;
                     break;
                 case "tag":
-                    object.notepad_id = maps.notepad;
                     sorted.tags[maps.tags[key]] = object;
                     break;
                 case "note":
-                    object.notepad_id = maps.notepad;
                     sorted.notes[maps.notes[key]] = object;
                     break;
                 case "tag_note":
-                    object.notepad_id = maps.notepad;
                     object.tag_id = maps.tags[object.tag_id];
                     object.note_id = maps.notes[object.note_id];
                     sorted.tag_notes[maps.tag_notes[key]] = object;
@@ -288,7 +278,7 @@ describe("notepad import export", function() {
 
     let map_exported_data = function(export_data) {
         let sorted = {
-            "notepad": null,
+            "settings": {},
             "tags": {},
             "notes": {},
             "tag_notes": {},
@@ -300,8 +290,8 @@ describe("notepad import export", function() {
             let type = object.type;
             delete object.id;
             switch(type) {
-                case "notepad":
-                    sorted.notepad = object;
+                case "setting":
+                    sorted.settings[key] = object;
                     break;
                 case "tag":
                     sorted.tags[key] = object;
@@ -646,7 +636,13 @@ describe("notepad parse initial data", function() {
     it("parse storage with one notepad", async function() {
         let notepad = new Notepad();
         await notepad.init();
-        await notepad._storage.create_notepad("123")
+        await notepad._storage.create_item_in_store(
+            "settings",
+            {
+                "name": "info",
+                "notepad_name": "test",
+            }
+        )
         let working = false;
         notepad.on("working", function(value) {
             working = value;
@@ -662,8 +658,9 @@ describe("notepad parse initial data", function() {
 describe("notepad filtering and sorting", function() {
     let IMPORT_DATA = {
         "1": {
-            "type":"notepad",
-            "name":"Дневник"
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
         },
         "2": {
             "type":"tag",
@@ -1073,15 +1070,17 @@ describe("notepad filtering and sorting", function() {
 describe("notepad pagination", function() {
     let IMPORT_DATA_ZERO = {
         "1": {
-            "type":"notepad",
-            "name":"Дневник"
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
         },
     };
 
     let IMPORT_DATA_ONE_PAGE = {
         "1": {
-            "type":"notepad",
-            "name":"Дневник"
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
         },
     };
     for(let k = 0; k < 20; k++) {
@@ -1095,8 +1094,9 @@ describe("notepad pagination", function() {
 
     let IMPORT_DATA_TWO_PAGES = {
         "1": {
-            "type":"notepad",
-            "name":"Дневник"
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
         },
     };
     for(let k = 0; k < 60; k++) {
