@@ -921,7 +921,11 @@ export default {
       let file = files[0];
 
       let reader = new PartialFileReader(
-        file, function(import_data) {notepad.import(import_data)}
+        file, async (import_data) => {
+          notepad = await notepads_list.import("a_1", import_data);
+          this.notepad_working = true;
+          this.section = "notes";
+        }
       );
       reader.start();      
     },
@@ -1005,11 +1009,11 @@ export default {
     },
 
     test_create: async function(number) {
-      await notepad.create();
+      notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
+      this.notepad_regster(notepad);
 
       notepad.start_updates();
       window.console.time("all");
-      await notepad._storage.create_notepad("Дневник");
       let tags = [
         await notepad.create_tag("метка 1"),
         await notepad.create_tag("метка 2"),
@@ -1059,6 +1063,8 @@ export default {
       window.console.time("final");
       await notepad.end_updates();
       window.console.timeEnd("final");
+      this.notepad_working = true;
+      this.section = "notes";
     },
 
     notepad_menu: async function(command) {
@@ -1066,8 +1072,6 @@ export default {
         case "create":
           notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
           this.notepad_regster(notepad);
-          await notepad.create("a_1", "Дневник", {encrypted: false});
-          // await notepad._reset_state();
           this.notepad_working = true;
           this.section = "notes";
           break;

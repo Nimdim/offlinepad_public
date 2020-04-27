@@ -92,6 +92,16 @@ class NotepadsList {
         }
     }
 
+    async import(db_name, import_data) {
+        if(!this.has(db_name)) {
+            let notepad = new Notepad();
+            await notepad.import("a_1", import_data);
+            return notepad;    
+        } else {
+            return false;
+        }
+    }
+
     async create_notepad_data(notepad) {
         notepad.start_updates();
         let welcome_tag = await notepad.create_tag("добро пожаловать");
