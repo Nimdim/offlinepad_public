@@ -1,25 +1,59 @@
+/* eslint no-fallthrough: "off" */
 import Backbone from "backbone";
 import _ from "lodash";
+import IndexedDBStorage from "./indexeddb_storage.js";
+
+if(global != null) {
+    var window = global;
+}
+
+class NotepadStorage extends IndexedDBStorage {
+    constructor() {
+        super()
+        this.DB_VERSION = 1;
+    }
+    
+    _upgrade_needed(event) {
+        let db = event.target.result;
+        let store_options = { keyPath: "id", autoIncrement: true};
+        let index_options = {"unique": false};
+        let unique_index = {"unique": true};
+        switch(event.oldVersion) {
+            case 0: {
+                let notes = db.createObjectStore("notes", store_options);
+                notes.createIndex("created_at_idx", "created_at", index_options);
+                let tags = db.createObjectStore("tags", store_options);
+                tags;
+                let tag_notes = db.createObjectStore("tag_notes", store_options);
+                tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
+                tag_notes.createIndex("note_id_idx", "note_id", index_options);
+                let settings = db.createObjectStore("settings", store_options);
+                settings.createIndex("name_idx", "name", unique_index);
+                let note_filters = db.createObjectStore("note_filters", store_options);
+                note_filters;
+            }
+        }
+    }
+}
 
 class Notepad {
-    constructor(storage) {
-        this._schedule_tags_update = false;
-        this._schedule_notes_update = false;
-        this._schedule_note_filters_update = false;
-        this._updates_state = null;
-
+    constructor() {
         _.extend(this, Backbone.Events);
         this._configuration = {
-            "tags_per_page": 99999,
             "notes_per_page": 40,
         };
-        this._storage = storage;
         this._reset_internal_state();
     }
 
     _reset_internal_state() {
-        this._set_working(false);
-        this._password = null;
+        this._schedule_tags_update = false;
+        this._schedule_notes_update = false;
+        this._schedule_note_filters_update = false;
+        this._updates_state = null;
+        this._storage = null;// new NotepadStorage();
+
+        this._working = false;
+        this._options = null;
         this._state = {
             "notes": [],
             "tags": [],
@@ -35,18 +69,10 @@ class Notepad {
                 tags: [],
             },
         }
-        this._data = {
-            "notepad": null,
-            "notes": {},
-            "tags": {},
-            "notes_of_tag": {},
-            "tags_of_note": {},
-            "tag_notes": {},
-            "note_filters": {},
-        };
+        this._cache = {};
     }
 
-    set_tags_filter(options) {
+    async set_tags_filter(options) {
         let keys = ["sorting_asc", "name"];
         let k, key, value;
         for(k = 0; k < keys.length; k++) {
@@ -56,10 +82,10 @@ class Notepad {
                 this._filter.tags[key] = value;
             }
         }
-        this._reset_tags();
+        await this._reset_tags();
     }
 
-    set_notes_filter(options) {
+    async set_notes_filter(options) {
         let keys = ["sorting_asc", "text", "tags"];
         let k, key, value;
         for(k = 0; k < keys.length; k++) {
@@ -69,7 +95,7 @@ class Notepad {
                 this._filter.notes[key] = value;
             }
         }
-        this._reset_notes();
+        await this._reset_notes();
     }
 
     get_tags_filter() {
@@ -80,117 +106,71 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
-    create() {
+    async create(db_name, name, options) {
+        /* Аргументы
+           db_name - название БД
+           name - название блокнота
+           options - настройки блокнота
+             encrypted - зашифрован true/false
+             key - ключ шифрования (если зашифрован)
+        */
         if(!this._working) {
-            let options = {
-                with_password: false,
-                password: null,
-            };
-            this._storage.set_options(options);
+            this._options = options;
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+            await this.create_notepad_info(name, options.encrypted);
+            // this._storage.set_options(options);
             this._reset_filter();
-            this._load_data();
-            this._reset_state();
-            this._set_working(true);
-            // this.unlock(password);
+            // await this._reset_state();
+            this._working = true;
             return true;
         } else {
             return false;
         }
     }
 
-    sync() {
+    async create_notepad_info(name, encrypted) {
+        let info = {
+            name: "info",
+            notepad_name: name,
+            encrypted: encrypted,
+        };
+        this._storage.create_item_in_store("settings", info);
+    }
+
+    async sub_sync() {
         this._reset_filter();
-        this._load_data();
-        this._reset_state();
-        this._set_working(this._working);
+        await this._load_data();
+        // await this._reset_state();
     }
 
-    _set_working(state) {
-        this._working = state;
-        this.trigger("working", this._working);
-    }
-
-    _load_data() {
-        let reader = function(object) {
-            switch(object.type) {
-                case "notepad":
-                    this.register_notepad(object);
-                    break;
-                case "tag":
-                    this.register_tag(object);
-                    break;
-                case "note":
-                    this.register_note(object);
-                    break;
-                case "tag_note":
-                    this.register_tag_note(object);
-                    break;
-                case "note_filter":
-                    this.register_note_filter(object);
-                    break;
-                default:
-                    // console.error("неизвестный тип объекта", object);
-                    break;
-            }
-        }.bind(this);
-        this._storage.iterate(reader);
-    }
-
-    register_notepad(object) {
-        if(this._data.notepad == null) {
-            this._data.notepad = object;
+    async sync(db_name) {
+        if(!this._working) {
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+            await this.sub_sync();
+            return true;
         } else {
-            throw new Error("найден еще один объект notepad");
-        }
-        this._working = true;
-    }
-
-    register_tag(object) {
-        let key = object.id;
-        this._data.tags[key] = object;
-        // при начальной регистрации информация о взаимосвязи может прийти
-        // раньше и тогда перетрется ее кеш
-        if (this._data.notes_of_tag[key] == null) {
-            this._data.notes_of_tag[key] = {};
+            return false;
         }
     }
 
-    register_note(object) {
-        let key = object.id;
-        this._data.notes[key] = object;
-        // при начальной регистрации информация о взаимосвязи может прийти
-        // раньше и тогда перетрется ее кеш
-        if (this._data.tags_of_note[key] == null) {
-            this._data.tags_of_note[key] = {};
+    async _load_data() {
+        let info = await this._storage.get_item_from_store_using_index(
+            "settings", "name_idx", "info"
+        );
+        if(info == null) {
+            this._working = false;
+        } else{
+            this._state.info = info;
+            this._working = true;    
         }
-
     }
 
     tag_note_key(tag_id, note_id) {
         return tag_id + "_" + note_id;
     }
 
-    register_tag_note(object) {
-        let tag_note_key = this.tag_note_key(object.tag_id, object.note_id);
-        let note_ids, tag_ids;
-
-        this._data.tag_notes[tag_note_key] = object;
-
-        note_ids = this._data.notes_of_tag[object.tag_id];
-        if(note_ids == null) {
-            note_ids = {};
-            this._data.notes_of_tag[object.tag_id] = note_ids;
-        }
-        note_ids[object.note_id] = true;
-
-        tag_ids = this._data.tags_of_note[object.note_id];
-        if(tag_ids == null) {
-            tag_ids = {};
-            this._data.tags_of_note[object.note_id] = tag_ids;
-        }
-        tag_ids[object.tag_id] = true;
-    }
-    
     _reset_filter() {
         this._filter.tags.sorting_asc = true;
         this._filter.tags.name = "";
@@ -201,13 +181,19 @@ class Notepad {
         this.trigger("reset_filter", data);
     }
 
-    _reset_state() {
-        this._reset_tags();
-        this._reset_notes();
-        this._reset_note_filters();
+    async _reset_state() {
+        await this._reset_tags();
+        await this._reset_notes();
+        await this._reset_note_filters();
     }
 
-    _reset_tags() {
+    _clear() {
+        this.trigger("reset_tags", []);
+        this.trigger("reset_notes", []);
+        this.trigger("reset_note_filters", []);
+    }
+
+    async _reset_tags() {
         if(this._updates_state == "pending") {
             this._schedule_tags_update = true;
             return
@@ -219,109 +205,12 @@ class Notepad {
             }
         }
 
-        let items_for_show_count = this._configuration.tags_per_page;
-        let items_for_show;
-        this._state.tags.items = this._filter_tags();
-        if(items_for_show_count < this._state.tags.length) {
-            items_for_show_count = this._state.tags.length;
-        }
-        this._state.tags.items_shown_count = items_for_show_count;
-        items_for_show = this._state.tags.items.slice(0, items_for_show_count);
-        this.trigger("reset_tags", this._wrap_tags(items_for_show));
-        this.trigger("all_tags", _.sortBy(_.values(this._data.tags), "name"));
+        this._state.tags.items = await this._filter_tags();
+        this.trigger("reset_tags", await this._wrap_tags(this._state.tags.items));
     }
 
-    start_updates() {
-        this._schedule_tags_update = false;
-        this._schedule_notes_update = false;
-        this._schedule_note_filters_update = false;
-        this._updates_state = "pending";
-    }
-
-    end_updates() {
-        this._updates_state = "execute";
-        this._reset_state();
-        this._updates_state = null;
-    }
-
-    _wrap_tags(items) {
-        let result = [];
-        for(let index = 0; index < items.length; index++) {
-            let item = items[index];
-            result.push({
-                id: item.id,
-                name: item.name,
-                count: _.keys(this._data.notes_of_tag[item.id]).length,
-            });
-        }
-        return result;
-    }
-
-    _reset_notes() {
-        if(this._updates_state == "pending") {
-            this._schedule_notes_update = true;
-            return
-        } else if(this._updates_state == "execute") {
-            if(this._schedule_notes_update) {
-                this._schedule_notes_update = false;
-            } else {
-                return;
-            }
-        }
-        
-        let items_for_show_count = this._configuration.notes_per_page;
-        let items_for_show;
-        this._state.notes.items = this._filter_notes();
-        if(this._state.notes.items.length < items_for_show_count) {
-            items_for_show_count = this._state.notes.items.length;
-        }
-        this._state.notes.items_shown_count = items_for_show_count;
-        items_for_show = this._state.notes.items.slice(0, items_for_show_count);
-        this.trigger("reset_notes", this._wrap_notes(items_for_show));
-        this.trigger("reset_notes_count", this._state.notes.items.length);
-    }
-
-    load_next_notes() {
-        let available_notes_count = this._state.notes.items.length - this._state.notes.items_shown_count;
-        if(available_notes_count > this._configuration.notes_per_page) {
-            available_notes_count = this._configuration.notes_per_page;
-        }
-        if(available_notes_count > 0) {
-            let items_for_show;
-            items_for_show = this._state.notes.items.slice(
-                this._state.notes.items_shown_count, 
-                this._state.notes.items_shown_count + available_notes_count
-            );
-            this._state.notes.items_shown_count += available_notes_count;
-            this.trigger("append_notes", this._wrap_notes(items_for_show));
-        }
-    }
-
-    _wrap_notes(items) {
-        let result = [];
-        for(let index = 0; index < items.length; index++) {
-            let item = items[index];
-            let tags = _.keys(this._data.tags_of_note[item.id]);
-            tags = _.map(
-                tags,
-                function(id) {
-                    return _.cloneDeep(this._data.tags[id])
-                }.bind(this)
-            );
-            tags = _.orderBy(tags, "name");
-            result.push({
-                id: item.id,
-                tags: _.map(tags, function(item) {return item.id;}),
-                text: item.text,
-                text_highlighted: item.text_highlighted,
-                creation_time: item.created_at,
-            });
-        }
-        return result;
-    }
-
-    _filter_tags() {
-        let tags = _.values(this._data.tags);
+    async _filter_tags() {
+        let tags = await this.get_tags_from_cache();
 
         // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
@@ -345,187 +234,475 @@ class Notepad {
         return tags;
     }
 
-    _filter_notes() {
-        let notes = _.cloneDeep(_.values(this._data.notes));
+    async get_tags_from_cache() {
+        await this.refresh_tags_cache();
+        return this._cache.tags.list;
+    }
 
-        // TODO сделать тесты и выделить в функцию
-        if(this._filter.notes.text != "") {
-            notes = _.filter(
-                notes,
-                function(note) {
-                    return note.text.indexOf(this._filter.notes.text) >= 0
-                }.bind(this)
+    async get_tags_map_from_cache() {
+        await this.refresh_tags_cache();
+        return this._cache.tags.items_map;
+    }
+
+    async refresh_tags_cache() {
+        if(this._cache.tags == null) {
+            let list = await this._storage.get_items_from_store("tags");
+            let map = {};
+            _.forEach(list, (item) => {map[item.id] = item;});
+            this._cache.tags = {
+                list: list,
+                items_map: map,
+            }
+        }
+    }
+
+    invalidate_tags_cache() {
+        this._cache.tags = null;
+    }
+
+    async _wrap_tags(items) {
+        window.console.time("_wrap_tags");
+        let result = [];
+        for(let index = 0; index < items.length; index++) {
+            let item = items[index];
+            let count = await this._storage.get_store_items_count_using_index(
+                "tag_notes", "tag_id_idx", item.id
             )
+            result.push({
+                id: item.id,
+                name: item.name,
+                count: count,
+            });
+        }
+        window.console.timeEnd("_wrap_tags");
+        return result;
+    }
+
+    async _reset_notes() {
+        if(this._updates_state == "pending") {
+            this._schedule_notes_update = true;
+            return
+        } else if(this._updates_state == "execute") {
+            if(this._schedule_notes_update) {
+                this._schedule_notes_update = false;
+            } else {
+                return;
+            }
+        }
+        await this._filter_notes();
+    }
+
+    async _filter_notes() {
+        let tags = await this.get_tags_from_cache();
+        this.trigger("all_tags", _.sortBy(_.values(tags), "name"));
+    
+        window.console.time("_filter_notes");
+        let note_ids = await this.get_notes_sorted_ids_from_cache();
+        let notes_map = await this.get_notes_map_from_cache();
+
+        if(!this._filter.notes.sorting_asc) {
+            note_ids.reverse();
         }
 
-        // TODO сделать тесты и выделить в функцию
         if(this._filter.notes.tags.length > 0) {
+            let promises = [];
             for(let k = 0; k < this._filter.notes.tags.length; k++) {
                 let tag = this._filter.notes.tags[k];
-                if(tag) {
-                    let note_ids = this._data.notes_of_tag[tag];
-                    notes = _.filter(
-                        notes,
-                        function(note) {
-                            return note_ids[note.id] === true
-                        }
-                    );
-                }
+                promises.push(this.get_note_ids_of_tag(tag));
+            }
+            let list_of_note_ids = await Promise.all(promises);
+            for(let k = 0; k < list_of_note_ids.length; k++) {
+                let filter_note_ids = list_of_note_ids[k];
+                note_ids = _.intersection(note_ids, filter_note_ids);
             }
         }
 
-        // TODO сделать тесты и выделить в функцию
-        let order;
-        if(this._filter.notes.sorting_asc) {
-            order = ["asc"];
-        } else {
-            order = ["desc"];
+        if(this._filter.notes.text != "") {
+            note_ids = _.filter(note_ids, (note_id) => {
+                let note = notes_map[note_id];
+                return note.text.indexOf(this._filter.notes.text) >= 0;
+            });
         }
-        notes = _.orderBy(notes, ["created_at"], order);
 
-        return notes;
+        let notes_total_count;
+        let note_ids_for_show;
+        notes_total_count = await note_ids.length;
+
+        let notes_show_count = this._configuration.notes_per_page;
+        if(notes_total_count < notes_show_count) {
+            notes_show_count = notes_total_count;
+        }
+
+        note_ids_for_show = note_ids.slice(0, notes_show_count);
+
+        this._state.notes.ids = note_ids;
+        this._state.notes.items_map = notes_map;
+        this._state.notes.total_count = notes_total_count;
+        this._state.notes.items_shown_count = notes_show_count;
+
+        let notes_for_show = _.map(note_ids_for_show, (note_id) => {
+            return notes_map[note_id];
+        });
+        window.console.timeEnd("_filter_notes");
+
+        this.trigger("reset_notes", await this._wrap_notes(notes_for_show));
+        this.trigger("reset_notes_count", notes_total_count);
     }
 
-    close() {
+    async get_note_ids_of_tag(tag_id) {
+        let tag_notes = await this._storage.get_items_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        return _.map(tag_notes, (item) => item.note_id);
+    }
+
+    async get_notes_sorted_ids_from_cache() {
+        await this.refresh_notes_cache();
+        return _.clone(this._cache.notes.ids);
+    }
+
+    async get_notes_map_from_cache() {
+        await this.refresh_notes_cache();
+        return this._cache.notes.map;
+    }
+
+    async refresh_notes_cache() {
+        if(this._cache.notes == null) {
+            let data = await Promise.all([
+                this._storage.get_items_from_store("notes"),
+                this._storage.get_item_ids_from_store_using_index(
+                    "notes", "created_at_idx"
+                )
+            ])
+            let notes = data[0];
+            let note_ids = data[1];
+            let notes_map = {};
+            _.forEach(notes, (note) => {
+                notes_map[note.id] = note;
+            });
+
+            this._cache.notes = {
+                ids: note_ids,
+                map: notes_map,
+            };
+        }
+    }
+
+    invalidate_cache() {
+        this._cache = {};
+    }
+
+    invalidate_notes_cache() {
+        this._cache.notes = null;
+    }
+
+    async load_next_notes() {
+        let available_notes_count = this._state.notes.total_count - this._state.notes.items_shown_count;
+        if(available_notes_count > this._configuration.notes_per_page) {
+            available_notes_count = this._configuration.notes_per_page;
+        }
+        if(available_notes_count > 0) {
+            window.console.time("load_next_notes");
+            let note_ids_for_show = this._state.notes.ids.slice(
+                this._state.notes.items_shown_count,
+                this._state.notes.items_shown_count + available_notes_count
+            );
+
+            let notes_for_show = _.map(note_ids_for_show, (note_id) => {
+                return this._state.notes.items_map[note_id];
+            });
+            window.console.timeEnd("load_next_notes");
+    
+            this._state.notes.items_shown_count += available_notes_count;
+            this.trigger("append_notes", await this._wrap_notes(notes_for_show));
+        }
+    }
+
+    async _wrap_notes(items) {
+        window.console.time("_wrap_notes");
+        let result = [];
+        for(let index = 0; index < items.length; index++) {
+            let item = items[index];
+
+            let tags_map = await this.get_tags_map_from_cache();
+            let tag_ids = await this.get_tag_ids_of_note(item.id);
+            let tags = [];
+            for(let k = 0; k < tag_ids.length; k++) {
+                let tag_id = tag_ids[k];
+                tags.push(tags_map[tag_id]);
+            }
+            tags = _.orderBy(tags, "name");
+            result.push({
+                id: item.id,
+                tags: _.map(tags, function(item) {return item.id;}),
+                text: item.text,
+                text_highlighted: item.text_highlighted,
+                creation_time: item.created_at,
+            });
+        }
+        window.console.timeEnd("_wrap_notes");
+        return result;
+    }
+
+    async close() {
         if(this._working) {
+            this._storage.close();
             this._reset_internal_state();
-            this._reset_state();
-            this._storage.clear();
+            this._clear();
+            this._working = false;
             return true;    
         } else {
             return false;
         }
     }
 
-    // open_notepad() {
+    start_updates() {
+        this._schedule_tags_update = false;
+        this._schedule_notes_update = false;
+        this._schedule_note_filters_update = false;
+        this._updates_state = "pending";
+    }
 
-    // }
+    async end_updates() {
+        this._updates_state = "execute";
+        await this._reset_state();
+        this._updates_state = null;
+    }
 
-    import(objects) {
+    async import(db_name, objects) {
         if(!this._working) {
-            this._storage.import(objects);
-            this.sync();
-            return true;
+            this.invalidate_cache();
+            let sorted = this.sort_import_objects(objects);
+            // TODO validate
+            // TODO вызовет нарушение уникальности ключа
+            // await this.create(
+            //     db_name, sorted.info.notepad_name,
+            //     sorted.info.options
+            // );
+
+            this._options = sorted.info.options;
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+
+            let maps = await this.create_objects(sorted);
+            await this.sub_sync();
+            return maps;
         } else {
             return false;
         }
     }
 
-    export() {
-        return this._storage.export();
-    }
-
-    // save_notepad() {
-
-    // }
-
-    lock() {
-        this._password = null;
-        // удаляем все расшифрованные данные и удаляем ключ
-    }
-
-    unlock(password) {
-        // сохраняем ключ, выполняем расшифровку необходимых данных
-        // и формируем начальное состоянин
-
-        this._password = password;
-    }
-
-    is_tag_with_name_exists(name, current_tag_id) {
-        let tag_id, tag;
-        for(tag_id in this._data.tags) {
-            if(current_tag_id == tag_id) {
-                continue;
-            }
-            tag = this._data.tags[tag_id];
-            if(tag.name == name) {
-                return true;
+    sort_import_objects(objects) {
+        let sorted = {
+            info: null,
+            settings: {},
+            notes: {},
+            tags: {},
+            tag_notes: {},
+            note_filters: [],
+        }
+        let keys = _.keys(objects);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let object = _.cloneDeep(objects[key]);
+            let object_type = object.type;
+            delete object.type;
+            switch(object_type) {
+                case "setting":
+                    sorted.settings[key] = object;
+                    if(object.name == "info") {
+                        sorted.info = object;
+                    }
+                    break;
+                case "tag":
+                    sorted.tags[key] = object;
+                    break;
+                case "note":
+                    sorted.notes[key] = object;
+                    break;
+                case "tag_note":
+                    sorted.tag_notes[key] = object;
+                    break;
+                case "note_filter":
+                    sorted.note_filters.push(object);
+                    break;
+                default:
+                    // console.error("неизвестный тип объекта", object);
+                    break;
             }
         }
-        return false;
+        return sorted;
     }
 
-    create_tag(name) {
-        if(this.is_tag_with_name_exists(name)) {
+    async create_objects(sorted) {
+        let maps = {
+            settings: {},
+            notes: {},
+            tags: {},
+            tag_notes: {},
+        };
+        let keys;
+        keys = _.keys(sorted.settings);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let setting = sorted.settings[key];
+            maps.settings[key] = await this._storage.create_item_in_store(
+                "settings", setting
+            );
+        }
+        keys = _.keys(sorted.notes);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let note = sorted.notes[key];
+            maps.notes[key] = await this._storage.create_item_in_store("notes", note);
+        }
+        keys = _.keys(sorted.tags);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let tag = sorted.tags[key];
+            maps.tags[key] = await this._storage.create_item_in_store("tags", tag);
+        }
+        keys = _.keys(sorted.tag_notes);
+        for(let k = 0; k < keys.length; k++) {
+            let key = keys[k];
+            let tag_note = sorted.tag_notes[key];
+            tag_note = {
+                "tag_id": maps.tags[tag_note.tag_id],
+                "note_id": maps.notes[tag_note.note_id],
+            };
+            maps.tag_notes[key] = await this._storage.create_item_in_store(
+                "tag_notes", tag_note
+            );
+        }
+        for(let k = 0; k < sorted.note_filters.length; k++) {
+            let note_filter = sorted.note_filters[k];
+            let mapped_tag_ids = _.map(note_filter.tags, (id) => maps.tags[id]);
+            note_filter = {
+                name: note_filter.name,
+                tags: mapped_tag_ids,
+            };
+            await this.create_item_in_store("note_filters", note_filter);
+        }
+        return maps;
+    }
+
+    async export() {
+        let result = [];
+        let STORE_NAMES = [
+            ["settings", "setting"],
+            ["tags", "tag"],
+            ["notes", "note"],
+            ["tag_notes", "tag_note"],
+            ["note_filters", "note_filter"],
+        ];
+        for(let i = 0; i < STORE_NAMES.length; i++) {
+            let store_name = STORE_NAMES[i][0];
+            let type = STORE_NAMES[i][1];
+            let items = await this._storage.get_items_from_store(store_name);
+            for(let k = 0; k < items.length; k++) {
+                let item = items[k];
+                item.type = type;
+                result.push(item);
+            }
+        }
+        return result;
+    }
+
+    async is_tag_with_name_exists(name, current_tag_id) {
+        let exists = await this._storage.is_item_with_name_exists_in_store(
+            "tags", name, current_tag_id
+        );
+        return exists;
+    }
+
+    async create_tag(name) {
+        this.invalidate_tags_cache();
+        let is_exists = await this.is_tag_with_name_exists(name);
+        if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        let tag_id = this._storage.create({
-            "type": "tag",
+
+        let tag = {
             "name": name,
-        });
-        this.register_tag(this._storage.get(tag_id));
-        this._reset_tags();
+        };
+        let tag_id = await this._storage.create_item_in_store("tags", tag);
+        await this._reset_tags();
         return tag_id;
     }
 
-    edit_tag(id, name) {
-        if(this.is_tag_with_name_exists(name, id)) {
+    async edit_tag(id, name) {
+        this.invalidate_tags_cache();
+        let is_exists = await this.is_tag_with_name_exists(name, id);
+        if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
-        let tag = this._data.tags[id];
-        tag.name = name;
-        this._storage.set(id, tag);
-
-        this._reset_tags();
+        
+        let new_values = {"name": name};
+        await this._storage.edit_item_in_store("tags", id, new_values);
+        await this._reset_tags();
     }
 
-    delete_tag(id) {
-        this._storage.delete(id);
-        delete this._data.tags[id];
-        let note_ids = _.keys(this._data.notes_of_tag[id]);
-        for(let index = 0; index < note_ids.length; index++) {
-            let note_id = note_ids[index];
-            this.delete_tag_note(id, note_id);
+    async delete_tag(id) {
+        this.invalidate_tags_cache();
+        await this._storage.delete_item_in_store("tags", id);
+        // TODO в единую транзаецию
+        let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "tag_id_idx", id
+        );
+        for(let k = 0; k < tag_note_ids.length; k++) {
+            let tag_note_id = tag_note_ids[k];
+            await this._storage.delete_item_in_store("tag_notes", tag_note_id);
         }
-        delete this._data.notes_of_tag[id];
-        this._reset_notes();
-        this._reset_tags();
+
+        await this._reset_tags();
+        await this._reset_notes();
     }
 
-    delete_tag_note(tag_id, note_id) {
-        let tag_note_key = this.tag_note_key(tag_id, note_id);
-        let tag_note_id = this._data.tag_notes[tag_note_key].id;
-
-        this._storage.delete(tag_note_id);
-        delete this._data.tag_notes[tag_note_key];
-        delete this._data.tags_of_note[note_id][tag_id];
-        delete this._data.notes_of_tag[tag_id][note_id];
+    async delete_tag_note(tag_id, note_id) {
+        let tag_note_id = await this.get_tag_note_id(tag_id, note_id);
+        await this._storage.delete_item_in_store("tag_notes", tag_note_id);
     }
 
-    // list_tags(from, count) {
+    async get_tag_note_id(tag_id, note_id) {
+        // TODO композитные ключи?
+        let by_tag_id = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "tag_id_idx", tag_id
+        );
+        let by_note_id = await this._storage.get_item_ids_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
 
-    // }
+        let intersection = _.intersection(by_tag_id, by_note_id);
+        if(intersection.length == 1) {
+            return intersection[0];
+        } else {
+            throw new Error("get tag_note_id error");
+        }
+    }
 
-    create_note_filter(name, tags) {
-        let filter_id = this._storage.create({
-            "type": "note_filter",
+
+    async create_note_filter(name, tags) {
+        let note_filter = {
             "name": name,
             "tags": _.cloneDeep(tags),
-        });
-        this.register_note_filter(this._storage.get(filter_id));
+        };
+        let filter_id = await this._storage.create_item_in_store("note_filters", note_filter);
+        await this._reset_note_filters();
         return filter_id;
     }
 
-    delete_note_filter(note_filter_id) {
-        this._storage.delete(note_filter_id);
-        delete this._data.note_filters[note_filter_id];
-        this._reset_note_filters();
+    async delete_note_filter(note_filter_id) {
+        await this._storage.delete_item_in_store("note_filters", note_filter_id);
+        await this._reset_note_filters();
     }
 
-    edit_note_filter(note_filter_id, new_name) {
-        let data = this._data.note_filters[note_filter_id];
-        data.name = new_name;
-        this._storage.set(note_filter_id, data);
-        this._reset_note_filters();
+    async edit_note_filter(note_filter_id, new_name) {
+        let new_values = {"name": new_name};
+        await this._storage.edit_item_in_store("note_filters", note_filter_id, new_values);
+        await this._reset_note_filters();
     }
 
-    register_note_filter(note_filter) {
-        this._data.note_filters[note_filter.id] = note_filter;
-        this._reset_note_filters();
-        return note_filter.id;
-    }
-
-    _reset_note_filters() {
+    async _reset_note_filters() {
         if(this._updates_state == "pending") {
             this._schedule_note_filters_update = true;
             return
@@ -543,65 +720,58 @@ class Notepad {
             deletable: false,
             tags: [],
         };
-        let items = _.values(this._data.note_filters);
-        items = _.cloneDeep(items)
-        items = _.sortBy(items, "name");
-        _.forEach(items, (item) => item.deletable = true)
+        let items = await this._storage.get_items_from_store("note_filters");
+        _.forEach(items, (item) => {
+            item.deletable = true;
+        })
         items.unshift(all_items);
         this.trigger("reset_note_filters", items);
     }
 
-    is_note_filter_with_name_exists(name, current_id) {
-        let id, item;
-        for(id in this._data.note_filters) {
-            if(current_id == id) {
-                continue;
-            }
-            item = this._data.note_filters[id];
-            if(item.name == name) {
-                return true;
-            }
-        }
-        return false;
+    async is_note_filter_with_name_exists(name, current_id) {
+        let exists = await this.is_item_with_name_exists_in_store(
+            "note_filters", name, current_id
+        );
+        return exists;
     }
 
-    create_note(text, stamp, tags) {
-        let note_id = this._storage.create({
-            "type": "note",
+    async create_note(text, stamp, tags) {
+        this.invalidate_notes_cache();
+        let note = {
             "text": text,
             "created_at": stamp,
-        });
-        this.register_note(this._storage.get(note_id));
-        this.apply_note_tags(note_id, tags);
+        };
+        let note_id = await this._storage.create_item_in_store("notes", note);
+        await this.apply_note_tags(note_id, tags);
 
-        this._reset_notes();
-        this._reset_tags();
+        await this._reset_notes();
+        await this._reset_tags();
         return note_id;
     }
 
-    create_tag_note(tag_id, note_id) {
-        let tag_note_id = this._storage.create({
-            "type": "tag_note",
+    async create_tag_note(tag_id, note_id) {
+        let tag_note = {
             "tag_id": tag_id,
             "note_id": note_id,
-        });
-        let tag_note = this._storage.get(tag_note_id);
-        this.register_tag_note(tag_note);
+        };
+        return await this._storage.create_item_in_store("tag_notes", tag_note);
     }
 
-    edit_note(id, text, stamp, tags) {
-        let note = this._data.notes[id];
-        note.text = text;
-        note.created_at = stamp;
-        this._storage.set(id, note);
+    async edit_note(id, text, stamp, tags) {
+        this.invalidate_notes_cache();
 
-        this.apply_note_tags(id, tags);
-        this._reset_notes();
-        this._reset_tags();
+        let new_values = {
+            "text": text,
+            "created_at": stamp
+        };
+        await this._storage.edit_item_in_store("notes", id, new_values);
+        await this.apply_note_tags(id, tags);
+        await this._reset_notes();
+        await this._reset_tags();
     }
 
-    apply_note_tags(note_id, tag_ids) {
-        let old_tag_ids = _.keys(this._data.tags_of_note[note_id]);
+    async apply_note_tags(note_id, tag_ids) {
+        let old_tag_ids = await this.get_tag_ids_of_note(note_id);
 
         let new_tag_ids = _.difference(tag_ids, old_tag_ids);
         let deleted_tag_ids = _.difference(old_tag_ids, tag_ids);
@@ -609,26 +779,28 @@ class Notepad {
         let k, tag_id;
         for(k = 0; k < new_tag_ids.length; k++) {
             tag_id = new_tag_ids[k];
-            this.create_tag_note(tag_id, note_id);
+            await this.create_tag_note(tag_id, note_id);
         }
         for(k = 0; k < deleted_tag_ids.length; k++) {
             tag_id = deleted_tag_ids[k];
-            this.delete_tag_note(tag_id, note_id);
+            await this.delete_tag_note(tag_id, note_id);
         }
     }
 
-    delete_note(id) {
-        this._storage.delete(id);
-        delete this._data.notes[id];
-        this.apply_note_tags(id, []);
-        delete this._data.tags_of_note[id];
-        this._reset_notes();
-        this._reset_tags();
+    async delete_note(id) {
+        this.invalidate_notes_cache();
+        await this._storage.delete_item_in_store("notes", id);
+        await this.apply_note_tags(id, []);
+        await this._reset_notes();
+        await this._reset_tags();
     }
 
-    // list_notes(from, count) {
-
-    // }
+    async get_tag_ids_of_note(note_id) {
+        let tag_notes = await this._storage.get_items_from_store_using_index(
+            "tag_notes", "note_id_idx", note_id
+        );
+        return _.map(tag_notes, (item) => item.tag_id);
+    }
 }
 
 export default Notepad;

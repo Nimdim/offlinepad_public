@@ -44,6 +44,10 @@ export default {
       this.timers[id] = + new Date();
     },
 
+    error: function() {
+      this.messages.push("error: " + arguments.toString());
+    },
+
     timeEnd: function(id) {
       let start_time = this.timers[id];
       if(start_time != null) {
