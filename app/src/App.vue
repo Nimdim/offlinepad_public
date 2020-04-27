@@ -357,7 +357,6 @@ import sanitize_html from 'sanitize-html'
 
 sanitize_html.defaults.allowedTags = [];
  
-import Notepad from './js/notepad.js'
 import NotepadsList from './js/notepads_list.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
@@ -368,7 +367,7 @@ let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-let notepad = new Notepad();
+let notepad = null;
 let notepads_list = new NotepadsList();
 
 let NOTEPAD_CONTROLS = [
@@ -563,7 +562,6 @@ export default {
   },
 
   mounted: async function() {
-    await notepads_list.init();
     if(platform.os.family == "Android") {
       window.console = this.$refs.console;
     }
@@ -699,50 +697,71 @@ export default {
       await this.notepad_init();
     },
 
+    notepad_reset_tags: function(tags) {
+      this.tags.items = this.wrap_tags(tags);
+    },
+    notepad_append_tags: function(tags) {
+      this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
+    },
+    notepad_all_tags: function(tags) {
+      this.all_tags = tags;
+    },
+    notepad_reset_notes: function(notes) {
+      this.notes.items = this.wrap_notes(notes);
+    },
+    notepad_reset_notes_count: function(notes_count) {
+      this.notes.count = notes_count;
+    },
+    notepad_append_notes: function(notes) {
+      this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
+      this.notes_preloading = false;
+    },
+    notepad_reset_note_filters: function(items) {
+      this.note_filters = items;
+    },
+    notepad_reset_filter: function(filter) {
+      this.notes_filter_tags = filter.notes.tags;
+      if(this.section == "notes") {
+        this.sorting_order_asc = filter.notes.sorting_asc;
+        this.fast_search = filter.notes.text;
+      } else if(this.section == "tags") {
+        this.sorting_order_asc = filter.tags.sorting_asc;
+        this.fast_search = filter.tags.name;
+      } else {
+        throw new Error("error");
+      }
+    },
+
+    notepad_regster: function(instance) {
+      instance.on("reset_tags", this.notepad_reset_tags);
+      instance.on("append_tags", this.notepad_append_tags);
+      instance.on("all_tags", this.notepad_all_tags);
+      instance.on("reset_notes", this.notepad_reset_notes);
+      instance.on("reset_notes_count", this.notepad_reset_notes_count);
+      instance.on("append_notes", this.notepad_append_notes);
+      instance.on("reset_note_filters", this.notepad_reset_note_filters);
+      instance.on("reset_filter", this.notepad_reset_filter);
+    },
+    notepad_unregister: function(instance) {
+      instance.off("reset_tags", this.notepad_reset_tags);
+      instance.off("append_tags", this.notepad_append_tags);
+      instance.off("all_tags", this.notepad_all_tags);
+      instance.off("reset_notes", this.notepad_reset_notes);
+      instance.off("reset_notes_count", this.notepad_reset_notes_count);
+      instance.off("append_notes", this.notepad_append_notes);
+      instance.off("reset_note_filters", this.notepad_reset_note_filters);
+      instance.off("reset_filter", this.notepad_reset_filter);
+    },
+
     notepad_init: async function() {
-      notepad.on("reset_tags", (tags) => {
-        this.tags.items = this.wrap_tags(tags);
-      });
-      notepad.on("append_tags", (tags) => {
-        this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
-      });
-      notepad.on("all_tags", (tags) => {
-        this.all_tags = tags;
-      });
-
-      notepad.on("reset_notes", (notes) => {
-        this.notes.items = this.wrap_notes(notes);
-      });
-      notepad.on("reset_notes_count", (notes_count) => {
-        this.notes.count = notes_count;
-      });
-      notepad.on("append_notes", (notes) => {
-        this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
-        this.notes_preloading = false;
-      });
-
-      notepad.on("reset_note_filters", (items) => {
-        this.note_filters = items;
-      });
-
-      notepad.on("reset_filter", (filter) => {
-        this.notes_filter_tags = filter.notes.tags;
-        if(this.section == "notes") {
-          this.sorting_order_asc = filter.notes.sorting_asc;
-          this.fast_search = filter.notes.text;
-        } else if(this.section == "tags") {
-          this.sorting_order_asc = filter.tags.sorting_asc;
-          this.fast_search = filter.tags.name;
-        } else {
-          throw new Error("error");
-        }
-      });
-
-      if(notepads_list.databases["a_1"] == null) {
+      await notepads_list.init();
+      if(!notepads_list.has("a_1")) {
         this.notepad_working = false;
       } else {
         window.console.time("sync");
-        await notepad.sync("a_1")
+        notepad = await notepads_list.open("a_1");
+        this.notepad_regster(notepad);
+        await notepad._reset_state();
         window.console.timeEnd("sync");
         this.notepad_working = true;
       }
@@ -754,6 +773,8 @@ export default {
 
     notepad_delete: async function() {
       await notepad.close();
+      this.notepad_unregister(notepad);
+      notepad = null;
       await notepads_list.delete("a_1");
       this.notepad_delete_mode = false;
       this.notepad_working = false;
@@ -1080,8 +1101,10 @@ export default {
     notepad_menu: async function(command) {
       switch(command) {
         case "create":
+          notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
+          this.notepad_regster(notepad);
           await notepad.create("a_1", "Дневник", {encrypted: false});
-          await this.create_notepad_data();
+          await notepad._reset_state();
           this.notepad_working = true;
           break;
         case "open":
