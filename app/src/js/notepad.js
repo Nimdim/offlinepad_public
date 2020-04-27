@@ -8,6 +8,11 @@ if(global != null) {
 }
 
 class NotepadStorage extends IndexedDBStorage {
+    constructor() {
+        super()
+        this.DB_VERSION = 1;
+    }
+    
     _upgrade_needed(event) {
         let db = event.target.result;
         let store_options = { keyPath: "id", autoIncrement: true};
@@ -34,25 +39,21 @@ class NotepadStorage extends IndexedDBStorage {
 class Notepad {
     constructor() {
         _.extend(this, Backbone.Events);
+        this._configuration = {
+            "notes_per_page": 40,
+        };
+        this._reset_internal_state();
+    }
+
+    _reset_internal_state() {
         this._schedule_tags_update = false;
         this._schedule_notes_update = false;
         this._schedule_note_filters_update = false;
         this._updates_state = null;
-        this._configuration = {
-            "tags_per_page": 99999,
-            "notes_per_page": 40,
-        };
-        this._storage = new NotepadStorage();
-        this._reset_internal_state();
-    }
+        this._storage = null;// new NotepadStorage();
 
-    async init() {
-        await this._storage.init();
-    }
-
-    _reset_internal_state() {
-        this._set_working(false);
-        this._password = null;
+        this._working = false;
+        this._options = null;
         this._state = {
             "notes": [],
             "tags": [],
@@ -105,32 +106,53 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
-    async create() {
+    async create(db_name, name, options) {
+        /* Аргументы
+           db_name - название БД
+           name - название блокнота
+           options - настройки блокнота
+             encrypted - зашифрован true/false
+             key - ключ шифрования (если зашифрован)
+        */
         if(!this._working) {
-            let options = {
-                with_password: false,
-                password: null,
-            };
-            this._storage.set_options(options);
+            this._options = options;
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+            await this.create_notepad_info(name, options.encrypted);
+            // this._storage.set_options(options);
             this._reset_filter();
             await this._reset_state();
-            this._set_working(true);
+            this._working = true;
             return true;
         } else {
             return false;
         }
     }
 
-    async sync() {
+    async create_notepad_info(name, encrypted) {
+        let info = {
+            name: "info",
+            notepad_name: name,
+            encrypted: encrypted,
+        };
+        this._storage.create_item_in_store("settings", info);
+    }
+
+    async sub_sync() {
         this._reset_filter();
         await this._load_data();
         await this._reset_state();
-        this._set_working(this._working);
     }
 
-    _set_working(state) {
-        this._working = state;
-        this.trigger("working", this._working);
+    async sync(db_name) {
+        if(!this._working) {
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+            await this.sub_sync();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     async _load_data() {
@@ -163,6 +185,12 @@ class Notepad {
         await this._reset_tags();
         await this._reset_notes();
         await this._reset_note_filters();
+    }
+
+    _clear() {
+        this.trigger("reset_tags", []);
+        this.trigger("reset_notes", []);
+        this.trigger("reset_note_filters", []);
     }
 
     async _reset_tags() {
@@ -417,9 +445,10 @@ class Notepad {
 
     async close() {
         if(this._working) {
+            this._storage.close();
             this._reset_internal_state();
-            await this._storage.clear();
-            await this._reset_state();
+            this._clear();
+            this._working = false;
             return true;    
         } else {
             return false;
@@ -439,13 +468,23 @@ class Notepad {
         this._updates_state = null;
     }
 
-    async import(objects) {
+    async import(db_name, objects) {
         if(!this._working) {
             this.invalidate_cache();
             let sorted = this.sort_import_objects(objects);
             // TODO validate
+            // TODO вызовет нарушение уникальности ключа
+            // await this.create(
+            //     db_name, sorted.info.notepad_name,
+            //     sorted.info.options
+            // );
+
+            this._options = sorted.info.options;
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+
             let maps = await this.create_objects(sorted);
-            await this.sync();
+            await this.sub_sync();
             return maps;
         } else {
             return false;
@@ -454,6 +493,7 @@ class Notepad {
 
     sort_import_objects(objects) {
         let sorted = {
+            info: null,
             settings: {},
             notes: {},
             tags: {},
@@ -469,6 +509,9 @@ class Notepad {
             switch(object_type) {
                 case "setting":
                     sorted.settings[key] = object;
+                    if(object.name == "info") {
+                        sorted.info = object;
+                    }
                     break;
                 case "tag":
                     sorted.tags[key] = object;
@@ -497,13 +540,14 @@ class Notepad {
             tags: {},
             tag_notes: {},
         };
-        // TODO create INFO
         let keys;
         keys = _.keys(sorted.settings);
         for(let k = 0; k < keys.length; k++) {
             let key = keys[k];
             let setting = sorted.settings[key];
-            maps.settings[key] = await this._storage.create_item_in_store("settings", setting);
+            maps.settings[key] = await this._storage.create_item_in_store(
+                "settings", setting
+            );
         }
         keys = _.keys(sorted.notes);
         for(let k = 0; k < keys.length; k++) {
@@ -543,7 +587,6 @@ class Notepad {
 
     async export() {
         let result = [];
-        // TODO export info
         let STORE_NAMES = [
             ["settings", "setting"],
             ["tags", "tag"],

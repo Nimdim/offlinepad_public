@@ -358,6 +358,7 @@ import sanitize_html from 'sanitize-html'
 sanitize_html.defaults.allowedTags = [];
  
 import Notepad from './js/notepad.js'
+import NotepadsList from './js/notepads_list.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
@@ -367,7 +368,8 @@ let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-var notepad = new Notepad();
+let notepad = new Notepad();
+let notepads_list = new NotepadsList();
 
 let NOTEPAD_CONTROLS = [
   {id: "create", name: "Создать"},
@@ -561,6 +563,7 @@ export default {
   },
 
   mounted: async function() {
+    await notepads_list.init();
     if(platform.os.family == "Android") {
       window.console = this.$refs.console;
     }
@@ -697,7 +700,6 @@ export default {
     },
 
     notepad_init: async function() {
-      await notepad.init();
       notepad.on("reset_tags", (tags) => {
         this.tags.items = this.wrap_tags(tags);
       });
@@ -723,10 +725,6 @@ export default {
         this.note_filters = items;
       });
 
-      notepad.on("working", (working) => {
-        this.notepad_working = working;
-      });
-
       notepad.on("reset_filter", (filter) => {
         this.notes_filter_tags = filter.notes.tags;
         if(this.section == "notes") {
@@ -740,9 +738,14 @@ export default {
         }
       });
 
-      window.console.time("sync");
-      await notepad.sync()
-      window.console.timeEnd("sync");
+      if(notepads_list.databases["a_1"] == null) {
+        this.notepad_working = false;
+      } else {
+        window.console.time("sync");
+        await notepad.sync("a_1")
+        window.console.timeEnd("sync");
+        this.notepad_working = true;
+      }
     },
 
     update_service_worker: function() {
@@ -751,7 +754,9 @@ export default {
 
     notepad_delete: async function() {
       await notepad.close();
+      await notepads_list.delete("a_1");
       this.notepad_delete_mode = false;
+      this.notepad_working = false;
     },
 
     note_filter_add_gui_show: function() {
@@ -766,8 +771,6 @@ export default {
     },
 
     create_notepad_data: async function() {
-      await notepad._storage.create_notepad("Дневник");
-
       notepad.start_updates();
       let welcome_tag = await notepad.create_tag("добро пожаловать");
       let lesson_tag = await notepad.create_tag("обучение");
@@ -1007,9 +1010,9 @@ export default {
       notepad.delete_note(note_id);
     },
 
-    notepad_menu_mob: function(command) {
+    notepad_menu_mob: async function(command) {
       this.close_nav();
-      this.notepad_menu(command);
+      await this.notepad_menu(command);
     },
 
     long_str: function() {
@@ -1074,11 +1077,12 @@ export default {
       window.console.timeEnd("final");
     },
 
-    notepad_menu: function(command) {
+    notepad_menu: async function(command) {
       switch(command) {
         case "create":
-          notepad.create();
-          this.create_notepad_data();
+          await notepad.create("a_1", "Дневник", {encrypted: false});
+          await this.create_notepad_data();
+          this.notepad_working = true;
           break;
         case "open":
           this.upload();

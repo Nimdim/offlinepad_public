@@ -43,12 +43,19 @@ class IndexedDBStorage {
 
     }
 
-    init() {
+    close() {
+        this.db.close();
+    }
+
+    init(db_name) {
+        if(this.DB_VERSION == null) {
+            throw new Error("no DB_VERSION constant");
+        }
         if(this._upgrade_needed == null) {
             throw new Error("no _upgrade_needed function");
         }
         let promise = new Promise((resolve, reject) => {
-            let request = indexedDB.open("a_1", 1);
+            let request = indexedDB.open(db_name, this.DB_VERSION);
             request.onerror = (event) => {
                 reject(event);
             };
@@ -75,8 +82,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(new_id);
             };
-            transaction.onerror = () => {
-                reject();
+            transaction.onerror = (event) => {
+                // TODO при нарушении ограничений уникальности ошибка - сложно понять
+                reject(event.target._error);
             }
         });
         return promise;
