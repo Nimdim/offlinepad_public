@@ -59,6 +59,7 @@ describe("notepad simple tests", function() {
         reset_events();
         let create_result = await notepad.create(DB_NAME, NOTEPAD_NAME, NOTEPAD_OPTIONS);
         assert.equal(create_result, true);
+        await notepad._reset_state();
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
@@ -328,6 +329,7 @@ describe("notepad import export", function() {
         reset_events();
         maps = await notepad.import(DB_NAME, IMPORT_DATA);
         assert.notEqual(maps, false);
+        await notepad._reset_state();
        
         let EXPECTED_TAGS = [
             [
@@ -377,7 +379,6 @@ describe("notepad import export", function() {
         ];
         map_notes(EXPECTED_NOTES[0], maps);
 
-        let EXPECTED_WORKING = [true];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 

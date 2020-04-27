@@ -425,7 +425,7 @@ export default {
         error: null,
       },
 
-      section: "notes",
+      section: null,
 
       add_note_filter_show: false,
       blockerscreen_visible: false,
@@ -462,10 +462,12 @@ export default {
         filter = notepad.get_tags_filter();
         this.fast_search = filter.name;
         this.sorting_order_asc = filter.sorting_asc;
+        notepad._reset_tags();
       } else if (section == "notes") {
         filter = notepad.get_notes_filter();
         this.fast_search = filter.text;
         this.sorting_order_asc = filter.sorting_asc;
+        notepad._reset_notes();
       }
     },
 
@@ -757,9 +759,10 @@ export default {
         window.console.time("sync");
         notepad = await notepads_list.open("a_1");
         this.notepad_regster(notepad);
-        await notepad._reset_state();
+        // await notepad._reset_state();
         window.console.timeEnd("sync");
         this.notepad_working = true;
+        this.section = "notes";
       }
     },
 
@@ -768,6 +771,7 @@ export default {
     },
 
     notepad_delete: async function() {
+      this.section = null;
       await notepad.close();
       this.notepad_unregister(notepad);
       notepad = null;
@@ -1063,8 +1067,9 @@ export default {
           notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
           this.notepad_regster(notepad);
           await notepad.create("a_1", "Дневник", {encrypted: false});
-          await notepad._reset_state();
+          // await notepad._reset_state();
           this.notepad_working = true;
+          this.section = "notes";
           break;
         case "open":
           this.upload();

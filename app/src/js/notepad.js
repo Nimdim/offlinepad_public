@@ -121,7 +121,7 @@ class Notepad {
             await this.create_notepad_info(name, options.encrypted);
             // this._storage.set_options(options);
             this._reset_filter();
-            await this._reset_state();
+            // await this._reset_state();
             this._working = true;
             return true;
         } else {
@@ -141,7 +141,7 @@ class Notepad {
     async sub_sync() {
         this._reset_filter();
         await this._load_data();
-        await this._reset_state();
+        // await this._reset_state();
     }
 
     async sync(db_name) {
@@ -207,12 +207,10 @@ class Notepad {
 
         this._state.tags.items = await this._filter_tags();
         this.trigger("reset_tags", await this._wrap_tags(this._state.tags.items));
-        this.trigger("all_tags", _.sortBy(_.values(this._state.tags.all_items), "name"));
     }
 
     async _filter_tags() {
         let tags = await this.get_tags_from_cache();
-        this._state.tags.all_items = tags;
 
         // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
@@ -295,6 +293,9 @@ class Notepad {
     }
 
     async _filter_notes() {
+        let tags = await this.get_tags_from_cache();
+        this.trigger("all_tags", _.sortBy(_.values(tags), "name"));
+    
         window.console.time("_filter_notes");
         let note_ids = await this.get_notes_sorted_ids_from_cache();
         let notes_map = await this.get_notes_map_from_cache();
