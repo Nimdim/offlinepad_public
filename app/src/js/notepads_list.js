@@ -37,6 +37,8 @@ if(global == null) {
 //     }
 // }
 
+let NOTEPAD_DB_PREFIX = "a_";
+
 class NotepadsList {
     constructor() {
         _.extend(this, Backbone.Events);
@@ -51,6 +53,17 @@ class NotepadsList {
                 this.databases[database.name] = database.version
             }
         );
+    }
+
+    list() {
+        let list = []
+        _.forEach(this.databases, (version, name) => {
+            if(name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
+                list.push(name);
+            }
+        });
+        list = _.orderBy(list);
+        return list;
     }
 
     async delete(db_name) {
@@ -74,7 +87,7 @@ class NotepadsList {
     async open(db_name) {
         if(this.has(db_name)) {
             let notepad = new Notepad();
-            await notepad.sync("a_1");
+            await notepad.sync(db_name);
             return notepad;
         } else {
             return false;
@@ -84,7 +97,7 @@ class NotepadsList {
     async create(db_name, notepad_name, options) {
         if(!this.has(db_name)) {
             let notepad = new Notepad();
-            await notepad.create("a_1", notepad_name, options);
+            await notepad.create(db_name, notepad_name, options);
             await this.create_notepad_data(notepad);
             return notepad;
         } else {
@@ -95,7 +108,7 @@ class NotepadsList {
     async import(db_name, import_data) {
         if(!this.has(db_name)) {
             let notepad = new Notepad();
-            await notepad.import("a_1", import_data);
+            await notepad.import(db_name, import_data);
             return notepad;    
         } else {
             return false;

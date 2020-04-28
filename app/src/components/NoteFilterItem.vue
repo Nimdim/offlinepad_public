@@ -15,7 +15,7 @@
       <span v-else>
         {{data.name}}
       </span>
-      <template v-if="data.id.indexOf('internal_') == -1">
+      <template v-if="typeof(data.id) == 'number'">
         <template v-if="data.edit_state">
           <a class="waves-effect waves-teal btn-small right note-filter-btn"
             key="edit_submit"

@@ -764,6 +764,7 @@ export default {
         // await notepad._reset_state();
         window.console.timeEnd("sync");
         this.notepad_working = true;
+        await notepad._reset_note_filters();
         this.section = "notes";
       }
     },
@@ -930,6 +931,7 @@ export default {
         file, async (import_data) => {
           notepad = await notepads_list.import("a_1", import_data);
           this.notepad_working = true;
+          await notepad._reset_note_filters();
           this.section = "notes";
         }
       );
@@ -954,6 +956,7 @@ export default {
           notepad = await notepads_list.import("a_1", import_data);
           this.notepad_regster(notepad);
           this.notepad_working = true;
+          await notepad._reset_note_filters();
           this.section = "notes";
         }
       );
@@ -1094,6 +1097,7 @@ export default {
       await notepad.end_updates();
       window.console.timeEnd("final");
       this.notepad_working = true;
+      await notepad._reset_note_filters();
       this.section = "notes";
     },
 
@@ -1103,6 +1107,7 @@ export default {
           notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
           this.notepad_regster(notepad);
           this.notepad_working = true;
+          await notepad._reset_note_filters();
           this.section = "notes";
           break;
         case "open":

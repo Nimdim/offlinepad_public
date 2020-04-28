@@ -733,7 +733,7 @@ class Notepad {
     }
 
     async is_note_filter_with_name_exists(name, current_id) {
-        let exists = await this.is_item_with_name_exists_in_store(
+        let exists = await this._storage.is_item_with_name_exists_in_store(
             "note_filters", name, current_id
         );
         return exists;

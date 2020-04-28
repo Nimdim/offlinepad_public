@@ -432,7 +432,6 @@ describe("notepad import export", function() {
     it("export notepad", async function() {
         reset_events();
         let exported_data = await notepad.export();
-        // console.log(maps);
         let mapped_import_data = map_import_data(IMPORT_DATA, maps);
         let mapped_export_data = map_exported_data(exported_data);
         assert.deepEqual(mapped_export_data, mapped_import_data);
@@ -1621,5 +1620,52 @@ describe("notepad pagination with filtering", function() {
         await notepad.close();
         let notepads = new NotepadsList();
         await notepads.delete(DB_NAME);    
+    });
+});
+
+describe("notepads_list tests", function() {
+    let notepads_list = new NotepadsList();
+
+    it("initial zero elements", async function() {
+        await notepads_list.init();
+        let list = notepads_list.list();
+        let EXPECTED = [];
+        assert.deepEqual(list, EXPECTED);
+    });
+
+    it("first db created elements", async function() {
+        let notepad = await notepads_list.create("a_1", "name", {encrypted: false});
+        await notepad.close();
+        await notepads_list.init();
+
+        let list = notepads_list.list();
+        let EXPECTED = ["a_1"];
+        assert.deepEqual(list, EXPECTED);
+    });
+
+    it("second db created elements", async function() {
+        let notepad = await notepads_list.create("a_2", "name", {encrypted: false});
+        await notepad.close();
+        await notepads_list.init();
+
+        let list = notepads_list.list();
+        let EXPECTED = ["a_1", "a_2"];
+        assert.deepEqual(list, EXPECTED);
+    });
+
+    it("first db deleted elements", async function() {
+        await notepads_list.delete("a_1");
+
+        let list = notepads_list.list();
+        let EXPECTED = ["a_2"];
+        assert.deepEqual(list, EXPECTED);
+    });
+
+    it("second db deleted elements", async function() {
+        await notepads_list.delete("a_2");
+
+        let list = notepads_list.list();
+        let EXPECTED = [];
+        assert.deepEqual(list, EXPECTED);
     });
 });
