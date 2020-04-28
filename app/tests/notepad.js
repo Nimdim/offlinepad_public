@@ -74,6 +74,18 @@ describe("notepad simple tests", function() {
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
+    it("create tag with empty name must fail", async function() {
+        reset_events();
+        let error = false;
+        try {
+            await notepad.create_tag("");
+        }
+        catch(e) {
+            error = true;
+        }
+        assert.equal(error, true);
+    });
+
     it("create tag", async function() {
         reset_events();
         tag_id = await notepad.create_tag("test_tag");
@@ -82,6 +94,18 @@ describe("notepad simple tests", function() {
         ];
         let EXPECTED_NOTES = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("create tag with existing name must fail", async function() {
+        reset_events();
+        let error = false;
+        try {
+            await notepad.create_tag("test_tag");
+        }
+        catch(e) {
+            error = true;
+        }
+        assert.equal(error, true);
     });
 
     it("edit tag", async function() {
@@ -100,6 +124,19 @@ describe("notepad simple tests", function() {
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("create note with empty text must fail", async function() {
+        reset_events()
+        let error = false;
+        try {
+            await notepad.create_note("", 1111, []);
+        }
+        catch(e) {
+            error = true;
+        }
+        assert.equal(error, true);
+
     });
 
     it("create note", async function() {
@@ -1191,3 +1228,398 @@ describe("notepad pagination", function() {
     });
 });
 
+describe("notepad pagination with filtering", function() {
+    let IMPORT_DATA = {
+        1: {
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "test",
+        },
+    };
+
+    for(let k = 0; k < 2; k++) {
+        let id = (k + 2);
+        IMPORT_DATA[id] = {
+            "type": "tag",
+            "name": "тег " + k,
+        };
+    }
+
+    let notepad;
+    let notes = [];
+
+    for(let k = 0; k < 240; k++) {
+        let id = (k + 4);
+        let name = "альфа ";
+        let tags = [2];
+        if((k % 4) >= 2) {
+            tags = [3];
+        }
+        if(k % 2) {
+            name = "бета ";
+        }
+        IMPORT_DATA[id] = {
+            "type": "note",
+            "text": name + k,
+            "created_at": 1586634372660 + k,
+        };
+        notes.push({
+            "id": id,
+            "tags": tags,
+            "text_highlighted": undefined,
+            "text": name + k,
+            "creation_time": 1586634372660 + k,    
+        });
+    }
+
+    for(let k = 0; k < 240; k++) {
+        let id = (k + 1000);
+        let tag_id = 2;
+        if((k % 4) >= 2) {
+            tag_id = 3;
+        }
+        IMPORT_DATA[id] = {
+            "type": "tag_note",
+            "tag_id": tag_id,
+            "note_id": k + 4,
+        };    
+    }
+
+    let tags_events = [];
+    let notes_events = [];
+    let append_events = []
+
+    let reset_events = function() {
+        tags_events.splice(0, tags_events.length);
+        notes_events.splice(0, notes_events.length);
+        append_events.splice(0, append_events.length);
+    };
+    let assert_events = function(expected_tags, expected_notes) {
+        assert.deepEqual(tags_events, expected_tags);
+        assert.deepEqual(notes_events, expected_notes);
+    };
+
+    it("init", async function() {
+        notepad = new Notepad();
+        notepad.on("reset_tags", function(tags) {
+            tags_events.push(tags);
+        })
+        notepad.on("reset_notes", function(notes) {
+            notes_events.push(notes);
+        });
+        notepad.on("append_notes", function(notes) {
+            append_events.push(notes);
+        });        
+    });
+
+    it("no filter asc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"sorting_asc": true});
+        let EXPECTED_TAGS = [];
+
+        let notes_part = _.cloneDeep(notes.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes.slice(120, 160));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes.slice(160, 200));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes.slice(200, 240));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("no filter desc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"sorting_asc": false});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(notes);
+        notes_set.reverse();
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(120, 160));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(160, 200));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(200, 240));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("text filter asc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"text": "альфа", "sorting_asc": true});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return index % 2 == 0})
+        );
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("no filter desc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"text": "альфа", "sorting_asc": false});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return index % 2 == 0})
+        );
+        notes_set.reverse();
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("tag filter asc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"tags": [1], "sorting_asc": true});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return (index % 4) < 2})
+        );
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("tag filter desc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"tags": [1], "sorting_asc": false});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return (index % 4) < 2})
+        );
+        notes_set.reverse();
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 80));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(80, 120));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("tag and text filter asc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"tags": [1], "text": "альфа", "sorting_asc": true});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return (index % 4) == 0})
+        );
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 60));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+
+    it("tag and text filter asc initial", async function() {
+        let maps = await notepad.import(DB_NAME, IMPORT_DATA);
+        assert.notEqual(maps, false);
+        reset_events();
+        await notepad.set_notes_filter({"tags": [1], "text": "альфа", "sorting_asc": false});
+        let EXPECTED_TAGS = [];
+
+        let notes_set = _.cloneDeep(
+            _.filter(notes, (note, index) => {return (index % 4) == 0})
+        );
+        notes_set.reverse();
+        let notes_part = _.cloneDeep(notes_set.slice(0, 40));
+        map_notes(notes_part, maps);
+        let EXPECTED_NOTES = [notes_part];
+        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+
+        reset_events();
+        notes_part = _.cloneDeep(notes_set.slice(40, 60));
+        map_notes(notes_part, maps);
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, [notes_part]);
+
+        reset_events();
+        await notepad.load_next_notes();
+        assert.deepEqual(append_events, []);
+
+        await notepad.close();
+        let notepads = new NotepadsList();
+        await notepads.delete(DB_NAME);    
+    });
+});

@@ -13,6 +13,7 @@
     />
 
     <input type="file" ref="upload" style="display:none;" @change="do_upload" />
+    <input type="file" ref="upload_old" style="display:none;" @change="do_upload_old" />
 
     <notepad-empty-screen v-if="!notepad_working"
       :develop_mode="develop_mode"
@@ -373,6 +374,7 @@ let notepads_list = new NotepadsList();
 let NOTEPAD_CONTROLS = [
   {id: "create", name: "Создать"},
   {id: "open", name: "Открыть"},
+  {id: "open_old", name: "Открыть старый формат"},
   {id: "save", name: "Сохранить"},
   {id: "close", name: "Закрыть"},
 ];
@@ -540,9 +542,9 @@ export default {
     active_notepad_controls: function() {
       let items = [];
       if(this.notepad_working) {
-        items.push.apply(items, NOTEPAD_CONTROLS.slice(2, 4));
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(3, 5));
       } else {
-        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 2));
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 3));
       }
       items.push({id: "toggle_theme", name: "Переключить тему"});
       return items;
@@ -551,9 +553,9 @@ export default {
     active_notepad_controls_mob: function() {
       let items = [];
       if(this.notepad_working) {
-        items.push.apply(items, NOTEPAD_CONTROLS.slice(2, 4));
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(3, 5));
       } else {
-        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 2));
+        items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 3));
       }
       return items;
     },
@@ -916,6 +918,10 @@ export default {
       this.$refs.upload.click();
     },
 
+    upload_old: function() {
+      this.$refs.upload_old.click();
+    },
+
     do_upload: function() {
       let files = this.$refs.upload.files;
       let file = files[0];
@@ -923,6 +929,30 @@ export default {
       let reader = new PartialFileReader(
         file, async (import_data) => {
           notepad = await notepads_list.import("a_1", import_data);
+          this.notepad_working = true;
+          this.section = "notes";
+        }
+      );
+      reader.start();      
+    },
+
+    do_upload_old: function() {
+      let files = this.$refs.upload_old.files;
+      let file = files[0];
+
+      let reader = new PartialFileReader(
+        file, async (import_data) => {
+          _.forEach(import_data, (item) => {
+            if(item.type == "notepad") {
+              let name = item.name;
+              item.type = "setting";
+              item.name = "info";
+              item.notepad_name = name;
+              item.encrypted = false;
+            }
+          });
+          notepad = await notepads_list.import("a_1", import_data);
+          this.notepad_regster(notepad);
           this.notepad_working = true;
           this.section = "notes";
         }
@@ -1077,6 +1107,9 @@ export default {
           break;
         case "open":
           this.upload();
+          break;
+        case "open_old":
+          this.upload_old();
           break;
         case "save": {
           let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");

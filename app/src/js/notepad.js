@@ -421,10 +421,10 @@ class Notepad {
     async _wrap_notes(items) {
         window.console.time("_wrap_notes");
         let result = [];
+        let tags_map = await this.get_tags_map_from_cache();
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
 
-            let tags_map = await this.get_tags_map_from_cache();
             let tag_ids = await this.get_tag_ids_of_note(item.id);
             let tags = [];
             for(let k = 0; k < tag_ids.length; k++) {
@@ -616,11 +616,15 @@ class Notepad {
     }
 
     async create_tag(name) {
-        this.invalidate_tags_cache();
+        if(name == "") {
+            throw new Error("tag must have name");
+        }
         let is_exists = await this.is_tag_with_name_exists(name);
         if(is_exists) {
             throw new Error("tag with name '" + name + "' exists");
         }
+
+        this.invalidate_tags_cache();
 
         let tag = {
             "name": name,
@@ -736,7 +740,12 @@ class Notepad {
     }
 
     async create_note(text, stamp, tags) {
+        if(text == "") {
+            throw new Error("Note text must not be empty");
+        }
+
         this.invalidate_notes_cache();
+
         let note = {
             "text": text,
             "created_at": stamp,
