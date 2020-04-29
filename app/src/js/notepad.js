@@ -659,7 +659,6 @@ class Notepad {
         }
 
         await this._reset_tags();
-        await this._reset_notes();
     }
 
     async delete_tag_note(tag_id, note_id) {
@@ -686,6 +685,10 @@ class Notepad {
 
 
     async create_note_filter(name, tags) {
+        if(name == "") {
+            throw new Error("name must not be empty");
+        }
+
         let note_filter = {
             "name": name,
             "tags": _.cloneDeep(tags),
@@ -754,7 +757,6 @@ class Notepad {
         await this.apply_note_tags(note_id, tags);
 
         await this._reset_notes();
-        await this._reset_tags();
         return note_id;
     }
 
@@ -776,7 +778,6 @@ class Notepad {
         await this._storage.edit_item_in_store("notes", id, new_values);
         await this.apply_note_tags(id, tags);
         await this._reset_notes();
-        await this._reset_tags();
     }
 
     async apply_note_tags(note_id, tag_ids) {
@@ -801,7 +802,6 @@ class Notepad {
         await this._storage.delete_item_in_store("notes", id);
         await this.apply_note_tags(id, []);
         await this._reset_notes();
-        await this._reset_tags();
     }
 
     async get_tag_ids_of_note(note_id) {

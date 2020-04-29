@@ -39,10 +39,10 @@ describe("notepad simple tests", function() {
         tags_events.splice(0, tags_events.length);
         notes_events.splice(0, notes_events.length);
     };
-    let assert_events = function(expected_tags, expected_notes) {
-        assert.deepEqual(tags_events, expected_tags);
-        assert.deepEqual(notes_events, expected_notes);
-    }
+    // let assert_events = function(expected_tags, expected_notes) {
+    //     assert.deepEqual(tags_events, expected_tags);
+    //     assert.deepEqual(notes_events, expected_notes);
+    // }
 
     it("init", async function() {
         notepad = new Notepad();
@@ -62,7 +62,8 @@ describe("notepad simple tests", function() {
         await notepad._reset_state();
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("second create notepad must fail", async function() {
@@ -71,7 +72,8 @@ describe("notepad simple tests", function() {
         assert.equal(create_result, false);
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("create tag with empty name must fail", async function() {
@@ -93,7 +95,8 @@ describe("notepad simple tests", function() {
             [{id: tag_id, name: "test_tag", count: 0}],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("create tag with existing name must fail", async function() {
@@ -115,15 +118,17 @@ describe("notepad simple tests", function() {
             [{id: tag_id, name: "test_tag_new", count: 0}],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("delete tag", async function() {
         reset_events();
         await notepad.delete_tag(tag_id);
         let EXPECTED_TAGS = [[]];
-        let EXPECTED_NOTES = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        let EXPECTED_NOTES = [];
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("create note with empty text must fail", async function() {
@@ -153,11 +158,12 @@ describe("notepad simple tests", function() {
                 }
             ],
         ];
-        let EXPECTED_TAGS = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        let EXPECTED_TAGS = [];
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
-    it("edit tag",async  function() {
+    it("edit note", async function() {
         reset_events()
         await notepad.edit_note(note_id, "test note new text", 1111, []);
         let EXPECTED_NOTES = [
@@ -171,16 +177,18 @@ describe("notepad simple tests", function() {
                 }
             ],
         ];
-        let EXPECTED_TAGS = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        let EXPECTED_TAGS = [];
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
-    it("delete tag", async function() {
+    it("delete note", async function() {
         reset_events()
         await notepad.delete_note(note_id);
-        let EXPECTED_TAGS = [[]];
+        let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("close notepad", async function() {
@@ -189,8 +197,8 @@ describe("notepad simple tests", function() {
         assert.equal(close_result, true);
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
-        let EXPECTED_WORKING = [false];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("second close notepad must fail", async function() {
@@ -199,8 +207,8 @@ describe("notepad simple tests", function() {
         assert.equal(close_result, false);
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [];
-        let EXPECTED_WORKING = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        assert.deepEqual(tags_events, EXPECTED_TAGS);
+        assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
     it("delete db", async function() {
@@ -463,16 +471,19 @@ describe("notepad import export", function() {
     });
 });
 
-describe("notepad tags and notes", function() {
+describe("notepad tags and notes and filters", function() {
     let notepad;
     let tag_id1, tag_id2, tag_id3;
     let note_id1, note_id2;
+    let note_filter_id1, note_filter_id3;
     let tags_events = [];
     let notes_events = [];
+    let note_filters_events = [];
 
     let reset_events = function() {
         tags_events.splice(0, tags_events.length);
         notes_events.splice(0, notes_events.length);
+        note_filters_events.splice(0, note_filters_events.length);
     };
     let assert_events = function(expected_tags, expected_notes) {
         assert.deepEqual(tags_events, expected_tags);
@@ -487,7 +498,10 @@ describe("notepad tags and notes", function() {
         })
         notepad.on("reset_notes", function(notes) {
             notes_events.push(notes);
-        });        
+        });
+        notepad.on("reset_note_filters", function(note_filters) {
+            note_filters_events.push(note_filters);
+        });
     });
 
     it("create three tags", async function() {
@@ -517,6 +531,7 @@ describe("notepad tags and notes", function() {
     it("create note with two tags", async function() {
         reset_events();
         note_id1 = await notepad.create_note("note text1", 1111, [tag_id1, tag_id2]);
+        await notepad._reset_tags();
 
         let EXPECTED_TAGS = [
             [
@@ -542,6 +557,7 @@ describe("notepad tags and notes", function() {
     it("add tag to note", async function() {
         reset_events();
         await notepad.edit_note(note_id1, "note text1", 1111, [tag_id1, tag_id2, tag_id3]);
+        await notepad._reset_tags();
 
         let EXPECTED_TAGS = [
             [
@@ -566,6 +582,7 @@ describe("notepad tags and notes", function() {
     it("delete tag from note", async function() {
         reset_events();
         await notepad.edit_note(note_id1, "note text1", 1111, [tag_id1, tag_id3]);
+        await notepad._reset_tags();
 
         let EXPECTED_TAGS = [
             [
@@ -591,6 +608,7 @@ describe("notepad tags and notes", function() {
     it("delete note with tags", async function() {
         reset_events();
         await notepad.delete_note(note_id1);
+        await notepad._reset_tags();
 
         let EXPECTED_TAGS = [
             [
@@ -606,7 +624,9 @@ describe("notepad tags and notes", function() {
     it("create two notes with tags", async function() {
         reset_events();
         note_id1 = await notepad.create_note("note text1", 1111, [tag_id1, tag_id2]);
+        await notepad._reset_tags();
         note_id2 = await notepad.create_note("note text2", 1112, [tag_id2, tag_id3]);
+        await notepad._reset_tags();
 
         let EXPECTED_TAGS = [
             [
@@ -648,6 +668,122 @@ describe("notepad tags and notes", function() {
             ]
         ];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+    });
+
+    it("create note_filter with empty name must fail", async function() {
+        reset_events();
+        let error = false;
+        try {
+            await notepad.create_note_filter("", [tag_id1]);
+        }
+        catch(e) {
+            error = true;
+        }
+        assert.equal(error, true);
+    });
+
+    it("create note_filter with one tag", async function() {
+        reset_events();
+        note_filter_id1 = await notepad.create_note_filter("note filter1", [tag_id1]);
+
+        let EXPECTED_NOTE_FILTERS = [
+            [
+                {
+                    id: "internal_all",
+                    name: "Все",
+                    tags: [],
+                    deletable: false,
+                },
+                {
+                    id: note_filter_id1,
+                    name: "note filter1",
+                    tags: [tag_id1],
+                    deletable: true,
+                },
+            ]
+        ];
+        assert.deepEqual(note_filters_events, EXPECTED_NOTE_FILTERS);
+    });
+
+    it("create note_filter with three tags", async function() {
+        reset_events();
+        note_filter_id3 = await notepad.create_note_filter("note filter3", [tag_id1, tag_id2, tag_id3]);
+
+        let EXPECTED_NOTE_FILTERS = [
+            [
+                {
+                    id: "internal_all",
+                    name: "Все",
+                    tags: [],
+                    deletable: false,
+                },
+                {
+                    id: note_filter_id1,
+                    name: "note filter1",
+                    tags: [tag_id1],
+                    deletable: true,
+                },
+                {
+                    id: note_filter_id3,
+                    name: "note filter3",
+                    tags: [tag_id1, tag_id2, tag_id3],
+                    deletable: true,
+                },
+            ]
+        ];
+        assert.deepEqual(note_filters_events, EXPECTED_NOTE_FILTERS);
+    });
+
+    it("edit note_filter with three tags", async function() {
+        reset_events();
+        await notepad.edit_note_filter(note_filter_id3, "note filter3 edited");
+
+        let EXPECTED_NOTE_FILTERS = [
+            [
+                {
+                    id: "internal_all",
+                    name: "Все",
+                    tags: [],
+                    deletable: false,
+                },
+                {
+                    id: note_filter_id1,
+                    name: "note filter1",
+                    tags: [tag_id1],
+                    deletable: true,
+                },
+                {
+                    id: note_filter_id3,
+                    name: "note filter3 edited",
+                    tags: [tag_id1, tag_id2, tag_id3],
+                    deletable: true,
+                },
+            ]
+        ];
+        assert.deepEqual(note_filters_events, EXPECTED_NOTE_FILTERS);
+    });
+
+    it("delete note_filter with one tag", async function() {
+        reset_events();
+        await notepad.delete_note_filter(note_filter_id1);
+
+        let EXPECTED_NOTE_FILTERS = [
+            [
+                {
+                    id: "internal_all",
+                    name: "Все",
+                    tags: [],
+                    deletable: false,
+                },
+                {
+                    id: note_filter_id3,
+                    name: "note filter3 edited",
+                    tags: [tag_id1, tag_id2, tag_id3],
+                    deletable: true,
+                },
+            ]
+        ];
+        assert.deepEqual(note_filters_events, EXPECTED_NOTE_FILTERS);
     });
 
     it("close", async function() {
