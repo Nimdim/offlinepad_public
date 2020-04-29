@@ -1,50 +1,49 @@
 /* eslint no-fallthrough: "off" */
 import Backbone from "backbone";
 import _ from "lodash";
-// import IndexedDBStorage from "./indexeddb_storage.js";
+import IndexedDBStorage from "./indexeddb_storage.js";
 import Notepad from './notepad.js'
 
-
-let indexedDB;
-if(global == null) {
-    indexedDB = window.indexedDB;
-} else {
-    indexedDB = global.indexedDB;
+if(global != null) {
     var window = global;
 }
 
-// class NotepadStorage extends IndexedDBStorage {
-//     _upgrade_needed(event) {
-//         let db = event.target.result;
-//         let store_options = { keyPath: "id", autoIncrement: true};
-//         let index_options = {"unique": false};
-//         let unique_index = {"unique": true};
-//         switch(event.oldVersion) {
-//             case 0: {
-//                 let notes = db.createObjectStore("notes", store_options);
-//                 notes.createIndex("created_at_idx", "created_at", index_options);
-//                 let tags = db.createObjectStore("tags", store_options);
-//                 tags;
-//                 let tag_notes = db.createObjectStore("tag_notes", store_options);
-//                 tag_notes.createIndex("tag_id_idx", "tag_id", index_options);
-//                 tag_notes.createIndex("note_id_idx", "note_id", index_options);
-//                 let settings = db.createObjectStore("settings", store_options);
-//                 settings.createIndex("name_idx", "name", unique_index);
-//                 let note_filters = db.createObjectStore("note_filters", store_options);
-//                 note_filters;
-//             }
-//         }
-//     }
-// }
+class NotepadsListStorage extends IndexedDBStorage {
+    constructor() {
+        super()
+        this.DB_VERSION = 1;
+    }
+    
+    _upgrade_needed(event) {
+        let db = event.target.result;
+        let store_options = { keyPath: "id", autoIncrement: true};
+        // let index_options = {"unique": false};
+        let unique_index = {"unique": true};
+        switch(event.oldVersion) {
+            case 0: {
+                let notepads = db.createObjectStore("notepads", store_options);
+                notepads;
+                let pin_codes = db.createObjectStore("pin_codes", store_options);
+                pin_codes.createIndex("notepad_id_idx", "notepad_id", unique_index);
+            }
+        }
+    }
+}
 
 let NOTEPAD_DB_PREFIX = "a_";
 
 class NotepadsList {
     constructor() {
         _.extend(this, Backbone.Events);
+        this._storage = new NotepadsListStorage();
     }
 
     async init() {
+        await this._storage.init("main");
+        await this.reread_list();
+    }
+
+    async reread_list() {
         let databases = await indexedDB.databases();
         this.databases = {};
         _.forEach(
@@ -53,66 +52,106 @@ class NotepadsList {
                 this.databases[database.name] = database.version
             }
         );
+        let notepads = await this._storage.get_items_from_store("notepads");
+        notepads = _.orderBy(notepads, "name");
+        this.notepads = notepads;
     }
 
-    list() {
-        let list = []
-        _.forEach(this.databases, (version, name) => {
-            if(name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
-                list.push(name);
+    // list() {
+    //     let list = []
+    //     _.forEach(this.databases, (version, name) => {
+    //         if(name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
+    //             list.push(name);
+    //         }
+    //     });
+    //     list = _.orderBy(list);
+    //     return list;
+    // }
+
+    async delete(notepad_id) {
+        await this.reread_list();
+        if(this.has(notepad_id)) {
+            let pin_code_ids = await this._storage.get_item_ids_from_store_using_index(
+                "pin_codes", "notepad_id_idx", notepad_id
+            );
+            for(let k = 0; k < pin_code_ids.length; k++) {
+                let pin_code_id = pin_code_ids[k];
+                await this._storage.delete_item_in_store("pin_codes", pin_code_id);
+            }
+            await this._storage.delete_item_in_store("notepads", notepad_id);
+            let promise = new Promise((resolve, reject) => {
+                let request = indexedDB.deleteDatabase(NOTEPAD_DB_PREFIX + notepad_id);
+                request.addEventListener("success", () => {
+                    resolve();
+                });
+                request.addEventListener("error", () => {
+                    reject();
+                });
+            });
+            await promise;
+            await this.reread_list();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    has(notepad_id) {
+        let list = _.filter(this.notepads, (notepad) => {
+            return notepad.id == notepad_id;
+        });
+        return list.length > 0;
+    }
+
+    async open(notepad_id) {
+        if(this.has(notepad_id)) {
+            let notepad = new Notepad();
+            await notepad.sync(NOTEPAD_DB_PREFIX + notepad_id);
+            return notepad;
+        } else {
+            return false;
+        }
+    }
+
+    async _new_notepad_record(name, encrypted) {
+        let notepad = {
+            name: name,
+            encrypted: encrypted,
+        }
+        let notepad_id = await this._storage.create_item_in_store(
+            "notepads", notepad
+        );
+        return notepad_id;
+    }
+
+    async create(notepad_name, options) {
+        let notepad_id = await this._new_notepad_record(
+            notepad_name, options.encrypted
+        );
+        let notepad = new Notepad();
+        await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
+        // TODO вынести отсюда
+        // await this.create_notepad_data(notepad);
+        return {"id": notepad_id, "notepad": notepad};
+    }
+
+    async import(import_data) {
+        let info;
+        _.forEach(import_data, (item) => {
+            if(item.name == "info") {
+                info = item;
             }
         });
-        list = _.orderBy(list);
-        return list;
-    }
-
-    async delete(db_name) {
-        let promise = new Promise((resolve, reject) => {
-            let request = indexedDB.deleteDatabase(db_name);
-            request.addEventListener("success", () => {
-                resolve();
-            });
-            request.addEventListener("error", () => {
-                reject();
-            });
-        });
-        await promise;
-        await this.init();
-    }
-
-    has(db_name) {
-        return this.databases[db_name] != null;
-    }
-
-    async open(db_name) {
-        if(this.has(db_name)) {
-            let notepad = new Notepad();
-            await notepad.sync(db_name);
-            return notepad;
-        } else {
-            return false;
+        if(info == null) {
+            throw new Error("no info");
         }
-    }
-
-    async create(db_name, notepad_name, options) {
-        if(!this.has(db_name)) {
-            let notepad = new Notepad();
-            await notepad.create(db_name, notepad_name, options);
-            await this.create_notepad_data(notepad);
-            return notepad;
-        } else {
-            return false;
-        }
-    }
-
-    async import(db_name, import_data) {
-        if(!this.has(db_name)) {
-            let notepad = new Notepad();
-            await notepad.import(db_name, import_data);
-            return notepad;    
-        } else {
-            return false;
-        }
+        let notepad_id = await this._new_notepad_record(
+            info.notepad_name,
+            info.encrypted,
+        );
+        let notepad = new Notepad();
+        let maps = await notepad.import(NOTEPAD_DB_PREFIX + notepad_id, import_data);
+        return {"id": notepad_id, "notepad": notepad, "maps": maps};
     }
 
     async create_notepad_data(notepad) {
