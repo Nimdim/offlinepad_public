@@ -369,6 +369,7 @@ let escapeRegExp = function(string) {
 };
 
 let notepad = null;
+let notepad_id = null;
 let notepads_list = new NotepadsList();
 
 let NOTEPAD_CONTROLS = [
@@ -732,7 +733,7 @@ export default {
       }
     },
 
-    notepad_regster: function(instance) {
+    notepad_register: function(instance) {
       instance.on("reset_tags", this.notepad_reset_tags);
       instance.on("append_tags", this.notepad_append_tags);
       instance.on("all_tags", this.notepad_all_tags);
@@ -755,18 +756,54 @@ export default {
 
     notepad_init: async function() {
       await notepads_list.init();
-      if(!notepads_list.has("a_1")) {
+      if(notepads_list.notepads.length == 0) {
         this.notepad_working = false;
       } else {
-        window.console.time("sync");
-        notepad = await notepads_list.open("a_1");
-        this.notepad_regster(notepad);
-        // await notepad._reset_state();
-        window.console.timeEnd("sync");
+        let notepad_info = notepads_list.notepads[0]
+        notepad = await notepads_list.open(notepad_info.id);
+        notepad_id = notepad_info.id;
+        this.notepad_register(notepad);
         this.notepad_working = true;
         await notepad._reset_note_filters();
         this.section = "notes";
       }
+    },
+
+    async create_notepad_data(notepad) {
+        notepad.start_updates();
+        let welcome_tag = await notepad.create_tag("добро пожаловать");
+        let lesson_tag = await notepad.create_tag("обучение");
+        await notepad.create_note(
+          "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
+          + new Date(),
+          [welcome_tag, lesson_tag]
+        );
+        await notepad.create_note(
+            "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
+            + new Date() + 1,
+            [welcome_tag, lesson_tag]
+        );
+        await notepad.create_note(
+            "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
+            + new Date() + 2,
+            [welcome_tag, lesson_tag]
+        );
+        await notepad.create_note(
+            "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
+            + new Date() + 3,
+            [welcome_tag, lesson_tag]
+        );
+        await notepad.create_note(
+            "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
+            + new Date() + 4,
+            [welcome_tag, lesson_tag]
+        );
+        await notepad.create_note(
+            "Добро пожаловать, это первая запись вашего дневника.",
+            + new Date() + 5,
+            [welcome_tag]
+        );
+        await notepad.end_updates();
     },
 
     update_service_worker: function() {
@@ -777,8 +814,9 @@ export default {
       this.section = null;
       await notepad.close();
       this.notepad_unregister(notepad);
+      await notepads_list.delete(notepad_id);
       notepad = null;
-      await notepads_list.delete("a_1");
+      notepad_id = null;
       this.notepad_delete_mode = false;
       this.notepad_working = false;
     },
@@ -953,8 +991,10 @@ export default {
               item.encrypted = false;
             }
           });
-          notepad = await notepads_list.import("a_1", import_data);
-          this.notepad_regster(notepad);
+          let info = await notepads_list.import(import_data);
+          notepad = info.notepad;
+          notepad_id = info.id;
+          this.notepad_register(notepad);
           this.notepad_working = true;
           await notepad._reset_note_filters();
           this.section = "notes";
@@ -1043,7 +1083,7 @@ export default {
 
     test_create: async function(number) {
       notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
-      this.notepad_regster(notepad);
+      this.notepad_register(notepad);
 
       notepad.start_updates();
       window.console.time("all");
@@ -1103,13 +1143,17 @@ export default {
 
     notepad_menu: async function(command) {
       switch(command) {
-        case "create":
-          notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
-          this.notepad_regster(notepad);
+        case "create": {
+          let info = await notepads_list.create("Дневник", {encrypted: false});
+          notepad = info.notepad;
+          this.create_notepad_data(notepad);
+          notepad_id = info.id;
+          this.notepad_register(notepad);
           this.notepad_working = true;
           await notepad._reset_note_filters();
           this.section = "notes";
           break;
+        }
         case "open":
           this.upload();
           break;

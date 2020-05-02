@@ -4,9 +4,9 @@ import _ from "lodash";
 import IndexedDBStorage from "./indexeddb_storage.js";
 import Notepad from './notepad.js'
 
-if(global != null) {
-    var window = global;
-}
+// if(global != null) {
+//     var window = global;
+// }
 
 class NotepadsListStorage extends IndexedDBStorage {
     constructor() {
@@ -130,8 +130,6 @@ class NotepadsList {
         );
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
-        // TODO вынести отсюда
-        // await this.create_notepad_data(notepad);
         return {"id": notepad_id, "notepad": notepad};
     }
 
@@ -152,43 +150,6 @@ class NotepadsList {
         let notepad = new Notepad();
         let maps = await notepad.import(NOTEPAD_DB_PREFIX + notepad_id, import_data);
         return {"id": notepad_id, "notepad": notepad, "maps": maps};
-    }
-
-    async create_notepad_data(notepad) {
-        notepad.start_updates();
-        let welcome_tag = await notepad.create_tag("добро пожаловать");
-        let lesson_tag = await notepad.create_tag("обучение");
-        await notepad.create_note(
-          "Теперь вы знаете все необходимое. Не забывайте, что приложение все еще находится в разработке и при закрытии страницы все введенные данные не сохранятся.",
-          + new Date(),
-          [welcome_tag, lesson_tag]
-        );
-        await notepad.create_note(
-            "Для добавления новой записи или метки нажмите красную круглую кнопку в правом нижнем углу. Редактирование и удаление выполняется нажатием на соответствующие кнопки в самих записях или метках.",
-            + new Date() + 1,
-            [welcome_tag, lesson_tag]
-        );
-        await notepad.create_note(
-            "Еще правее находятся кнопки переключения разделов: Записи и Метки. Если вы открыли сайт с мобильного телефона, то не увидите этих кнопок - они доступны в меню в левой части экрана, которое открывается при проведении пальцем слева направо.",
-            + new Date() + 2,
-            [welcome_tag, lesson_tag]
-        );
-        await notepad.create_note(
-            "Правее находится кнопка сортировки. Для записей сортировка выполняется по дате создания, а для меток - по названию.",
-            + new Date() + 3,
-            [welcome_tag, lesson_tag]
-        );
-        await notepad.create_note(
-            "Наверху вы видите строку быстрого поиска по содержимому. При помощи нее вы можете отфильтровать элементы, которые содержат введенный текст.",
-            + new Date() + 4,
-            [welcome_tag, lesson_tag]
-        );
-        await notepad.create_note(
-            "Добро пожаловать, это первая запись вашего дневника.",
-            + new Date() + 5,
-            [welcome_tag]
-        );
-        await notepad.end_updates();
     }
   
 }
