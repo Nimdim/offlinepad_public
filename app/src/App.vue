@@ -1102,12 +1102,6 @@ export default {
     },
 
     test_create: async function(number) {
-      // notepad = await notepads_list.create("a_1", "Дневник", {encrypted: false});
-      // this.notepad_register(notepad);
-
-      // notepad.start_updates();
-      window.console.time("all");
-
       let tags = [];
       for(let k = 0; k < 10; k++) {
         tags.push({
@@ -1150,16 +1144,10 @@ export default {
           window.console.log("created " + (k + 1));
         }
       }
-      window.console.timeEnd("all");
-      window.console.time("final");
-      window.console.timeEnd("final");
       this.notepad_working = true;
       notepad.invalidate_cache();
       await notepad._reset_note_filters();
       await notepad._reset_notes();
-      // this.section = null;
-      // await this.$nextTick();
-      // this.section = "notes";
     },
 
     save_notepad_by_id: async function(notepad_id) {

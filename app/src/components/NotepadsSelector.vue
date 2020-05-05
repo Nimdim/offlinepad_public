@@ -1,6 +1,6 @@
 <template>
-  <full-screen-box :top="true">
-    выбор блокнотов
+  <full-screen-box :top="true" :fullscreen="true">
+    Блокноты
     <ul
       class="collection notepads-selector"
     >

@@ -5,6 +5,7 @@ import IndexedDBStorage from "./indexeddb_storage.js";
 
 if(global != null) {
     var window = global;
+    window;
 }
 
 class NotepadStorage extends IndexedDBStorage {
@@ -268,7 +269,6 @@ class Notepad {
     }
 
     async _wrap_tags(items) {
-        window.console.time("_wrap_tags");
         let result = [];
         for(let index = 0; index < items.length; index++) {
             let item = items[index];
@@ -281,7 +281,6 @@ class Notepad {
                 count: count,
             });
         }
-        window.console.timeEnd("_wrap_tags");
         return result;
     }
 
@@ -303,7 +302,6 @@ class Notepad {
         let tags = await this.get_tags_from_cache();
         this.trigger("all_tags", _.sortBy(_.values(tags), "name"));
     
-        window.console.time("_filter_notes");
         let note_ids = await this.get_notes_sorted_ids_from_cache();
         let notes_map = await this.get_notes_map_from_cache();
 
@@ -350,7 +348,6 @@ class Notepad {
         let notes_for_show = _.map(note_ids_for_show, (note_id) => {
             return notes_map[note_id];
         });
-        window.console.timeEnd("_filter_notes");
 
         this.trigger("reset_notes", await this._wrap_notes(notes_for_show));
         this.trigger("reset_notes_count", notes_total_count);
@@ -409,7 +406,6 @@ class Notepad {
             available_notes_count = this._configuration.notes_per_page;
         }
         if(available_notes_count > 0) {
-            window.console.time("load_next_notes");
             let note_ids_for_show = this._state.notes.ids.slice(
                 this._state.notes.items_shown_count,
                 this._state.notes.items_shown_count + available_notes_count
@@ -418,7 +414,6 @@ class Notepad {
             let notes_for_show = _.map(note_ids_for_show, (note_id) => {
                 return this._state.notes.items_map[note_id];
             });
-            window.console.timeEnd("load_next_notes");
     
             this._state.notes.items_shown_count += available_notes_count;
             this.trigger("append_notes", await this._wrap_notes(notes_for_show));
@@ -426,7 +421,6 @@ class Notepad {
     }
 
     async _wrap_notes(items) {
-        window.console.time("_wrap_notes");
         let result = [];
         let tags_map = await this.get_tags_map_from_cache();
         for(let index = 0; index < items.length; index++) {
@@ -447,7 +441,6 @@ class Notepad {
                 creation_time: item.created_at,
             });
         }
-        window.console.timeEnd("_wrap_notes");
         return result;
     }
 
