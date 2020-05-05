@@ -5,7 +5,7 @@
       style="width: 200px; height: 200px; color: gray;"
     />
     <p>
-      Блокнот еще не был создан. <a href="#!" @click="$emit('create')">Создайте</a> новый или <a href="#!" @click="$emit('open')">откройте</a> резервную копию.
+      Список записей пуст, создайте новую при помощи кнопки в правом нижнем углу.
     </p>
     <template v-if="develop_mode">
       <p>

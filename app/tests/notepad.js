@@ -1233,11 +1233,15 @@ class NotepadTestEvents {
         this.tags = [];
         this.notes = [];
         this.append = [];
+        this.info = []
         notepad.on("reset_tags", (tags) => {
             this.tags.push(tags);
         })
         notepad.on("reset_notes", (notes) => {
             this.notes.push(notes);
+        });
+        notepad.on("reset_info", (info) => {
+            this.info.push(info);
         });
         notepad.on("append_notes", (notes) => {
             this.append.push(notes);
@@ -1261,10 +1265,10 @@ class NotepadTestEvents {
     assert_append(EXPECTED) {
         assert.deepEqual(this.append, EXPECTED);
     }
-    // let assert_events = function(expected_tags, expected_notes) {
-    //     assert.deepEqual(tags_events, expected_tags);
-    //     assert.deepEqual(notes_events, expected_notes);
-    // };
+
+    assert_info(EXPECTED) {
+        assert.deepEqual(this.info, EXPECTED);
+    }
 }
 
 describe("notepad pagination", function() {
@@ -1910,6 +1914,245 @@ describe("notepads_list tests", function() {
         let result = await notepads_list.delete(notepad_id2);
         assert.equal(result, true);
 
+        let list = notepads_list.notepads;
+        let EXPECTED = [];
+        assert.deepEqual(list, EXPECTED);
+    });
+});
+
+describe("multi notepads tests", function() {
+    let notepads_list = new NotepadsList();
+
+    let IMPORT_DATA1 = {
+        1: {
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "TEST_1",
+            "encrypted": false,
+        },
+        2: {
+            "type": "tag",
+            "name": "Тег 1",
+        },
+        3: {
+            "type": "tag",
+            "name": "Тег 2",
+        },
+        4: {
+            "type": "note",
+            "text": "Запись 1",
+            "created_at": 1,
+        },
+        5: {
+            "type": "note",
+            "text": "Запись 2",
+            "created_at": 2,
+        },
+        6: {
+            "type": "note",
+            "text": "Запись 3",
+            "created_at": 3,
+        },
+        7: {
+            "type": "tag_note",
+            "tag_id": 2,
+            "note_id": 4,
+        },
+
+        8: {
+            "type": "tag_note",
+            "tag_id": 3,
+            "note_id": 5,
+        },
+
+        9: {
+            "type": "tag_note",
+            "tag_id": 2,
+            "note_id": 6,
+        },
+        10: {
+            "type": "tag_note",
+            "tag_id": 3,
+            "note_id": 6,
+        },
+    };
+
+    let IMPORT_DATA2 = {
+        1: {
+            "type": "setting",
+            "name": "info",
+            "notepad_name": "TEST_2",
+            "encrypted": false,
+        },
+        2: {
+            "type": "tag",
+            "name": "Тег 12",
+        },
+        3: {
+            "type": "tag",
+            "name": "Тег 22",
+        },
+        4: {
+            "type": "note",
+            "text": "Запись 12",
+            "created_at": 1,
+        },
+        5: {
+            "type": "note",
+            "text": "Запись 22",
+            "created_at": 2,
+        },
+        6: {
+            "type": "note",
+            "text": "Запись 32",
+            "created_at": 3,
+        },
+        7: {
+            "type": "tag_note",
+            "tag_id": 2,
+            "note_id": 4,
+        },
+
+        8: {
+            "type": "tag_note",
+            "tag_id": 3,
+            "note_id": 5,
+        },
+
+        9: {
+            "type": "tag_note",
+            "tag_id": 2,
+            "note_id": 6,
+        },
+        10: {
+            "type": "tag_note",
+            "tag_id": 3,
+            "note_id": 6,
+        },
+    };
+
+    let notepad_id1;
+    let notepad_id2;
+    let maps1;
+    let maps2;
+
+    it("initial zero notepads", async function() {
+        await notepads_list.init();
+        let EXPECTED = [];
+        assert.deepEqual(notepads_list.notepads, EXPECTED);
+    });
+
+    it("create two notepads", async function() {
+        let info = await notepads_list.import(IMPORT_DATA1);
+        notepad_id1 = info.id;
+        maps1 = info.maps;
+
+        await info.notepad.close();
+        await notepads_list.reread_list();
+
+        let list = notepads_list.notepads;
+        let EXPECTED = [
+            {
+                id: notepad_id1,
+                encrypted: false,
+                name: "TEST_1",
+            },
+        ];
+        assert.deepEqual(list, EXPECTED);
+
+        info = await notepads_list.import(IMPORT_DATA2);
+        notepad_id2 = info.id;
+        maps2 = info.maps;
+
+        await info.notepad.close();
+        await notepads_list.reread_list();
+
+        list = notepads_list.notepads;
+        EXPECTED = [
+            {
+                id: notepad_id1,
+                encrypted: false,
+                name: "TEST_1",
+            },
+            {
+                id: notepad_id2,
+                encrypted: false,
+                name: "TEST_2",
+            },
+        ];
+        assert.deepEqual(list, EXPECTED);
+    });
+
+    it("test first notepad data", async function() {
+        let notepad = await notepads_list.open(notepad_id1);
+        assert.notEqual(notepad, false);
+
+        let events = new NotepadTestEvents(notepad);
+        await notepad._reset_notes();
+        await notepad._reset_tags();
+        await notepad._reset_info();
+
+        let EXPECTED_NOTES = [[
+            {
+                "id": 6,
+                "text": "Запись 3",
+                "text_highlighted": undefined,
+                "creation_time": 3,
+                "tags": [2, 3],
+            },    
+            {
+                "id": 5,
+                "text": "Запись 2",
+                "text_highlighted": undefined,
+                "creation_time": 2,
+                "tags": [3],
+            },
+            {
+                "id": 4,
+                "text": "Запись 1",
+                "text_highlighted": undefined,
+                "creation_time": 1,
+                "tags": [2],
+            },
+        ]];
+        map_notes(EXPECTED_NOTES[0], maps1);
+        let EXPECTED_TAGS = [[
+            {
+                "id": 2,
+                "name": "Тег 1",
+                "count": 2,
+            },
+            {
+                "id": 3,
+                "name": "Тег 2",
+                "count": 2,
+            },
+        ]];
+        map_tags(EXPECTED_TAGS[0], maps1);
+        let EXPECTED_INFO = [
+            {
+                "notepad_name": "TEST_1",
+                "name": "info",
+                "encrypted": false,
+                "id": 1,
+            }
+        ];
+
+        events.assert_notes(EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_info(EXPECTED_INFO);
+
+        await notepad.close();
+    });
+
+    
+    it("delete both notepads", async function() {
+        let result = await notepads_list.delete(notepad_id1);
+        assert.equal(result, true);
+        result = await notepads_list.delete(notepad_id2);
+        assert.equal(result, true);
+
+        await notepads_list.reread_list();
         let list = notepads_list.notepads;
         let EXPECTED = [];
         assert.deepEqual(list, EXPECTED);

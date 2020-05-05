@@ -119,6 +119,7 @@ class Notepad {
             this._storage = new NotepadStorage();
             await this._storage.init(db_name);
             await this.create_notepad_info(name, options.encrypted);
+            this._reset_info();
             // this._storage.set_options(options);
             this._reset_filter();
             // await this._reset_state();
@@ -135,7 +136,8 @@ class Notepad {
             notepad_name: name,
             encrypted: encrypted,
         };
-        this._storage.create_item_in_store("settings", info);
+        await this._storage.create_item_in_store("settings", info);
+        this._state.info = info;
     }
 
     async sub_sync() {
@@ -163,6 +165,7 @@ class Notepad {
             this._working = false;
         } else{
             this._state.info = info;
+            this._reset_info();
             this._working = true;    
         }
     }
@@ -185,6 +188,10 @@ class Notepad {
         await this._reset_tags();
         await this._reset_notes();
         await this._reset_note_filters();
+    }
+
+    _reset_info() {
+        this.trigger("reset_info", this._state.info);
     }
 
     _clear() {

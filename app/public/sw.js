@@ -1,4 +1,4 @@
-const APP_VERSION = "0.108";
+const APP_VERSION = "0.110";
 
 const RESOURCES = [
   '/',
@@ -73,14 +73,17 @@ self.addEventListener('message', (event) => {
     case 'get_version':
       event.ports[0].postMessage(APP_VERSION);
       break;
-    case 'init':
+    case 'init': {
+      let data = {
+        "version": APP_VERSION,
+      };
       if(last_client != null) {
         last_client = null;
-        event.ports[0].postMessage({"updated": APP_VERSION});
-      } else {
-        event.ports[0].postMessage({});
+        data.updated = true;
       }
+      event.ports[0].postMessage(data);
       break;
+    }
   }
 });
 

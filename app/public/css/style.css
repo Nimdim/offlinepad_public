@@ -66,6 +66,11 @@ svg.mobile-menu-icon {
   color: #666;
 }
 
+nav ul div {
+  color: black;
+}
+
+
 .input-field input[type=search]:focus ~ svg {
   color: #777;
 }
@@ -231,4 +236,8 @@ textarea.materialize-textarea {
   margin-left: 10px;
   margin-top: 10px;
   margin-bottom: 10px;
+}
+
+.sidenav .divider {
+  margin: 0;
 }
