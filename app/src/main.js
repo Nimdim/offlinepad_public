@@ -2,7 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faHome, faLock, faArrowUp, faEdit, faTerminal, faSun, faMoon, faSave, faBoxOpen, faAngleDown, faAngleUp, faCaretDown, faSortAmountUp, faTh, faSortAmountDownAlt, faPlus, faTrash, faBars, faSearch, faTimes, faTimesCircle, faPen, faClock, faCheck, faCalendarAlt, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faBookOpen, faHome, faLock, faArrowUp, faEdit, faTerminal, faSun, faMoon, faSave, faBoxOpen, faAngleDown, faAngleUp, faCaretDown, faSortAmountUp, faTh, faSortAmountDownAlt, faPlus, faTrash, faBars, faSearch, faTimes, faTimesCircle, faPen, faClock, faCheck, faCalendarAlt, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
 import { faVk} from '@fortawesome/free-brands-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -10,11 +10,13 @@ library.add(faAngleDown)
 library.add(faAngleUp)
 library.add(faArrowUp)
 library.add(faBars)
+library.add(faBookOpen)
 library.add(faBoxOpen)
 library.add(faCalendarAlt)
 library.add(faCaretDown)
 library.add(faClock)
 library.add(faCheck)
+library.add(faDownload)
 library.add(faEdit)
 library.add(faExclamationTriangle)
 library.add(faHome)

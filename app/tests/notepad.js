@@ -214,6 +214,7 @@ describe("notepad simple tests", function() {
     });
 
     it("delete notepad", async function() {
+        console.log("notepad_id", notepad_id);
         let result = await notepads_list.delete(notepad_id);
         assert.equal(result, true);
     });
@@ -1866,7 +1867,9 @@ describe("notepads_list tests", function() {
             {
                 id: notepad_id1,
                 encrypted: false,
-                name: "np1",
+                name: "info",
+                notepad_name: "np1",
+                schema_type: "beta",
             },
         ];
         assert.deepEqual(list, EXPECTED);
@@ -1884,12 +1887,16 @@ describe("notepads_list tests", function() {
             {
                 id: notepad_id1,
                 encrypted: false,
-                name: "np1",
+                name: "info",
+                notepad_name: "np1",
+                schema_type: "beta",
             },
             {
                 id: notepad_id2,
                 encrypted: false,
-                name: "np2",
+                name: "info",
+                notepad_name: "np2",
+                schema_type: "beta",
             },
         ];
         assert.deepEqual(list, EXPECTED);
@@ -1904,7 +1911,9 @@ describe("notepads_list tests", function() {
             {
                 id: notepad_id2,
                 encrypted: false,
-                name: "np2",
+                name: "info",
+                notepad_name: "np2",
+                schema_type: "beta",
             },
         ];
         assert.deepEqual(list, EXPECTED);
@@ -1929,6 +1938,7 @@ describe("multi notepads tests", function() {
             "name": "info",
             "notepad_name": "TEST_1",
             "encrypted": false,
+            "schema_type": "beta",
         },
         2: {
             "type": "tag",
@@ -1983,6 +1993,7 @@ describe("multi notepads tests", function() {
             "name": "info",
             "notepad_name": "TEST_2",
             "encrypted": false,
+            "schema_type": "beta",
         },
         2: {
             "type": "tag",
@@ -2055,7 +2066,9 @@ describe("multi notepads tests", function() {
             {
                 id: notepad_id1,
                 encrypted: false,
-                name: "TEST_1",
+                name: "info",
+                notepad_name: "TEST_1",
+                schema_type: "beta",
             },
         ];
         assert.deepEqual(list, EXPECTED);
@@ -2072,12 +2085,16 @@ describe("multi notepads tests", function() {
             {
                 id: notepad_id1,
                 encrypted: false,
-                name: "TEST_1",
+                name: "info",
+                notepad_name: "TEST_1",
+                schema_type: "beta",
             },
             {
                 id: notepad_id2,
                 encrypted: false,
-                name: "TEST_2",
+                name: "info",
+                notepad_name: "TEST_2",
+                schema_type: "beta",
             },
         ];
         assert.deepEqual(list, EXPECTED);
@@ -2134,6 +2151,7 @@ describe("multi notepads tests", function() {
                 "notepad_name": "TEST_1",
                 "name": "info",
                 "encrypted": false,
+                "schema_type": "beta",
                 "id": 1,
             }
         ];

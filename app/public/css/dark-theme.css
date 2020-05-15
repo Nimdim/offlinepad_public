@@ -24,6 +24,10 @@ textarea,
   fill: rgb(220, 243, 255);
 }
 
+.highlight {
+  color: darkorange;
+}
+
 nav,
 .notes_extended_filter,
 .dropdown-content,

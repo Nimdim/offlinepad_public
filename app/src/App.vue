@@ -33,6 +33,12 @@
     >
       <li>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span v-if="notes_filter_tags.length != 0">
+            Фильтр по тегам:<br>
+          </span>
+          <span v-else>
+            Для добавления тега в фильтр нажмите на кнопку
+          </span>
           <tags-list
             :initial_tags="notes_filter_tags"
             :all_tags="all_tags"
@@ -44,13 +50,13 @@
           <a v-if="!add_note_filter_show"
             class="waves-effect waves-teal btn-small right tag_delete_btn"
             @click.prevent="note_filter_add_gui_show">
-            Сохранить как
+            Создать раздел
           </a>
         </p>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;" v-if="add_note_filter_show">
           <input
             ref="new_note_filter_name"
-            placeholder="Введите название раздела"
+            placeholder="Название раздела"
             type="text"
             class="validate filter_name text-input--standart-style"
             :class="{'error': new_note_filter.error}"
@@ -269,21 +275,6 @@
       </div>
     </nav>
 
-    <transition name="fade">
-      <update-popup v-if="update_available"
-        :version="update_available"
-        @focus="blockerscreen_visible = $event"
-        @update="update_service_worker"
-      />
-    </transition>
-
-    <transition name="fade">
-      <update-done-popup v-if="update_done"
-        :version="app_version"
-        @close="update_done = false"
-      />
-    </transition>
-
     <develop-console-screen v-show="develop_console"
       ref="console"
       @close="develop_console = false"
@@ -325,15 +316,44 @@
       <blocker-screen v-if="blockerscreen_visible"/>
     </transition>
     <features-not-available-screen v-if="features_unawailable" />
+
     <transition name="fade">
       <notepads-selector v-if="!notepad_working"
         :items="notepads"
         @create="notepad_menu('create', $event)"
+        @import="notepad_menu('import', $event)"
         @open="notepad_init($event)"
         @save="save_notepad_by_id($event)"
         @remove="delete_notepad_by_id($event)"
       />
     </transition>
+
+    <transition name="fade">
+      <import-screen v-if="importing"
+        :progress="import_progress"
+        :import_error="import_error"
+        @close="importing = false"
+        @abort="import_abort = true"
+      />
+    </transition>
+
+    <transition name="fade">
+      <update-popup v-if="update_available"
+        style="z-index: 2002"
+        :version="update_available"
+        @focus="blockerscreen_visible = $event"
+        @update="update_service_worker"
+      />
+    </transition>
+
+    <transition name="fade">
+      <update-done-popup v-if="update_done"
+        style="z-index: 2002"
+        :version="app_version"
+        @close="update_done = false"
+      />
+    </transition>
+
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
@@ -363,6 +383,7 @@ import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
 import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
 import NotepadsSelector from './components/NotepadsSelector.vue'
+import ImportScreen from './components/ImportScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
 import TagItem from './components/TagItem.vue'
@@ -398,9 +419,13 @@ let notepads_list = new NotepadsList();
 //   {id: "close", name: "Закрыть"},
 // ];
 
+let text_highlight = function(text) {
+  return "<b class='highlight'>" + text + "</b>";
+};
+
 let sleep = function(seconds) {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
+};
 
 export default {
   name: 'app',
@@ -413,6 +438,7 @@ export default {
     FeaturesNotAvailableScreen,
     BlockerScreen,
     DevelopConsoleScreen,
+    ImportScreen,
     NotepadsSelector,
     NoteItem,
     NoteFilterItem,
@@ -462,6 +488,11 @@ export default {
       processing: false,
       warningscreen_visible: true,
       notepads: [],
+
+      importing: false,
+      import_progress: 0,
+      import_error: null,
+      import_abort: false,
 
       notes_filter_tags: [],
       fast_search: "",
@@ -929,7 +960,7 @@ export default {
       if(this.item_being_edited != null) {
         this.item_being_edited.$el.scrollIntoView();
       }
-    }, 1000),
+    }, 100),
 
     process_note_items_scroll: function(scroll_top) {
       if(this.$refs.note_items != null) {
@@ -973,7 +1004,7 @@ export default {
       for(k = 0; k < tags.length; k++) {
         item = tags[k];
         let text = sanitize_html(item.name);
-        item.name_highlighted = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
+        item.name_highlighted = text.replace(new RegExp(this.fast_search, "g"), text_highlight(this.fast_search));
       }
       return tags;
     },
@@ -1034,7 +1065,8 @@ export default {
         item = notes[k];
         let text = sanitize_html(item.text);
         if(this.fast_search.length > 0) {
-          text = text.replace(new RegExp(this.fast_search, "g"), "<b>" + this.fast_search + "</b>");
+          text = text.replace(new RegExp(this.fast_search, "g"), 
+          text_highlight(this.fast_search));
         }
         item.text_highlighted = text;
       }
@@ -1045,6 +1077,7 @@ export default {
       if(data.name == "") {
         data.error = "empty"
         data.edit_state = true;
+        this.tag_edit_state_changed(data);
         return;
       }
       if(data.id == "__new_item__") {
@@ -1079,6 +1112,12 @@ export default {
     },
 
     submit_note: function(data) {
+      if(data.text == "") {
+        data.error = "empty"
+        data.edit_state = true;
+        this.note_edit_state_changed(data);
+        return;
+      }
       this.note_index_add = null;
       if(data.id == "__new_item__") {
         notepad.create_note(data.text, data.creation_time, data.tags);
@@ -1166,8 +1205,9 @@ export default {
     // },
 
     export_notepad: async function(notepad) {
+      debugger
       let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-      let filename = "data_" + stamp + ".txt";
+      let filename = notepad._state.info.notepad_name + " " + stamp + ".txt";
       let data = await notepad.export();
       let data_serialized = "";
       for(let k = 0; k < data.length; k++) {
@@ -1224,6 +1264,8 @@ export default {
     notepad_menu: async function(command, arg) {
       switch(command) {
         case "create": {
+          this.loadscreen_visible = true;
+          await sleep(0.5);
           let info = await notepads_list.create(arg, {encrypted: false});
           notepad = info.notepad;
           notepad_id = info.id;
@@ -1234,6 +1276,8 @@ export default {
           this.section = "notes";
           await notepads_list.reread_list();
           this.notepads = _.cloneDeep(notepads_list.notepads);
+          await sleep(0.5);
+          this.loadscreen_visible = false;
           break;
         }
         case "open":
@@ -1242,9 +1286,128 @@ export default {
         case "open_old":
           this.upload_old();
           break;
+        case "import": {
+          this.import_error = null;
+          this.import_abort = false;
+          this.importing = true;
+          await sleep(0.5);
+          let name = arg.name;
+          let file = arg.file;
+
+          let info = await notepads_list.create_empty(name, {encrypted: false});
+          notepad = info.notepad;
+          notepad_id = info.id;
+
+          let accumulator = [];
+          let old_ids = [];
+          let TYPES = [
+            ["settings", "setting"],
+            ["tags", "tag"],
+            ["notes", "note"],
+            ["tag_notes", "tag_note"],
+            ["note_filters", "note_filter"],
+          ];
+          let type_selector = 0;
+          let current_type = TYPES[type_selector];
+          let maps = {
+            settings: {},
+            tags: {},
+            notes: {},
+            tag_notes: {},
+            note_filters: {},
+          };
+
+          let info_object_recved = false;
+
+          let write_accumulator = async () => {
+            let ids = await notepad._storage.create_items_in_store(
+              current_type[0], accumulator
+            );
+            for(let k = 0; k < old_ids.length; k++) {
+              maps[current_type[0]][old_ids[k]] = ids[k];
+            }
+            old_ids = [];
+            accumulator = [];
+          };
+
+          let add_to_accumulator = (id, object) => {
+            accumulator.push(object);
+            old_ids.push(id);
+          };
+
+          let object_recved = async (object, progress) => {
+            if(this.import_abort) {
+              this.import_error = "Прервано";
+              return;
+            }
+            this.import_progress = Math.floor(progress * 100);
+            let id = object.id;
+            let type = object.type;
+            object = _.cloneDeep(object);
+            if(!info_object_recved) {
+              if((type == "setting") &&
+                 (object.name == "info") &&
+                 (object.schema_type == "beta")) {
+                object.notepad_name = name;
+                info_object_recved = true;
+              }
+              // Не пришел объект с настройками блокнота, или не там схема
+              if(!info_object_recved) {
+                this.import_error = "Неверная схема данных";
+                reader.abort();
+              }
+            }
+            if(type == "tag_note") {
+              object.tag_id = maps.tags[object.tag_id];
+              object.note_id = maps.notes[object.note_id];
+            }
+            if(type == "note_filter") {
+              object.tags = _.map(object.tags, (tag_id) => maps.tags[tag_id]);
+            }
+            delete object.id;
+            delete object.type;
+            if(type == current_type[1]) {
+              add_to_accumulator(id, object);
+              if(accumulator.length >= 100) {
+                await write_accumulator();
+              }
+            } else {
+              await write_accumulator();
+              while(type_selector < TYPES.length) {
+                type_selector += 1;
+                current_type = TYPES[type_selector];
+                if(type == current_type[1]) {
+                  add_to_accumulator(id, object);
+                  break;
+                }
+              }
+            }
+          };
+          let reader = new PartialFileReader(file, object_recved);
+          await reader.start();
+          write_accumulator();
+          if(this.import_error == null) {
+            this.notepad_register(notepad);
+            this.section = "notes";
+            await notepad.sub_sync();
+            await notepad._reset_note_filters();
+            this.notepad_working = true;
+            await sleep(0.5);
+            this.importing = false;
+          } else {
+            await notepad.close();
+            await notepads_list.delete(notepad_id);
+            notepad = null;
+            notepad_id = null;
+          }
+          await notepads_list.reread_list();
+          this.notepads = _.cloneDeep(notepads_list.notepads);
+          break;
+        }
         case "save": {
+          debugger
           let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-          let filename = "data_" + stamp + ".txt";
+          let filename = this.info.notepad_name + " " + stamp + ".txt";
           let data = JSON.stringify(notepad.export());
           // this.download(filename, data);
 
@@ -1349,7 +1512,7 @@ export default {
         this.$refs.new_note_filter_name.focus();
       } else if(name == "") {
         this.new_note_filter.error = true;
-        this.new_note_filter.error_text = "Введите название раздела";
+        this.new_note_filter.error_text = "Название раздела не может быть пустым";
         this.$refs.new_note_filter_name.focus();
       } else {
         await notepad.create_note_filter(name, this.notes_filter_tags);

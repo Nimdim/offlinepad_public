@@ -75,6 +75,12 @@
       </p>
 
 
+      <span v-if="error_text"
+        class="red-text left"
+        style="font-size: 10px; line-height: 10px;"
+      >
+        {{error_text}}
+      </span>
       <textarea v-if="data.edit_state"
         ref="textarea"
         class="materialize-textarea"
@@ -165,11 +171,24 @@ export default {
     }
   },
 
+  computed: {
+    error_text: function() {
+      if(this.data.error == "empty") {
+        return "Текст заметки не может быть пустым";
+      }
+      return null;
+    },
+  },
+
   watch: {
     "data.edit_state": function(value) {
+      this.$emit("edit_state_changed", this.data);
       if(value) {
         this.enter_edit_state();
       }
+    },
+    "data.text": function() {
+      this.data.error = null;
     },
   },
 
@@ -181,6 +200,7 @@ export default {
     if(data.data.edit_state == null) {
       data.data.edit_state = false;
     }
+    data.data.error = null;
     this.$emit("edit_state_changed", data.data);
     return data;
   },

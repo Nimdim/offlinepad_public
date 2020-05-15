@@ -30,6 +30,17 @@ class NotepadsListStorage extends IndexedDBStorage {
     }
 }
 
+class NotepadReaderStorage extends IndexedDBStorage {
+    constructor(version) {
+        super()
+        this.DB_VERSION = version;
+    }
+    
+    _upgrade_needed() {
+        throw new Error("must not be called");
+    }
+}
+
 let NOTEPAD_DB_PREFIX = "a_";
 
 class NotepadsList {
@@ -45,15 +56,45 @@ class NotepadsList {
 
     async reread_list() {
         let databases = await indexedDB.databases();
+        let promises = [];
+        let notepad_db_names = [];
         this.databases = {};
         _.forEach(
             databases,
             (database) => {
-                this.databases[database.name] = database.version
+                this.databases[database.name] = database.version;
+                if(database.name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
+                    notepad_db_names.push(database.name);
+                    let reader = new NotepadReaderStorage(database.version);
+                    let info_;
+                    let promise = reader.init(database.name).then(
+                        () => {
+                            return reader.get_item_from_store_using_index(
+                                "settings", "name_idx", "info"
+                            );
+                        }
+                    ).then(
+                        (info) => {
+                            info_ = info;
+                            return reader.close();
+                        }
+                    ).then(() => {return info_;})
+                    promises.push(promise);
+                }
             }
         );
-        let notepads = await this._storage.get_items_from_store("notepads");
-        notepads = _.orderBy(notepads, "name");
+
+        let notepads = await Promise.all(promises);
+        debugger
+        notepads = _.orderBy(notepads, "notepad_name");
+        _.forEach(
+            notepads,
+            (item, index) => {
+                debugger
+                let db_name = notepad_db_names[index];
+                item.id = parseInt(db_name.replace(NOTEPAD_DB_PREFIX, ""));
+            }
+        );
         this.notepads = notepads;
     }
 
@@ -130,6 +171,15 @@ class NotepadsList {
         );
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
+        return {"id": notepad_id, "notepad": notepad};
+    }
+
+    async create_empty(notepad_name, options) {
+        let notepad_id = await this._new_notepad_record(
+            notepad_name, options.encrypted
+        );
+        let notepad = new Notepad();
+        await notepad.create_empty(NOTEPAD_DB_PREFIX + notepad_id);
         return {"id": notepad_id, "notepad": notepad};
     }
 

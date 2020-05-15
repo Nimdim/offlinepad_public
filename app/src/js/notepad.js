@@ -131,11 +131,32 @@ class Notepad {
         }
     }
 
+    async create_empty(db_name, options) {
+        /* Аргументы
+           db_name - название БД
+           name - название блокнота
+           options - настройки блокнота
+             encrypted - зашифрован true/false
+             key - ключ шифрования (если зашифрован)
+        */
+        if(!this._working) {
+            this._options = options;
+            this._storage = new NotepadStorage();
+            await this._storage.init(db_name);
+            // this._working = true;
+            // return true;
+        }
+        //  else {
+        //     // return false;
+        // }
+    }
+
     async create_notepad_info(name, encrypted) {
         let info = {
             name: "info",
             notepad_name: name,
             encrypted: encrypted,
+            schema_type: "beta",
         };
         await this._storage.create_item_in_store("settings", info);
         this._state.info = info;

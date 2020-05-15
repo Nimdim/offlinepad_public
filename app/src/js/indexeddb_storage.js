@@ -105,8 +105,8 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(result);
             };
-            transaction.onerror = () => {
-                reject();
+            transaction.onerror = (event) => {
+                reject(event.target.error);
             }
         });
         return promise;
