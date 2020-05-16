@@ -7,19 +7,51 @@ let BLOCK_SIZE = 1024 * 100;
 //     // return decodedString;
 // }
 
+let slice_file = function(file, begin, end) {
+    let blob;
+    if (file.webkitSlice) {
+        blob = file.webkitSlice(begin, end);
+    } else if (file.mozSlice) {
+        blob = file.mozSlice(begin, end);
+    } else if (file.slice) {
+        blob = file.slice(begin, end);
+    } else {
+        throw new Error("can't slice");
+    }
+    return blob;
+}
+
+let read_file = function(file) {
+    let promise = new Promise(
+        (resolve) => {
+            let reader = new FileReader();
+            reader.onloadend = function(evt) {
+                if (evt.target.readyState == FileReader.DONE) { // DONE == 2
+                    resolve(evt.target.result);
+                }
+            };
+            reader.readAsArrayBuffer(file);        
+        }
+    )
+    return promise;
+}
+
 class PartialFileReader {
     constructor(file, callback) {
         this.file = file;
-        this.size = file.size;
+        this.file_size = file.size;
         this.processed = 0;
         this.callback = callback;
         this._abort = false;
     }
 
-    start() {
-        this.start = 0;
+    async start() {
+        this.frame_start = 0;
         this.buffer = new Uint8Array();
-        return this._read_next();
+        while((this.frame_start < this.file_size) && !this._abort) {
+            await this._read_next();
+        }
+        return !this._abort;
     }
 
     abort() {
@@ -27,51 +59,32 @@ class PartialFileReader {
     }
 
     async _read_next() {
-        if(this.start < this.size) {
-            this.end = this.start + BLOCK_SIZE;
-            if(this.end > this.size) {
-                this.end = this.size;
-            }
-            let data_part = await this._read_part();
-            data_part = new Uint8Array(data_part);
-            if(this._abort) {
-                throw new Error("abort");
-            }
-            this.start = this.end;
-            let new_buffer = new Uint8Array(this.buffer.length + data_part.length);
-            new_buffer.set(this.buffer);
-            new_buffer.set(data_part, this.buffer.length);
-            this.buffer = new_buffer;
-            await this._process_buffer();
-            await this._read_next();
-        }
+        await this._read_next_frame();
+        await this._process_buffer();
     }
 
-    _read_part() {
-        let promise = new Promise(function (resolve) {
-            let reader = new FileReader();
-            reader.onloadend = function(evt) {
-                if (evt.target.readyState == FileReader.DONE) { // DONE == 2
-                    resolve(evt.target.result);
-                }
-            };
-            reader.readAsArrayBuffer(this._slice());
-        }.bind(this));
-        return promise;
+    async _read_next_frame() {
+        this.frame_end = this.frame_start + BLOCK_SIZE;
+        if(this.frame_end > this.file_size) {
+            this.frame_end = this.file_size;
+        }
+    
+        let data_part = await this._read_file_frame();
+        this._append_frame_to_buffer(data_part);
+        this.frame_start = this.frame_end;    
     }
 
-    _slice() {
-        let blob;
-        if (this.file.webkitSlice) {
-            blob = this.file.webkitSlice(this.start, this.end);
-        } else if (this.file.mozSlice) {
-            blob = this.file.mozSlice(this.start, this.end);
-        } else if (this.file.slice) {
-            blob = this.file.slice(this.start, this.end);
-        } else {
-            throw new Error("can't slice");
-        }
-        return blob;
+    async _read_file_frame() {
+        let file_part = slice_file(this.file, this.frame_start, this.frame_end);
+        return await read_file(file_part);
+    }
+
+    _append_frame_to_buffer(frame) {
+        let frame_buffer = new Uint8Array(frame);
+        let new_buffer = new Uint8Array(this.buffer.length + frame_buffer.length);
+        new_buffer.set(this.buffer);
+        new_buffer.set(frame_buffer, this.buffer.length);
+        this.buffer = new_buffer;
     }
 
     async _process_buffer() {
@@ -101,7 +114,7 @@ class PartialFileReader {
                     let json_data = new TextDecoder("utf-8").decode(json_bytes);
                     this.processed += end;
                     this.buffer = this.buffer.slice(end);
-                    let progress = this.processed / this.size;
+                    let progress = this.processed / this.file_size;
                     await this.callback(JSON.parse(json_data), progress);
                     return !this._abort;
                 }

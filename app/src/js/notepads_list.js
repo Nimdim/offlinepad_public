@@ -21,8 +21,7 @@ class NotepadsListStorage extends IndexedDBStorage {
         let unique_index = {"unique": true};
         switch(event.oldVersion) {
             case 0: {
-                let notepads = db.createObjectStore("notepads", store_options);
-                notepads;
+                db.createObjectStore("notepads", store_options);
                 let pin_codes = db.createObjectStore("pin_codes", store_options);
                 pin_codes.createIndex("notepad_id_idx", "notepad_id", unique_index);
             }
@@ -85,12 +84,10 @@ class NotepadsList {
         );
 
         let notepads = await Promise.all(promises);
-        debugger
         notepads = _.orderBy(notepads, "notepad_name");
         _.forEach(
             notepads,
             (item, index) => {
-                debugger
                 let db_name = notepad_db_names[index];
                 item.id = parseInt(db_name.replace(NOTEPAD_DB_PREFIX, ""));
             }
@@ -154,11 +151,8 @@ class NotepadsList {
         }
     }
 
-    async _new_notepad_record(name, encrypted) {
-        let notepad = {
-            name: name,
-            encrypted: encrypted,
-        }
+    async _new_notepad_record() {
+        let notepad = {};
         let notepad_id = await this._storage.create_item_in_store(
             "notepads", notepad
         );
@@ -166,37 +160,21 @@ class NotepadsList {
     }
 
     async create(notepad_name, options) {
-        let notepad_id = await this._new_notepad_record(
-            notepad_name, options.encrypted
-        );
+        let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
         return {"id": notepad_id, "notepad": notepad};
     }
 
-    async create_empty(notepad_name, options) {
-        let notepad_id = await this._new_notepad_record(
-            notepad_name, options.encrypted
-        );
+    async create_empty() {
+        let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         await notepad.create_empty(NOTEPAD_DB_PREFIX + notepad_id);
         return {"id": notepad_id, "notepad": notepad};
     }
 
     async import(import_data) {
-        let info;
-        _.forEach(import_data, (item) => {
-            if(item.name == "info") {
-                info = item;
-            }
-        });
-        if(info == null) {
-            throw new Error("no info");
-        }
-        let notepad_id = await this._new_notepad_record(
-            info.notepad_name,
-            info.encrypted,
-        );
+        let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         let maps = await notepad.import(NOTEPAD_DB_PREFIX + notepad_id, import_data);
         return {"id": notepad_id, "notepad": notepad, "maps": maps};

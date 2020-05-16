@@ -143,7 +143,7 @@ class Notepad {
             this._options = options;
             this._storage = new NotepadStorage();
             await this._storage.init(db_name);
-            // this._working = true;
+            this._working = true;
             // return true;
         }
         //  else {

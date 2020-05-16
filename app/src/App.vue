@@ -333,7 +333,7 @@
         :progress="import_progress"
         :import_error="import_error"
         @close="importing = false"
-        @abort="import_abort = true"
+        @abort="importer.abort()"
       />
     </transition>
 
@@ -402,6 +402,7 @@ import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
 import ScrollUpController from './js/scroll_up_controller.js'
+import DataImporter from './js/data_importer.js'
 
 let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -492,7 +493,6 @@ export default {
       importing: false,
       import_progress: 0,
       import_error: null,
-      import_abort: false,
 
       notes_filter_tags: [],
       fast_search: "",
@@ -1205,7 +1205,6 @@ export default {
     // },
 
     export_notepad: async function(notepad) {
-      debugger
       let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
       let filename = notepad._state.info.notepad_name + " " + stamp + ".txt";
       let data = await notepad.export();
@@ -1288,105 +1287,23 @@ export default {
           break;
         case "import": {
           this.import_error = null;
-          this.import_abort = false;
           this.importing = true;
           await sleep(0.5);
-          let name = arg.name;
-          let file = arg.file;
+          arg.notepads_list = notepads_list;
+          let importer = new DataImporter(arg);
+          this.importer = importer;
 
-          let info = await notepads_list.create_empty(name, {encrypted: false});
-          notepad = info.notepad;
-          notepad_id = info.id;
-
-          let accumulator = [];
-          let old_ids = [];
-          let TYPES = [
-            ["settings", "setting"],
-            ["tags", "tag"],
-            ["notes", "note"],
-            ["tag_notes", "tag_note"],
-            ["note_filters", "note_filter"],
-          ];
-          let type_selector = 0;
-          let current_type = TYPES[type_selector];
-          let maps = {
-            settings: {},
-            tags: {},
-            notes: {},
-            tag_notes: {},
-            note_filters: {},
-          };
-
-          let info_object_recved = false;
-
-          let write_accumulator = async () => {
-            let ids = await notepad._storage.create_items_in_store(
-              current_type[0], accumulator
-            );
-            for(let k = 0; k < old_ids.length; k++) {
-              maps[current_type[0]][old_ids[k]] = ids[k];
-            }
-            old_ids = [];
-            accumulator = [];
-          };
-
-          let add_to_accumulator = (id, object) => {
-            accumulator.push(object);
-            old_ids.push(id);
-          };
-
-          let object_recved = async (object, progress) => {
-            if(this.import_abort) {
-              this.import_error = "Прервано";
-              return;
-            }
-            this.import_progress = Math.floor(progress * 100);
-            let id = object.id;
-            let type = object.type;
-            object = _.cloneDeep(object);
-            if(!info_object_recved) {
-              if((type == "setting") &&
-                 (object.name == "info") &&
-                 (object.schema_type == "beta")) {
-                object.notepad_name = name;
-                info_object_recved = true;
-              }
-              // Не пришел объект с настройками блокнота, или не там схема
-              if(!info_object_recved) {
-                this.import_error = "Неверная схема данных";
-                reader.abort();
-              }
-            }
-            if(type == "tag_note") {
-              object.tag_id = maps.tags[object.tag_id];
-              object.note_id = maps.notes[object.note_id];
-            }
-            if(type == "note_filter") {
-              object.tags = _.map(object.tags, (tag_id) => maps.tags[tag_id]);
-            }
-            delete object.id;
-            delete object.type;
-            if(type == current_type[1]) {
-              add_to_accumulator(id, object);
-              if(accumulator.length >= 100) {
-                await write_accumulator();
-              }
-            } else {
-              await write_accumulator();
-              while(type_selector < TYPES.length) {
-                type_selector += 1;
-                current_type = TYPES[type_selector];
-                if(type == current_type[1]) {
-                  add_to_accumulator(id, object);
-                  break;
-                }
-              }
-            }
-          };
-          let reader = new PartialFileReader(file, object_recved);
-          await reader.start();
-          write_accumulator();
-          if(this.import_error == null) {
+          let updater = setInterval(
+            () => {
+              this.import_progress = importer.import_progress;
+            },
+            100
+          );
+          let import_result = await importer.execute();
+          clearTimeout(updater);
+          if(import_result.error == null) {
+            notepad = import_result.notepad;
+            notepad_id = import_result.notepad_id;
             this.notepad_register(notepad);
             this.section = "notes";
             await notepad.sub_sync();
@@ -1395,17 +1312,14 @@ export default {
             await sleep(0.5);
             this.importing = false;
           } else {
-            await notepad.close();
-            await notepads_list.delete(notepad_id);
-            notepad = null;
-            notepad_id = null;
+            this.import_error = import_result.error;
           }
+          // TODO notepad notepad_id
           await notepads_list.reread_list();
           this.notepads = _.cloneDeep(notepads_list.notepads);
           break;
         }
         case "save": {
-          debugger
           let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
           let filename = this.info.notepad_name + " " + stamp + ".txt";
           let data = JSON.stringify(notepad.export());

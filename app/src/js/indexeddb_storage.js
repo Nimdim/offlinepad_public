@@ -48,6 +48,7 @@ class IndexedDBStorage {
     }
 
     init(db_name) {
+        this._db_name = db_name;
         if(this.DB_VERSION == null) {
             throw new Error("no DB_VERSION constant");
         }

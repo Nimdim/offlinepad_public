@@ -214,7 +214,6 @@ describe("notepad simple tests", function() {
     });
 
     it("delete notepad", async function() {
-        console.log("notepad_id", notepad_id);
         let result = await notepads_list.delete(notepad_id);
         assert.equal(result, true);
     });
