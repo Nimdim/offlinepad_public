@@ -9,7 +9,7 @@ let TYPES = [
   ["note_filters", "note_filter"],
 ];
 
-class DataImporter {
+class DataImporterBase {
   constructor(data) {
     this.name = data.name;
     this.file = data.file;
@@ -94,7 +94,7 @@ class DataImporter {
         }
         // Не пришел объект с настройками блокнота, или не там схема
         if(!info_object_recved) {
-          import_error = "Неверная схема данных";
+          import_error = "data schema error";
           reader.abort();
         }
       }
@@ -116,30 +116,75 @@ class DataImporter {
       }
     };
 
-    let reader = new PartialFileReader(this.file, object_recved);
+    // let reader = new PartialFileReader(this.file, object_recved);
+    let reader = this._create_file_reader(this.file, object_recved);
     this._reader = reader;
     let done = await reader.start();
     if(done) {
       await this.write_accumulator();
     } else {
-      import_error = "Прервано";
+      import_error = "aborted";
     }
-    let result;
+    let result = {
+      error: import_error,
+    };
     if(import_error == null) {
-      result = {
-        error: import_error,
-        notepad: notepad,
-        notepad_id: notepad_id,
-      };
+      result.notepad = notepad;
+      result.notepad_id = notepad_id;
     } else {
       await notepad.close();
       await this.notepads_list.delete(notepad_id);
-      result = {
-        error: import_error,
-      }
     }
     return result;
   }
 }
-  
-export default DataImporter;
+
+class DataImporter extends DataImporterBase {
+  _create_file_reader(file, callback) {
+    return new PartialFileReader(file, callback);
+  }
+}
+
+class PartialFileReaderMock {
+  constructor(data, callback) {
+    this.data = data;
+    this.callback = callback;
+    this.length = data.length;
+  }
+
+  async start() {
+    this.block_start = 0;
+    while(this.block_start < this.length) {
+      let obj = this.read_object();
+      await this.callback(obj);
+    }
+    return true;
+  }
+
+  read_object() {
+    let parentees = 0;
+    for(let k = this.block_start; k < this.length; k++) {
+      if(this.data[k] == "{") {
+        parentees += 1;
+      }
+      if(this.data[k] == "}") {
+        parentees -= 1;
+        if(parentees == 0) {
+          let end = k + 1;
+          let obj_str = this.data.slice(this.block_start, end);
+          let obj = JSON.parse(obj_str);
+          this.block_start = end;
+          return obj;
+        }
+      }
+    }
+  }
+}
+
+class MockedDataImporter extends DataImporterBase {
+  _create_file_reader(file, callback) {
+    return new PartialFileReaderMock(file, callback);
+  }
+}
+
+export default {DataImporter, MockedDataImporter};

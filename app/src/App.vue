@@ -402,7 +402,23 @@ import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
 import ScrollUpController from './js/scroll_up_controller.js'
-import DataImporter from './js/data_importer.js'
+import data_importer from './js/data_importer.js'
+let DataImporter = data_importer.DataImporter;
+
+let import_error_to_str = function(code) {
+  let result;
+  switch(code) {
+    case "abort":
+      result = "Прервано";
+      break;
+    case "data schema error":
+      result = "Неверный формат данных";
+      break;
+    default:
+      throw new Error("неизвестный код");
+  }
+  return result;
+}
 
 let escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1158,7 +1174,7 @@ export default {
         }
         notes.push({
             "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
-            "created_at": + new Date(),
+            "created_at": 1589737323802 + k,
             "notepad_id": 0,
         });
         if(k % 100 == 99) {
@@ -1312,7 +1328,7 @@ export default {
             await sleep(0.5);
             this.importing = false;
           } else {
-            this.import_error = import_result.error;
+            this.import_error = import_error_to_str(import_result.error);
           }
           // TODO notepad notepad_id
           await notepads_list.reread_list();

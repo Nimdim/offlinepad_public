@@ -3,6 +3,8 @@ import Notepad  from "./../src/js/notepad.js";
 import { assert } from "chai";
 import _ from "lodash";
 import NotepadsList from "../src/js/notepads_list.js";
+import data_importers from '../src/js/data_importer.js'
+let MockedDataImporter = data_importers.MockedDataImporter;
 
 let map_tag = function(tag, maps) {
     tag.id = maps.tags[tag.id];
@@ -41,10 +43,6 @@ describe("notepad simple tests", function() {
         tags_events.splice(0, tags_events.length);
         notes_events.splice(0, notes_events.length);
     };
-    // let assert_events = function(expected_tags, expected_notes) {
-    //     assert.deepEqual(tags_events, expected_tags);
-    //     assert.deepEqual(notes_events, expected_notes);
-    // }
 
     it("create notepad", async function() {
         await notepads_list.init();
@@ -59,8 +57,6 @@ describe("notepad simple tests", function() {
             notes_events.push(notes);
         });
         reset_events();
-        // let create_result = await notepad.create(DB_NAME, NOTEPAD_NAME, NOTEPAD_OPTIONS);
-        // assert.equal(create_result, true);
         await notepad._reset_state();
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
@@ -1233,7 +1229,8 @@ class NotepadTestEvents {
         this.tags = [];
         this.notes = [];
         this.append = [];
-        this.info = []
+        this.info = [];
+        this.note_filters = [];
         notepad.on("reset_tags", (tags) => {
             this.tags.push(tags);
         })
@@ -1245,13 +1242,18 @@ class NotepadTestEvents {
         });
         notepad.on("append_notes", (notes) => {
             this.append.push(notes);
-        });            
+        });
+        notepad.on("reset_note_filters", (note_filters) => {
+            this.note_filters.push(note_filters)
+        });
     }
 
     reset() {
         this.tags.splice(0, this.tags.length);
         this.notes.splice(0, this.notes.length);
         this.append.splice(0, this.append.length);
+        this.info.splice(0, this.info.length);
+        this.note_filters.splice(0, this.note_filters.length);
     }
 
     assert_tags(EXPECTED) {
@@ -1268,6 +1270,10 @@ class NotepadTestEvents {
 
     assert_info(EXPECTED) {
         assert.deepEqual(this.info, EXPECTED);
+    }
+
+    assert_note_filters(EXPECTED) {
+        assert.deepEqual(this.note_filters, EXPECTED);
     }
 }
 
@@ -2167,6 +2173,186 @@ describe("multi notepads tests", function() {
         let result = await notepads_list.delete(notepad_id1);
         assert.equal(result, true);
         result = await notepads_list.delete(notepad_id2);
+        assert.equal(result, true);
+
+        await notepads_list.reread_list();
+        let list = notepads_list.notepads;
+        let EXPECTED = [];
+        assert.deepEqual(list, EXPECTED);
+    });
+});
+
+describe("partial file reader import tests", function() {
+    let notepads_list = new NotepadsList();
+
+    let notepad_id;
+    let notepad;
+    let events;
+
+    it("initial zero notepads", async function() {
+        await notepads_list.init();
+        let EXPECTED = [];
+        assert.deepEqual(notepads_list.notepads, EXPECTED);
+    });
+
+    it("import notepad", async function() {
+        this.timeout(60000);
+        var fs = require('fs');
+        var file_data = fs.readFileSync('./tests/beta_schema_data.txt', 'utf8');
+
+        let arg = {
+            notepads_list: notepads_list,
+            file: file_data,
+            name: "abc",
+        }
+        let importer = new MockedDataImporter(arg);
+        let import_result = await importer.execute();
+
+        assert.equal(import_result.import_error, null);
+        notepad_id = import_result.notepad_id;
+        notepad = import_result.notepad;
+        events = new NotepadTestEvents(notepad);
+    });
+
+    it("test tags", async function() {
+        await notepad._reset_tags();
+
+        let EXPECTED = [
+            [
+                {
+                    "count": 800,
+                    "id": 1,
+                    "name": "метка 1",
+                },
+                {
+                    "count": 0,
+                    "id": 10,
+                    "name": "метка 10",
+                },
+                {
+                    "count": 600,
+                    "id": 2,
+                    "name": "метка 2",
+                },
+                {
+                    "count": 400,
+                    "id": 3,
+                    "name": "метка 3",
+                },
+                {
+                    "count": 200,
+                    "id": 4,
+                    "name": "метка 4",
+                },
+                {
+                    "count": 0,
+                    "id": 5,
+                    "name": "метка 5",
+                },
+                {
+                    "count": 0,
+                    "id": 6,
+                    "name": "метка 6",
+                },
+                {
+                    "count": 0,
+                    "id": 7,
+                    "name": "метка 7",
+                },
+                {
+                    "count": 0,
+                    "id": 8,
+                    "name": "метка 8",
+                },
+                {
+                    "count": 0,
+                    "id": 9,
+                    "name": "метка 9",
+                }
+            ]
+        ];
+      
+        events.assert_tags(EXPECTED);
+    });
+
+    it("test notes", async function() {
+        await notepad.set_notes_filter({"sorting_asc": true});
+        events.reset();
+        await notepad._reset_notes();
+
+        let all_tags = [1, 2, 3, 4];
+        let notes = []
+        let EXPECTED = [notes];
+        for(let k = 0; k < 40; k++) {
+            notes.push({
+                id: k + 1,
+                tags: all_tags.slice(0, (k + 4) % 5),
+                creation_time: 1589737323802 + k,
+                text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
+                text_highlighted: undefined,
+            });
+        }
+        events.assert_notes(EXPECTED);
+
+        EXPECTED = [];
+        for(let i = 0; i < 25; i++) {
+            await notepad.load_next_notes();
+            let notes = [];
+            if(i < 24) {
+                for(let k = 40 * (i + 1); k < 40 * (i + 2); k++) {
+                    notes.push({
+                        id: k + 1,
+                        tags: all_tags.slice(0, (k + 4) % 5),
+                        creation_time: 1589737323802 + k,
+                        text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
+                        text_highlighted: undefined,
+                    });
+                }
+                EXPECTED.push(notes);
+            }
+        }
+        events.assert_append(EXPECTED);
+    });
+
+    it("test notes filter", async function() {
+        await notepad._reset_note_filters();
+        let EXPECTED = [
+            [
+                {
+                    "deletable": false,
+                    "id": "internal_all",
+                    "name": "Все",
+                    "tags": [],
+                },
+                {
+                    "deletable": true,
+                    "id": 1,
+                    "name": "Раздел 1",
+                    "tags": [
+                        1,
+                        2,
+                    ],
+                },
+                {
+                    "deletable": true,
+                    "id": 2,
+                    "name": "Раздел 2",
+                    "tags": [
+                        1,
+                        2,
+                        3,
+                        4,
+                    ],
+                },
+            ],
+        ];
+
+        events.assert_note_filters(EXPECTED);
+    });
+    
+    it("delete notepad", async function() {
+        await notepad.close();
+        let result = await notepads_list.delete(notepad_id);
         assert.equal(result, true);
 
         await notepads_list.reread_list();

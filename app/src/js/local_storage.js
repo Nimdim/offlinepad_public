@@ -37,7 +37,7 @@ let decrypt = function(s) {
 };
 
 
-class LocalStorage extends StorageInterface{
+class LocalStorage extends StorageInterface {
     _init_storage() {
         if(window.localStorage == null) {
             throw new Error("локальное хранилище недоступно");
