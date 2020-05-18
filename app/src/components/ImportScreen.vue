@@ -10,10 +10,9 @@
       </a>
     </template>
     <template v-else>
-      <preloader />
       <progress-bar :progress="progress" />
       <a
-        class="waves-effect waves-teal btn tag_delete_btn"
+        class="waves-effect waves-teal btn"
         @click.prevent="$emit('abort')"
       >
         Прервать
@@ -23,7 +22,6 @@
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
-  import Preloader from "./Preloader.vue"
   import ProgressBar from "./ProgressBar.vue"
 
   export default {
@@ -40,7 +38,6 @@
 
     components: {
       FullScreenBox,
-      Preloader,
       ProgressBar,
     }
   }

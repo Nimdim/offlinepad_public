@@ -106,3 +106,15 @@ nav,
 input.validate.filter_name {
   background: unset;
 }
+
+.input-field input[type=search]:focus:not(.browser-default) {
+  background-color: rgb(43, 60, 70);
+  border: 0;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  color: darkorange;
+}
+
+.input-field input[type=search]:not(.browser-default) {
+  color: darkorange;
+}

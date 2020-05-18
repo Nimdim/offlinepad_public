@@ -21,10 +21,6 @@
       @open="notepad_menu('open')"
       @test_create="test_create($event)"
     />
-    <notepad-delete-screen  v-if="notepad_delete_mode"
-      @submit="notepad_delete"
-      @cancel="notepad_delete_mode = false"
-    />
 
     <ul v-if="(section == 'notes') && show_notes_filter"
       class="notes_extended_filter"
@@ -89,7 +85,7 @@
       </li>
     </ul>
 
-    <ul v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
+    <ul v-if="section == 'tags' && notepad_working"
       class="collection tags"
     >
       <tag-item v-for="tag in tags.items" :key="tag.id"
@@ -102,7 +98,7 @@
       />
     </ul>
 
-    <ul v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
+    <ul v-if="section == 'notes' && notepad_working"
       class="collection records"
     >
       <note-item v-for="note in notes.items" :key="note.id"
@@ -198,7 +194,7 @@
         >
           <ul style="height: calc(100% - 70px); overflow-y: auto;"
           >
-            <li>
+            <!-- <li>
               <div style="height: 48px; margin-left: 28px; margin-right: 28px;">
                 <font-awesome-icon
                   class="mobile-menu-icon left"
@@ -208,6 +204,26 @@
                 />
                 <span class="right" style="margin-right: 30px;">{{info.notepad_name}}</span>
               </div>
+            </li> -->
+
+
+            <li>
+              <a href="#!"
+                style="padding-right: 8px;"
+              >
+                <font-awesome-icon class="mobile-menu-icon" icon="th" />
+                <span>
+                  {{info.notepad_name}}
+                </span>
+                <div style="float: right; height: 48px;">
+                  <font-awesome-icon
+                    class="mobile-menu-icon left"
+                    icon="home"
+                    style="margin-top: 10px; width: 24px !important; height: 24px !important;"
+                    @click="notepad_goto_home"
+                  />
+                </div>
+              </a>
             </li>
             <li class="divider"></li>
             <note-filter-item v-for="note_filter in note_filters" :key="note_filter.id"
@@ -222,16 +238,6 @@
             </li>
             <li class="divider"></li>
           </ul>
-          <a class="btn-flat btn-floating"
-            style="position: absolute;
-                   top: 4px;
-                   padding-left: 13px;
-                   right: 8px"
-            @click="toggle_theme"
-          >
-            <font-awesome-icon icon="sun" v-if="current_theme == 'light'" key="light_theme" />
-            <font-awesome-icon icon="moon" v-else key="dark_theme" />
-          </a>
 
           <div style="position: absolute;
                       bottom: 60px;
@@ -253,7 +259,18 @@
               style="padding-left: 12px;">
               <font-awesome-icon v-if="!show_notes_filter" :icon="{'prefix': 'fab', 'iconName': 'vk'}" />
             </a>
-            <span class="right" style="margin-right: 10px; color: gray;">
+            <a class="btn-flat btn-floating"
+              style="position: absolute;
+                    top: 10px;
+                    padding-left: 13px;
+                    right: 8px"
+              @click="toggle_theme"
+            >
+              <font-awesome-icon icon="sun" v-if="current_theme == 'light'" key="light_theme" />
+              <font-awesome-icon icon="moon" v-else key="dark_theme" />
+            </a>
+
+            <span class="right" style="margin-right: 56px; margin-top: 2px; color: gray;">
               {{app_version}}
             </span>
           </div>
@@ -288,13 +305,13 @@
       <font-awesome-icon icon="terminal" />
     </a>
 
-    <a v-if="section == 'tags' && notepad_working && !notepad_delete_mode"
+    <a v-if="section == 'tags' && notepad_working"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="edit" />
     </a>
-    <a v-if="section == 'notes' && notepad_working && !notepad_delete_mode"
+    <a v-if="section == 'notes' && notepad_working"
       class="btn-floating btn-large waves-effect waves-light red add_btn"
       @click="add_note"
       >
@@ -377,7 +394,6 @@ moment.locale("ru");
 import LoadScreen from './components/LoadScreen.vue'
 import ProcessingScreen from './components/ProcessingScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
-import NotepadDeleteScreen from './components/NotepadDeleteScreen.vue'
 import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.vue'
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
@@ -425,16 +441,7 @@ let escapeRegExp = function(string) {
 };
 
 let notepad = null;
-let notepad_id = null;
 let notepads_list = new NotepadsList();
-
-// let NOTEPAD_CONTROLS = [
-//   {id: "create", name: "Создать"},
-//   {id: "open", name: "Открыть"},
-//   {id: "open_old", name: "Открыть старый формат"},
-//   {id: "save", name: "Сохранить"},
-//   {id: "close", name: "Закрыть"},
-// ];
 
 let text_highlight = function(text) {
   return "<b class='highlight'>" + text + "</b>";
@@ -450,7 +457,6 @@ export default {
     LoadScreen,
     ProcessingScreen,
     WarningScreen,
-    NotepadDeleteScreen,
     NotepadEmptyScreen,
     FeaturesNotAvailableScreen,
     BlockerScreen,
@@ -521,7 +527,6 @@ export default {
       header_top: 0,
       header_bottom: 0,
       notepad_working: false,
-      notepad_delete_mode: false,
       notes: {
         count: 0,
         items: [],
@@ -630,14 +635,10 @@ export default {
     },
 
     active_notepad_controls: function() {
-      let items = [];
-      // if(this.notepad_working) {
-      //   items.push.apply(items, NOTEPAD_CONTROLS.slice(3, 5));
-      // } else {
-      //   items.push.apply(items, NOTEPAD_CONTROLS.slice(0, 3));
-      // }
-      items.push({id: "goto_home", name: "На главую"});
-      items.push({id: "toggle_theme", name: "Переключить тему"});
+      let items = [
+        {id: "goto_home", name: "На главую"},
+        {id: "toggle_theme", name: "Переключить тему"},
+      ];
       return items;
     },
 
@@ -659,9 +660,9 @@ export default {
     this.warning_init();
     if(sw_api.is_available()) {
       let init_data = await this.service_worker_init();
+      this.app_version = init_data.version;
       if(init_data.updated) {
         this.update_done = true;
-        this.app_version = init_data.version;
       }
       this.scroll_init();
       window.M.AutoInit();
@@ -686,7 +687,6 @@ export default {
       await notepad.close();
       this.notepad_unregister(notepad);
       notepad = null;
-      notepad_id = null;
       this.notepad_working = false;
       await sleep(0.5);
       this.loadscreen_visible = false;
@@ -867,7 +867,6 @@ export default {
       this.loadscreen_visible = true
       await sleep(0.5);
       notepad = await notepads_list.open(id);
-      notepad_id = id;
       this.notepad_register(notepad);
       notepad._reset_info();
       this.notepad_working = true;
@@ -879,17 +878,6 @@ export default {
 
     update_service_worker: function() {
       sw_api.activate_new_worker();
-    },
-
-    notepad_delete: async function() {
-      this.section = null;
-      await notepad.close();
-      this.notepad_unregister(notepad);
-      await notepads_list.delete(notepad_id);
-      notepad = null;
-      notepad_id = null;
-      this.notepad_delete_mode = false;
-      this.notepad_working = false;
     },
 
     note_filter_add_gui_show: function() {
@@ -1034,6 +1022,7 @@ export default {
     },
 
     do_upload: function() {
+      // TODO перенос кода импорта
       let files = this.$refs.upload.files;
       let file = files[0];
 
@@ -1049,6 +1038,7 @@ export default {
     },
 
     do_upload_old: function() {
+      // TODO перенос кода импорта
       let files = this.$refs.upload_old.files;
       let file = files[0];
 
@@ -1065,7 +1055,6 @@ export default {
           });
           let info = await notepads_list.import(import_data);
           notepad = info.notepad;
-          notepad_id = info.id;
           this.notepad_register(notepad);
           this.notepad_working = true;
           await notepad._reset_note_filters();
@@ -1173,9 +1162,8 @@ export default {
           notes = [];
         }
         notes.push({
-            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
-            "created_at": 1589737323802 + k,
-            "notepad_id": 0,
+          "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." + k,
+          "created_at": 1589737323802 + k,
         });
         if(k % 100 == 99) {
           let note_ids = await notepad._storage.create_items_in_store(
@@ -1283,7 +1271,6 @@ export default {
           await sleep(0.5);
           let info = await notepads_list.create(arg, {encrypted: false});
           notepad = info.notepad;
-          notepad_id = info.id;
           this.notepad_register(notepad);
           notepad._reset_info();
           this.notepad_working = true;
@@ -1319,7 +1306,6 @@ export default {
           clearTimeout(updater);
           if(import_result.error == null) {
             notepad = import_result.notepad;
-            notepad_id = import_result.notepad_id;
             this.notepad_register(notepad);
             this.section = "notes";
             await notepad.sub_sync();
@@ -1330,64 +1316,14 @@ export default {
           } else {
             this.import_error = import_error_to_str(import_result.error);
           }
-          // TODO notepad notepad_id
           await notepads_list.reread_list();
           this.notepads = _.cloneDeep(notepads_list.notepads);
           break;
         }
-        case "save": {
-          let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-          let filename = this.info.notepad_name + " " + stamp + ".txt";
-          let data = JSON.stringify(notepad.export());
-          // this.download(filename, data);
-
-          sw_api.new_download(filename, data).then(function(info) {
-            let download_id = info[0];
-            // let port = info[1];
-            // console.log(download_id);
-            // console.log(port);
-            location.href="/download?id=" + download_id;
-            // setTimeout(
-            //   function() {
-            //     // port.postMessage("123");
-            //     // port.postMessage("123");
-            //     // port.postMessage("123");
-            //     // port.postMessage("123");
-            //     // port.postMessage("123");
-            //     // port.postMessage("end");
-            //   },
-            //   1000
-            // )
-          });
-
-          // const fileStream = streamSaver.createWriteStream('filename.txt'
-          // // ,
-          // // {
-          // //   size: 22, // (optional) Will show progress
-          // //   writableStrategy: undefined, // (optional)
-          // //   readableStrategy: undefined  // (optional)
-          // // }
-          // )
-
-          // new Response(this.long_str()).body
-          //   .pipeTo(fileStream)
-          //   // .then(success, error)
-          // // let writer = fileStream.getWriter();
-          // // writer.write(this.long_str()).then(function(){
-          // //   writer.write(this.long_str()).then(function() {
-          // //     // writer.close();
-          // //     // fileStream.close();
-          // //   });
-          // // }.bind(this))
-          break;
-        }
-        case "close":
-          this.notepad_delete_mode = true;
-          break;
         case "toggle_theme":
           this.toggle_theme();
           break;
-        case 'goto_home':
+        case "goto_home":
           this.notepad_goto_home();
           break;
       }
