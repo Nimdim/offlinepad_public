@@ -173,10 +173,12 @@ class NotepadsList {
         return {"id": notepad_id, "notepad": notepad};
     }
 
-    async import(import_data) {
+    async import(import_data, progress_callback) {
         let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
-        let maps = await notepad.import(NOTEPAD_DB_PREFIX + notepad_id, import_data);
+        let maps = await notepad.import(
+            NOTEPAD_DB_PREFIX + notepad_id, import_data, progress_callback
+        );
         return {"id": notepad_id, "notepad": notepad, "maps": maps};
     }
   

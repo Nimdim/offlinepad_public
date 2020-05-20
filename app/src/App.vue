@@ -12,13 +12,11 @@
       @click="notepad_menu"
     />
 
-    <input type="file" ref="upload" style="display:none;" @change="do_upload" />
-    <input type="file" ref="upload_old" style="display:none;" @change="do_upload_old" />
+    <!-- <input type="file" ref="upload" style="display:none;" @change="do_upload" /> -->
+    <!-- <input type="file" ref="upload_old" style="display:none;" @change="do_upload_old" /> -->
 
     <notepad-empty-screen v-if="notes.items.length == 0"
       :develop_mode="develop_mode"
-      @create="notepad_menu('create')"
-      @open="notepad_menu('open')"
       @test_create="test_create($event)"
     />
 
@@ -337,8 +335,8 @@
     <transition name="fade">
       <notepads-selector v-if="!notepad_working"
         :items="notepads"
-        @create="notepad_menu('create', $event)"
-        @import="notepad_menu('import', $event)"
+        @create="notepad_create($event)"
+        @import="notepad_import($event)"
         @open="notepad_init($event)"
         @save="save_notepad_by_id($event)"
         @remove="delete_notepad_by_id($event)"
@@ -418,8 +416,7 @@ import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
 import ScrollUpController from './js/scroll_up_controller.js'
-import data_importer from './js/data_importer.js'
-let DataImporter = data_importer.DataImporter;
+import { BetaDataImporter } from './js/data_importer.js'
 
 let import_error_to_str = function(code) {
   let result;
@@ -1037,23 +1034,26 @@ export default {
       reader.start();      
     },
 
-    do_upload_old: function() {
-      // TODO перенос кода импорта
-      let files = this.$refs.upload_old.files;
-      let file = files[0];
+    notepad_import_alpha: async function(arg) {
+      let file = arg.file;
+      let name = arg.name;
 
       let reader = new PartialFileReader(
         file, async (import_data) => {
           _.forEach(import_data, (item) => {
             if(item.type == "notepad") {
-              let name = item.name;
               item.type = "setting";
               item.name = "info";
               item.notepad_name = name;
               item.encrypted = false;
             }
           });
-          let info = await notepads_list.import(import_data);
+          let progress_callback = (progress) => {
+            this.import_progress = progress;
+          };
+          let info = await notepads_list.import(
+            import_data, progress_callback
+          );
           notepad = info.notepad;
           this.notepad_register(notepad);
           this.notepad_working = true;
@@ -1061,7 +1061,7 @@ export default {
           this.section = "notes";
         }
       );
-      reader.start();      
+      await reader.start();
     },
 
     wrap_notes: function(notes) {
@@ -1264,68 +1264,76 @@ export default {
 
     },
 
-    notepad_menu: async function(command, arg) {
-      switch(command) {
-        case "create": {
-          this.loadscreen_visible = true;
-          await sleep(0.5);
-          let info = await notepads_list.create(arg, {encrypted: false});
-          notepad = info.notepad;
+    notepad_create: async function(arg) {
+      this.loadscreen_visible = true;
+      await sleep(0.5);
+      let info = await notepads_list.create(arg, {encrypted: false});
+      notepad = info.notepad;
+      this.notepad_register(notepad);
+      notepad._reset_info();
+      this.notepad_working = true;
+      await notepad._reset_note_filters();
+      this.section = "notes";
+      await notepads_list.reread_list();
+      this.notepads = _.cloneDeep(notepads_list.notepads);
+      await sleep(0.5);
+      this.loadscreen_visible = false;
+    },
+
+    notepad_import: async function(arg) {
+      this.import_error = null;
+      this.importing = true;
+      await sleep(0.5);
+      if(arg.schema == "beta") {
+        arg.notepads_list = notepads_list;
+        let importer = new BetaDataImporter(arg);
+        this.importer = importer;
+
+        let updater = setInterval(
+          () => {
+            this.import_progress = importer.import_progress;
+          },
+          100
+        );
+        let import_result = await importer.execute();
+        clearTimeout(updater);
+        if(import_result.error == null) {
+          notepad = import_result.notepad;
           this.notepad_register(notepad);
-          notepad._reset_info();
-          this.notepad_working = true;
-          await notepad._reset_note_filters();
           this.section = "notes";
-          await notepads_list.reread_list();
-          this.notepads = _.cloneDeep(notepads_list.notepads);
+          await notepad.sub_sync();
+          await notepad._reset_note_filters();
+          this.notepad_working = true;
           await sleep(0.5);
-          this.loadscreen_visible = false;
-          break;
+          this.importing = false;
+        } else {
+          this.import_error = import_error_to_str(import_result.error);
         }
+      } else if(arg.schema == "alpha") {
+        await this.notepad_import_alpha(arg);
+        this.importing = false;
+      }
+      this.import_progress = 0;
+      await notepads_list.reread_list();
+      this.notepads = _.cloneDeep(notepads_list.notepads);
+    },
+
+    notepad_menu: async function(command) {
+      switch(command) {
         case "open":
           this.upload();
           break;
         case "open_old":
           this.upload_old();
           break;
-        case "import": {
-          this.import_error = null;
-          this.importing = true;
-          await sleep(0.5);
-          arg.notepads_list = notepads_list;
-          let importer = new DataImporter(arg);
-          this.importer = importer;
-
-          let updater = setInterval(
-            () => {
-              this.import_progress = importer.import_progress;
-            },
-            100
-          );
-          let import_result = await importer.execute();
-          clearTimeout(updater);
-          if(import_result.error == null) {
-            notepad = import_result.notepad;
-            this.notepad_register(notepad);
-            this.section = "notes";
-            await notepad.sub_sync();
-            await notepad._reset_note_filters();
-            this.notepad_working = true;
-            await sleep(0.5);
-            this.importing = false;
-          } else {
-            this.import_error = import_error_to_str(import_result.error);
-          }
-          await notepads_list.reread_list();
-          this.notepads = _.cloneDeep(notepads_list.notepads);
-          break;
-        }
         case "toggle_theme":
           this.toggle_theme();
           break;
         case "goto_home":
           this.notepad_goto_home();
           break;
+        default:
+          throw new Error("неизвестная команда " + command);
       }
     },
 

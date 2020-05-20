@@ -3,8 +3,7 @@ import Notepad  from "./../src/js/notepad.js";
 import { assert } from "chai";
 import _ from "lodash";
 import NotepadsList from "../src/js/notepads_list.js";
-import data_importers from '../src/js/data_importer.js'
-let MockedDataImporter = data_importers.MockedDataImporter;
+import { MockedBetaDataImporter } from '../src/js/data_importer.js'
 
 let map_tag = function(tag, maps) {
     tag.id = maps.tags[tag.id];
@@ -2205,7 +2204,7 @@ describe("partial file reader import tests", function() {
             file: file_data,
             name: "abc",
         }
-        let importer = new MockedDataImporter(arg);
+        let importer = new MockedBetaDataImporter(arg);
         let import_result = await importer.execute();
 
         assert.equal(import_result.import_error, null);

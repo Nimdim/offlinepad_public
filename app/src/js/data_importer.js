@@ -9,7 +9,7 @@ let TYPES = [
   ["note_filters", "note_filter"],
 ];
 
-class DataImporterBase {
+class BetaDataImporterBase {
   constructor(data) {
     this.name = data.name;
     this.file = data.file;
@@ -139,7 +139,7 @@ class DataImporterBase {
   }
 }
 
-class DataImporter extends DataImporterBase {
+export class BetaDataImporter extends BetaDataImporterBase {
   _create_file_reader(file, callback) {
     return new PartialFileReader(file, callback);
   }
@@ -181,10 +181,8 @@ class PartialFileReaderMock {
   }
 }
 
-class MockedDataImporter extends DataImporterBase {
+export class MockedBetaDataImporter extends BetaDataImporterBase {
   _create_file_reader(file, callback) {
     return new PartialFileReaderMock(file, callback);
   }
 }
-
-export default {DataImporter, MockedDataImporter};

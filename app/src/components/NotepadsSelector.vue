@@ -169,10 +169,11 @@
 
     is_alpha_schema_object(object) {
       let ALPHA_OBJECT_TYPES = [
+        "notepad",
         "note",
         "tag",
         "tag_note",
-        "note_filter"
+        "note_filter",
       ];
       return ALPHA_OBJECT_TYPES.indexOf(object.type) >= 0;
     }
@@ -288,6 +289,7 @@
           let data = {
             "name": this.add_name,
             "file": files[0],
+            "schema": this.import_file_schema,
           };
           this.$emit('import', data);
         } else {
