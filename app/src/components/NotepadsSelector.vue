@@ -8,7 +8,7 @@
     </span>
     <span v-else
       class="notepads-selector"
-      style="display: block; margin: 0 auto; margin-top: 25vh; margin-bottom: 10px;"
+      style="display: block; margin: 0 auto; margin-bottom: 10px;"
     >
       У вас пока еще не создано ни одного блокнота. Создайте новый, при помощи формы ниже.
     </span>
@@ -74,11 +74,14 @@
                   <span style="line-height: unset;">
                     файл
                   </span>
-                  <input ref="import_file" type="file">
+                  <input ref="import_file" type="file" @change="validate">
                 </div>
                 <div class="file-path-wrapper">
                   <input class="file-path validate" type="text">
                 </div>
+                <span v-if="import_file_error" style="color: red;">
+                  {{import_file_error}}
+                </span>
               </div>
               <div class="input-field col s12">
                 <a class="waves-effect waves-light btn"
@@ -102,6 +105,78 @@
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
   import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
+  import PartialFileReader from './../js/partial_file_reader.js'
+  import _ from "lodash";
+
+  class Validator {
+    constructor(file) {
+      this._file = file
+    }
+
+    async validate() {
+      let result = {
+        error: "wrong file",
+      };
+
+      let reader = new PartialFileReader(
+        this._file, async (import_data) => {
+          if(this.is_beta_schema_type(import_data)) {
+            result = {
+              error: "ok",
+              schema: "beta",
+            };
+          } else if(this.is_alpha_schema_type(import_data)) {
+            result = {
+              error: "ok",
+              schema: "alpha",
+            };
+          } else {
+            result = {
+              error: "unknown schema",
+            };
+          }
+          reader.abort();
+        }
+      );
+      await reader.start();
+      return result;
+    }
+
+    is_beta_schema_type(object) {
+      if((object.type == "setting") &&
+         (object.name == "info") &&
+         (object.schema_type == "beta") &&
+         (object.notepad_name != null) &&
+         (object.encrypted != null)
+        ) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    is_alpha_schema_type(container) {
+      let keys = _.keys(container);
+      for(let k = 0; k < keys.length; k++) {
+        let key = keys[k];
+        let object = container[key];
+        if(!this.is_alpha_schema_object(object)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    is_alpha_schema_object(object) {
+      let ALPHA_OBJECT_TYPES = [
+        "note",
+        "tag",
+        "tag_note",
+        "note_filter"
+      ];
+      return ALPHA_OBJECT_TYPES.indexOf(object.type) >= 0;
+    }
+  }
 
   export default {
     props: {
@@ -128,6 +203,7 @@
         add_name: "",
         add_mode: "create",
         error: null,
+        import_file_error: null,
       };
       return data;
     },
@@ -166,6 +242,28 @@
     },
 
     methods: {
+      async validate () {
+        let file = this.$refs.import_file.files[0];
+        let validator = new Validator(file);
+        let result = await validator.validate();
+        this.import_file_schema = null;
+        switch(result.error) {
+          case "ok":
+            this.import_file_schema = result.schema;
+            this.import_file_error = null;
+            break;
+          case "unknown schema":
+            this.import_file_error = "Неизвестный формат";
+            break;
+          case "wrong file":
+            this.import_file_error = "Некорректный файл";
+            break;
+          default:
+            this.import_file_error = "Неизвестная ошибка";
+            break;
+        }
+      },
+
       update_active: function() {
         this.active = null;
         if(this.items.length == 0) {

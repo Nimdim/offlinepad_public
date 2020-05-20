@@ -298,7 +298,7 @@
     />
 
     <a v-if="develop_mode"
-      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       style="left: 16px;"
       @click="develop_console = !develop_console"
     >
@@ -306,19 +306,19 @@
     </a>
 
     <a v-if="section == 'tags' && notepad_working"
-      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="edit" />
     </a>
     <a v-if="section == 'notes' && notepad_working"
-      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       @click="add_note"
       >
       <font-awesome-icon icon="edit" />
     </a>
     <a v-if="section == 'notes' && notes_scroll_up_show"
-      class="btn-floating btn-large waves-effect waves-light red add_btn"
+      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       style="right: 80px;"
       @click="scroll_to_top"
       >

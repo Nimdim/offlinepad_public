@@ -100,7 +100,7 @@ nav,
 }
 
 .social-button {
-  background-color: #5a5a5a;
+  background-color: #5a5a5a !important;
 }
 
 input.validate.filter_name {
