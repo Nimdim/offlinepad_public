@@ -47,11 +47,7 @@ class Notepad {
     }
 
     _reset_internal_state() {
-        this._schedule_tags_update = false;
-        this._schedule_notes_update = false;
-        this._schedule_note_filters_update = false;
-        this._updates_state = null;
-        this._storage = null;// new NotepadStorage();
+        this._storage = null;
 
         this._working = false;
         this._options = null;
@@ -223,17 +219,6 @@ class Notepad {
     }
 
     async _reset_tags() {
-        if(this._updates_state == "pending") {
-            this._schedule_tags_update = true;
-            return
-        } else if(this._updates_state == "execute") {
-            if(this._schedule_tags_update) {
-                this._schedule_tags_update = false;
-            } else {
-                return;
-            }
-        }
-
         this._state.tags.items = await this._filter_tags();
         this.trigger("reset_tags", await this._wrap_tags(this._state.tags.items));
     }
@@ -306,16 +291,6 @@ class Notepad {
     }
 
     async _reset_notes() {
-        if(this._updates_state == "pending") {
-            this._schedule_notes_update = true;
-            return
-        } else if(this._updates_state == "execute") {
-            if(this._schedule_notes_update) {
-                this._schedule_notes_update = false;
-            } else {
-                return;
-            }
-        }
         await this._filter_notes();
     }
 
@@ -477,27 +452,14 @@ class Notepad {
         }
     }
 
-    start_updates() {
-        this._schedule_tags_update = false;
-        this._schedule_notes_update = false;
-        this._schedule_note_filters_update = false;
-        this._updates_state = "pending";
-    }
-
-    async end_updates() {
-        this._updates_state = "execute";
-        await this._reset_state();
-        this._updates_state = null;
-    }
-
-    async import(db_name, objects, progress_callback) {
+    async import(db_name, objects, options) {
         if(!this._working) {
             this.invalidate_cache();
             let sorted = this.sort_import_objects(objects);
             this._options = sorted.info.options;
             this._storage = new NotepadStorage();
             await this._storage.init(db_name);
-            let maps = await this.create_objects(sorted, progress_callback);
+            let maps = await this.create_objects(sorted, options);
             await this.sub_sync();
             return maps;
         } else {
@@ -547,7 +509,10 @@ class Notepad {
         return sorted;
     }
 
-    async create_objects(sorted, progress_callback) {
+    async create_objects(sorted, options) {
+        if(options == null) {
+            options = {abort: false};
+        }
         let maps = {
             settings: {},
             notes: {},
@@ -556,8 +521,8 @@ class Notepad {
         };
         let step_progress = () => {
             processed += 1;
-            if(progress_callback != null) {
-                progress_callback(Math.floor(processed * 100 / total_count));
+            if(options.progress_callback != null) {
+                options.progress_callback(Math.floor(processed * 100 / total_count));
             }
         };
         let processed = 0;
@@ -568,7 +533,7 @@ class Notepad {
                           sorted.note_filters.length;
         let keys;
         keys = _.keys(sorted.settings);
-        for(let k = 0; k < keys.length; k++) {
+        for(let k = 0; (k < keys.length) && (!options.abort); k++) {
             let key = keys[k];
             let setting = sorted.settings[key];
             maps.settings[key] = await this._storage.create_item_in_store(
@@ -577,21 +542,21 @@ class Notepad {
             step_progress();
         }
         keys = _.keys(sorted.notes);
-        for(let k = 0; k < keys.length; k++) {
+        for(let k = 0; (k < keys.length) && (!options.abort); k++) {
             let key = keys[k];
             let note = sorted.notes[key];
             maps.notes[key] = await this._storage.create_item_in_store("notes", note);
             step_progress();
         }
         keys = _.keys(sorted.tags);
-        for(let k = 0; k < keys.length; k++) {
+        for(let k = 0; (k < keys.length) && (!options.abort); k++) {
             let key = keys[k];
             let tag = sorted.tags[key];
             maps.tags[key] = await this._storage.create_item_in_store("tags", tag);
             step_progress();
         }
         keys = _.keys(sorted.tag_notes);
-        for(let k = 0; k < keys.length; k++) {
+        for(let k = 0; (k < keys.length) && (!options.abort); k++) {
             let key = keys[k];
             let tag_note = sorted.tag_notes[key];
             tag_note = {
@@ -603,7 +568,7 @@ class Notepad {
             );
             step_progress();
         }
-        for(let k = 0; k < sorted.note_filters.length; k++) {
+        for(let k = 0; (k < sorted.note_filters.length) && (!options.abort); k++) {
             let note_filter = sorted.note_filters[k];
             let mapped_tag_ids = _.map(note_filter.tags, (id) => maps.tags[id]);
             note_filter = {
@@ -740,17 +705,6 @@ class Notepad {
     }
 
     async _reset_note_filters() {
-        if(this._updates_state == "pending") {
-            this._schedule_note_filters_update = true;
-            return
-        } else if(this._updates_state == "execute") {
-            if(this._schedule_note_filters_update) {
-                this._schedule_note_filters_update = false;
-            } else {
-                return;
-            }
-        }        
-
         let all_items = {
             id: "internal_all",
             name: "Все",

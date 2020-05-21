@@ -1038,6 +1038,23 @@ export default {
       let file = arg.file;
       let name = arg.name;
 
+      let progress_callback = (progress) => {
+        this.import_progress = progress;
+      };
+      let options = {
+        progress_callback: progress_callback,
+        abort: false
+      };
+      this.importer = {
+        abort: () => {
+          result.error = "abort";
+          options.abort = true;
+        }
+      }
+      let result = {
+        error: null
+      };
+
       let reader = new PartialFileReader(
         file, async (import_data) => {
           _.forEach(import_data, (item) => {
@@ -1048,20 +1065,22 @@ export default {
               item.encrypted = false;
             }
           });
-          let progress_callback = (progress) => {
-            this.import_progress = progress;
-          };
           let info = await notepads_list.import(
-            import_data, progress_callback
+            import_data, options
           );
-          notepad = info.notepad;
-          this.notepad_register(notepad);
-          this.notepad_working = true;
-          await notepad._reset_note_filters();
-          this.section = "notes";
+          debugger
+          if(!options.abort) {
+            result.notepad = info.notepad;
+          } else {
+            await info.notepad.close();
+            await notepads_list.delete(info.id);
+          }
         }
       );
+      debugger
       await reader.start();
+      debugger
+      return result;
     },
 
     wrap_notes: function(notes) {
@@ -1310,8 +1329,24 @@ export default {
           this.import_error = import_error_to_str(import_result.error);
         }
       } else if(arg.schema == "alpha") {
-        await this.notepad_import_alpha(arg);
-        this.importing = false;
+        let import_result = await this.notepad_import_alpha(arg);
+        console.log("import_result", import_result)
+        debugger
+
+        if(import_result.error == null) {
+          debugger
+          notepad = import_result.notepad;
+          this.notepad_register(notepad);
+          this.section = "notes";
+          // await notepad.sub_sync();
+          await notepad._reset_note_filters();
+          this.notepad_working = true;
+          await sleep(0.5);
+          this.importing = false;
+        } else {
+          debugger
+          this.import_error = import_error_to_str(import_result.error);
+        }
       }
       this.import_progress = 0;
       await notepads_list.reread_list();

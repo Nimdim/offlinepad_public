@@ -1,9 +1,9 @@
 <template>
   <full-screen-box :top="true">
     <template v-if="import_error">
-      <p>{{import_error}}</p>
+      <p class="center">{{import_error}}</p>
       <a
-        class="waves-effect waves-teal btn tag_delete_btn"
+        class="waves-effect waves-teal btn  "
         @click.prevent="$emit('close')"
       >
         Закрыть
