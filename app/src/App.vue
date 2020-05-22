@@ -15,8 +15,9 @@
     <!-- <input type="file" ref="upload" style="display:none;" @change="do_upload" /> -->
     <!-- <input type="file" ref="upload_old" style="display:none;" @change="do_upload_old" /> -->
 
-    <notepad-empty-screen v-if="notes.items.length == 0"
+    <notepad-empty-screen v-if="empty_msg"
       :develop_mode="develop_mode"
+      :text="empty_msg"
       @test_create="test_create($event)"
     />
 
@@ -209,7 +210,7 @@
               <a href="#!"
                 style="padding-right: 8px;"
               >
-                <font-awesome-icon class="mobile-menu-icon" icon="th" />
+                <font-awesome-icon class="mobile-menu-icon" icon="book" />
                 <span>
                   {{info.notepad_name}}
                 </span>
@@ -224,15 +225,20 @@
               </a>
             </li>
             <li class="divider"></li>
-            <note-filter-item v-for="note_filter in note_filters" :key="note_filter.id"
+            <note-filter-item
+              v-for="note_filter in note_filters" :key="note_filter.id"
               :note_filter="note_filter"
-              @click="note_filter_click(note_filter.tags)"
+              :class="{'active': (selected_note_filter == note_filter.id) && (section =='notes')}"
+              @click="note_filter_click(note_filter.id, note_filter.tags)"
               @delete="delete_note_filter(note_filter.id)"
               @submit="edit_note_filter(note_filter.id, $event)"
             />
             <li class="divider"></li>
             <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
-              <a href="#">Теги</a>
+              <a href="#">
+                <font-awesome-icon class="mobile-menu-icon" icon="tags" />
+                <span>Теги</span>
+              </a>
             </li>
             <li class="divider"></li>
           </ul>
@@ -475,6 +481,8 @@ export default {
       startup: true,
       develop_mode: false,
       develop_console: false,
+      empty_msg: null,
+      selected_note_filter: "internal_all",
 
       notes_scroll_up_show: false,
       notes_preloading: false,
@@ -550,10 +558,12 @@ export default {
         this.sorting_order_asc = filter.sorting_asc;
         notepad._reset_notes();
       }
+      this.process_empty_screen();
     },
 
     "notes_filter_tags": async function(value) {
       this.scroll_to_top();
+      this.process_empty_screen();
       if(!this.startup) {
         this.processing = true;
         await sleep(0);
@@ -562,7 +572,6 @@ export default {
         notepad.set_notes_filter({
           "tags": copy,
         });
-
         // setTimeout(
         //   () => {
         //     let copy = _.cloneDeep(value);
@@ -577,6 +586,7 @@ export default {
   
     "fast_search": function(value) {
       this._process_developer_commands(value);
+      this.process_empty_screen();
       if(!this.startup) {
         value = escapeRegExp(value);
         if(this.section == "tags") {
@@ -607,6 +617,13 @@ export default {
           })
         }
       }
+    },
+
+    "notes.items": function() {
+      this.process_empty_screen();
+    },
+    "tags.items": function() {
+      this.process_empty_screen();
     },
   },
 
@@ -674,6 +691,35 @@ export default {
   },
 
   methods: {
+
+    is_notes_filter_active: function() {
+      return this.fast_search != "" || this.notes_filter_tags.length > 0;
+    },
+
+    process_empty_screen: function() {
+      if(this.section == "notes") {
+        if(this.notes.items.length == 0) {
+          if(this.is_notes_filter_active()) {
+            this.empty_msg = "Для указанного фильтра\nне найдено ни одной записи";
+          } else {
+            this.empty_msg = "У вас еще нет записей\nСоздайте новую";
+          }
+        } else {
+          this.empty_msg = null;
+        }
+      }
+      if(this.section == "tags") {
+        if(this.tags.items.length == 0) {
+          if(this.fast_search != "") {
+            this.empty_msg = "Для указанного фильтра\nне найдено ни одного тега";
+          } else {
+            this.empty_msg = "У вас еще нет тегов\nСоздайте новый";
+          }
+        } else {
+          this.empty_msg = null;
+        }
+      }
+    },
 
     notepad_goto_home: async function() {
       this.loadscreen_visible = true;
@@ -884,7 +930,8 @@ export default {
       });
     },
 
-    note_filter_click: function(tags) {
+    note_filter_click: function(id, tags) {
+      this.selected_note_filter = id;
       this.notes_filter_tags = _.cloneDeep(tags);
       this.change_section('notes');
     },
@@ -978,11 +1025,13 @@ export default {
     },
 
     process_notes_preload: function() {
-      if(this.note_index_in_viewspot > this.notes.items.length - 20) {
-        if(this.notes.items.length < this.notes.count) {
-          if(!this.notes_preloading) {
-            this.notes_preloading = true;
-            notepad.load_next_notes();
+      if(notepad != null) {
+        if(this.note_index_in_viewspot > this.notes.items.length - 20) {
+          if(this.notes.items.length < this.notes.count) {
+            if(!this.notes_preloading) {
+              this.notes_preloading = true;
+              notepad.load_next_notes();
+            }
           }
         }
       }
@@ -1068,7 +1117,6 @@ export default {
           let info = await notepads_list.import(
             import_data, options
           );
-          debugger
           if(!options.abort) {
             result.notepad = info.notepad;
           } else {
@@ -1077,9 +1125,7 @@ export default {
           }
         }
       );
-      debugger
       await reader.start();
-      debugger
       return result;
     },
 
@@ -1330,21 +1376,16 @@ export default {
         }
       } else if(arg.schema == "alpha") {
         let import_result = await this.notepad_import_alpha(arg);
-        console.log("import_result", import_result)
-        debugger
 
         if(import_result.error == null) {
-          debugger
           notepad = import_result.notepad;
           this.notepad_register(notepad);
           this.section = "notes";
-          // await notepad.sub_sync();
           await notepad._reset_note_filters();
           this.notepad_working = true;
           await sleep(0.5);
           this.importing = false;
         } else {
-          debugger
           this.import_error = import_error_to_str(import_result.error);
         }
       }

@@ -49,6 +49,9 @@ class ScrollUpController {
         this.set_show(true);
       }
     }
+    if(scroll == 0) {
+      this.set_show(false);
+    }
   }
 
   scroll_top() {

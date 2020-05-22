@@ -4,9 +4,11 @@
       icon="box-open"
       style="width: 200px; height: 200px; color: gray;"
     />
-    <p>
-      Список записей пуст, создайте новую при помощи кнопки в правом нижнем углу.
-    </p>
+    <template v-if="text">
+      <p v-for="line in text.split('\n')" :key="line">
+        {{line}}
+      </p>
+    </template>
     <template v-if="develop_mode">
       <p>
         <a href="#!" @click="$emit('test_create', 10)">Создать 10</a>
@@ -32,6 +34,10 @@ export default {
       develop_mode: {
         type: Boolean,
         default: false,
+      },
+      text: {
+        type: String,
+        default: null,
       }
     },
 

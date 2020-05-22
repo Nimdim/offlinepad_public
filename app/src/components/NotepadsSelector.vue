@@ -1,105 +1,106 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span v-if="items.length > 0"
-      class="notepads-selector"
-      style="display: block; margin: 0 auto;"
-    >
-      Блокноты
-    </span>
-    <span v-else
-      class="notepads-selector"
-      style="display: block; margin: 0 auto; margin-bottom: 10px;"
-    >
-      У вас пока еще не создано ни одного блокнота. Создайте новый, при помощи формы ниже.
-    </span>
-    <ul
-      class="collection notepads-selector"
-    >
-      <notepads-selector-item
-        v-for="item in items" :key="item.id"
-        :item="item"
-        :active="active == item.id"
-        @click="active = item.id"
-        @open="$emit('open', item.id)"
-        @save="$emit('save', item.id)"
-        @remove="$emit('remove', item.id)"
-      />
-      <li class="collection-item"
-        @click="active = 'add'"
+    <span :class="{'one-notepad-center': items.length == 0}">
+      <span v-if="items.length > 0"
+        class="notepads-selector"
+        style="display: block; margin: 0 auto;"
       >
-        <span v-if="active == 'add'">
-          <form class="col s12">
-            <div class="row" style="margin-bottom: 0px;">
-              <div class="input-field col s12">
-                <span class="new-notepad-mode"
-                  :class="{'active': add_mode == 'create'}"
-                  @click="add_mode = 'create'"
-                >
-                  Создать
-                </span>
-                <span class="new-notepad-mode"
-                  :class="{'active': add_mode == 'import'}"
-                  @click="add_mode = 'import'"
-                >
-                  Импорт
-                </span>
-              </div>
-            </div>
-            <div class="row" style="margin-bottom: 0px;">
-              <div class="input-field col s12">
-                <input
-                  ref="add_name_input"
-                  placeholder="Название блокнота"
-                  type="text"
-                  class="validate"
-                  v-model="add_name"
-                >
-                <span v-if="error_text"
-                  class="left red-text" style=""
-                >
-                  {{error_text}}
-                </span>
-              </div>
-              <div class="input-field col s12">
-                <select ref="selects">
-                  <option value="1" selected>Не шифрованный</option>
-                  <option value="2" disabled>Зашифрованный</option>
-                </select>
-                <label>Тип блокнота</label>
-              </div>
-              <div v-if="add_mode == 'import'"
-                class="file-field input-field col s12"
-              >
-                <div class="btn-small" style="height: 32px;">
-                  <span style="line-height: unset;">
-                    файл
+        Блокноты
+      </span>
+      <span v-else
+        class="notepads-selector"
+        style="display: block; margin: 0 auto; margin-bottom: 10px;"
+      >
+        У вас пока еще не создано ни одного блокнота. Создайте новый, при помощи формы ниже.
+      </span>
+      <ul
+        class="collection notepads-selector"
+      >
+        <notepads-selector-item
+          v-for="item in items" :key="item.id"
+          :item="item"
+          :active="active == item.id"
+          @click="active = item.id"
+          @open="$emit('open', item.id)"
+          @save="$emit('save', item.id)"
+          @remove="$emit('remove', item.id)"
+        />
+        <li class="collection-item"
+          @click="active = 'add'"
+        >
+          <span v-if="active == 'add'">
+            <form class="col s12">
+              <div class="row" style="margin-bottom: 0px;">
+                <div class="input-field col s12">
+                  <span class="new-notepad-mode"
+                    :class="{'active': add_mode == 'create'}"
+                    @click="add_mode = 'create'"
+                  >
+                    Создать
                   </span>
-                  <input ref="import_file" type="file" @change="validate">
+                  <span class="new-notepad-mode"
+                    :class="{'active': add_mode == 'import'}"
+                    @click="add_mode = 'import'"
+                  >
+                    Импорт
+                  </span>
                 </div>
-                <div class="file-path-wrapper">
-                  <input class="file-path validate" type="text">
-                </div>
-                <span v-if="import_file_error" style="color: red;">
-                  {{import_file_error}}
-                </span>
               </div>
-              <div class="input-field col s12">
-                <a class="waves-effect waves-light btn"
-                  @click="create_notepad"
+              <div class="row" style="margin-bottom: 0px;">
+                <div class="input-field col s12">
+                  <input
+                    ref="add_name_input"
+                    placeholder="Название блокнота"
+                    type="text"
+                    class="validate"
+                    v-model="add_name"
+                  >
+                  <span v-if="error_text"
+                    class="left red-text" style=""
+                  >
+                    {{error_text}}
+                  </span>
+                </div>
+                <div class="input-field col s12">
+                  <select ref="selects">
+                    <option value="1" selected>Не шифрованный</option>
+                    <option value="2" disabled>Зашифрованный</option>
+                  </select>
+                  <label>Тип блокнота</label>
+                </div>
+                <div v-if="add_mode == 'import'"
+                  class="file-field input-field col s12"
                 >
-                  <font-awesome-icon icon="plus"/>
-                  Создать блокнот
-                </a>
+                  <div class="btn-small" style="height: 32px;">
+                    <span style="line-height: unset;">
+                      файл
+                    </span>
+                    <input ref="import_file" type="file" @change="validate">
+                  </div>
+                  <div class="file-path-wrapper">
+                    <input class="file-path validate" type="text">
+                  </div>
+                  <span v-if="import_file_error" style="color: red;">
+                    {{import_file_error}}
+                  </span>
+                </div>
+                <div class="input-field col s12">
+                  <a class="waves-effect waves-light btn"
+                    @click="create_notepad"
+                  >
+                    <font-awesome-icon icon="plus"/>
+                    Создать блокнот
+                  </a>
+                </div>
               </div>
-            </div>
-          </form>
-        </span>
-        <span v-else>
-          <font-awesome-icon icon="plus"/>
-        </span>
-      </li>
-    </ul>
-
+            </form>
+          </span>
+          <span v-else>
+            <font-awesome-icon icon="plus"/>
+          </span>
+        </li>
+      </ul>
+    </span>
   </full-screen-box>
 </template>
 <script>
@@ -315,4 +316,14 @@
     text-decoration: underline;
     font-weight: bold;
   }
+
+  .one-notepad-center {
+      position: relative;
+      display: inline-block;
+      top: 50%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+  }
+
 </style>
