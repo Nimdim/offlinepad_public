@@ -569,18 +569,9 @@ export default {
         await sleep(0);
         let copy = _.cloneDeep(value);
         copy = _.filter(copy, (item) => item != "0");
-        notepad.set_notes_filter({
+        await notepad.set_notes_filter({
           "tags": copy,
         });
-        // setTimeout(
-        //   () => {
-        //     let copy = _.cloneDeep(value);
-        //     copy = _.filter(copy, (item) => item != "0");
-        //     notepad.set_notes_filter({
-        //       "tags": copy,
-        //     });
-        //   }, 0
-        // );
       }
     },
   
@@ -842,26 +833,33 @@ export default {
       this.processing = false;
       this.tags.items = this.wrap_tags(tags);
     },
+
     notepad_append_tags: function(tags) {
       this.tags.items.push.apply(this.tags.items, this.wrap_tags(tags));
     },
+    
     notepad_all_tags: function(tags) {
       this.all_tags = tags;
     },
+    
     notepad_reset_notes: function(notes) {
       this.processing = false;
       this.notes.items = this.wrap_notes(notes);
     },
+    
     notepad_reset_notes_count: function(notes_count) {
       this.notes.count = notes_count;
     },
+
     notepad_append_notes: function(notes) {
       this.notes.items.push.apply(this.notes.items, this.wrap_notes(notes));
       this.notes_preloading = false;
     },
+    
     notepad_reset_note_filters: function(items) {
       this.note_filters = items;
     },
+    
     notepad_reset_filter: function(filter) {
       this.notes_filter_tags = filter.notes.tags;
       if(this.section == "notes") {
@@ -874,6 +872,7 @@ export default {
         throw new Error("error");
       }
     },
+    
     notepad_reset_info: function(info) {
       this.info = info;
     },
