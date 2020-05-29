@@ -342,10 +342,19 @@
       <notepads-selector v-if="!notepad_working"
         :items="notepads"
         @create="notepad_create($event)"
+        @start-creation-wizard="notepad_wizard_show = true"
         @import="notepad_import($event)"
         @open="notepad_init($event)"
         @save="save_notepad_by_id($event)"
         @remove="delete_notepad_by_id($event)"
+      />
+    </transition>
+
+    <transition name="fade">
+      <notepad-creation-wizard v-if="notepad_wizard_show"
+        :items="notepads"
+        @finish="wizard_finished"
+        @cancel="notepad_wizard_show = false"
       />
     </transition>
 
@@ -403,6 +412,7 @@ import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
 import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
 import NotepadsSelector from './components/NotepadsSelector.vue'
+import NotepadCreationWizard from './components/NotepadCreationWizard.vue'
 import ImportScreen from './components/ImportScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
@@ -466,6 +476,7 @@ export default {
     DevelopConsoleScreen,
     ImportScreen,
     NotepadsSelector,
+    NotepadCreationWizard,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -532,6 +543,7 @@ export default {
       header_top: 0,
       header_bottom: 0,
       notepad_working: false,
+      notepad_wizard_show: false,
       notes: {
         count: 0,
         items: [],
@@ -1111,6 +1123,7 @@ export default {
               item.name = "info";
               item.notepad_name = name;
               item.encrypted = false;
+              item.schema_type = "beta";
             }
           });
           let info = await notepads_list.import(
@@ -1328,10 +1341,24 @@ export default {
 
     },
 
+    wizard_finished: function(info) {
+      if(info.file == null) {
+        this.notepad_create(info);
+      } else {
+        info.name = info.notepad_name;
+        this.notepad_import(info);
+      }
+      this.notepad_wizard_show = false;
+    },
+
     notepad_create: async function(arg) {
+      let name = arg.notepad_name;
+      let options = {
+        encrypted: arg.encrypted,
+      }
       this.loadscreen_visible = true;
       await sleep(0.5);
-      let info = await notepads_list.create(arg, {encrypted: false});
+      let info = await notepads_list.create(name, options);
       notepad = info.notepad;
       this.notepad_register(notepad);
       notepad._reset_info();

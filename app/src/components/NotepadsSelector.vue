@@ -26,7 +26,7 @@
           @remove="$emit('remove', item.id)"
         />
         <li class="collection-item"
-          @click="active = 'add'"
+          @click="$emit('start-creation-wizard')"
         >
           <span v-if="active == 'add'">
             <form class="col s12">
@@ -268,15 +268,16 @@
 
       update_active: function() {
         this.active = null;
-        if(this.items.length == 0) {
-          this.active = "add";
-        }
-        if(this.items.length == 1) {
-          this.active = this.items[0].id;
-        }
+        // if(this.items.length == 0) {
+        //   this.active = "add";
+        // }
+        // if(this.items.length == 1) {
+        //   this.active = this.items[0].id;
+        // }
       },
 
       create_notepad: function() {
+        // TODO это перенести
         if(this.add_name == "") {
           this.error = "empty";
           this.$refs.add_name_input.focus();

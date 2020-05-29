@@ -1,4 +1,4 @@
-const APP_VERSION = "0.116";
+const APP_VERSION = "0.117";
 
 const RESOURCES = [
   '/',
