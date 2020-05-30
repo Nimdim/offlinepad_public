@@ -434,7 +434,7 @@ import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import PartialFileReader from './js/partial_file_reader.js'
 import ScrollUpController from './js/scroll_up_controller.js'
-import { BetaDataImporter } from './js/data_importer.js'
+import { BetaDataImporter, AlphaDataImporter } from './js/data_importer.js'
 
 let import_error_to_str = function(code) {
   let result;
@@ -1096,53 +1096,6 @@ export default {
       reader.start();      
     },
 
-    notepad_import_alpha: async function(arg) {
-      let file = arg.file;
-      let name = arg.name;
-
-      let progress_callback = (progress) => {
-        this.import_progress = progress;
-      };
-      let options = {
-        progress_callback: progress_callback,
-        abort: false
-      };
-      this.importer = {
-        abort: () => {
-          result.error = "abort";
-          options.abort = true;
-        }
-      }
-      let result = {
-        error: null
-      };
-
-      let reader = new PartialFileReader(
-        file, async (import_data) => {
-          _.forEach(import_data, (item) => {
-            if(item.type == "notepad") {
-              item.type = "setting";
-              item.name = "info";
-              item.notepad_name = name;
-              item.encrypted = false;
-              item.schema_type = "beta";
-            }
-          });
-          let info = await notepads_list.import(
-            import_data, options
-          );
-          if(!options.abort) {
-            result.notepad = info.notepad;
-          } else {
-            await info.notepad.close();
-            await notepads_list.delete(info.id);
-          }
-        }
-      );
-      await reader.start();
-      return result;
-    },
-
     wrap_notes: function(notes) {
       let k, item;
       for(k = 0; k < notes.length; k++) {
@@ -1382,9 +1335,15 @@ export default {
       this.import_error = null;
       this.importing = true;
       await sleep(0.5);
-      if(arg.schema == "beta") {
+      if(arg.schema == "beta" || arg.schema == "alpha") {
         arg.notepads_list = notepads_list;
-        let importer = new BetaDataImporter(arg);
+        let importer;
+        if(arg.schema == "beta") {
+          importer = new BetaDataImporter(arg);
+        }
+        if(arg.schema == "alpha") {
+          importer = new AlphaDataImporter(arg);
+        }
         this.importer = importer;
 
         let updater = setInterval(
@@ -1400,20 +1359,6 @@ export default {
           this.notepad_register(notepad);
           this.section = "notes";
           await notepad.sub_sync();
-          await notepad._reset_note_filters();
-          this.notepad_working = true;
-          await sleep(0.5);
-          this.importing = false;
-        } else {
-          this.import_error = import_error_to_str(import_result.error);
-        }
-      } else if(arg.schema == "alpha") {
-        let import_result = await this.notepad_import_alpha(arg);
-
-        if(import_result.error == null) {
-          notepad = import_result.notepad;
-          this.notepad_register(notepad);
-          this.section = "notes";
           await notepad._reset_note_filters();
           this.notepad_working = true;
           await sleep(0.5);

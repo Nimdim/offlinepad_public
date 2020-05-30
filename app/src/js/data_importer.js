@@ -116,6 +116,108 @@ export class BetaDataImporter extends BetaDataImporterBase {
   }
 }
 
+class PartialAlphaDataReader {
+  constructor(file, callback) {
+    this.file = file;
+    this.callback = callback;
+  }
+
+  async _read_file() {
+    let result;
+    let reader = new PartialFileReader(
+      this.file, async (data) => {
+        result = data;
+      }
+    );
+    await reader.start();
+    return result;
+  }
+
+  _migrate_data(import_data) {
+    _.forEach(import_data, (item) => {
+      if(item.type == "notepad") {
+        item.type = "setting";
+        item.name = "info";
+        item.notepad_name = name;
+        item.encrypted = false;
+        item.schema_type = "beta";
+      }
+    });
+  }
+
+  async start() {
+    let import_data = await this._read_file();
+    this._migrate_data(import_data);
+
+    let sorted = this.sort_import_objects(import_data);
+    
+    let total = 0, current = 0;
+    let k, i;
+    for(k = 0; k < TYPES.length; k++) {
+      let type = TYPES[k][0];
+      let objects = sorted[type];
+      total += objects.length;
+    }
+
+    for(k = 0; k < TYPES.length; k++) {
+      let type = TYPES[k][0];
+      let objects = sorted[type];
+      for(i = 0; i < objects.length; i++) {
+        if(this._abort) {
+          return false;
+        }
+        let object = objects[i];
+        await this.callback(object, current / total);
+        current += 1;
+      }
+    }
+    return true;
+  }
+
+  sort_import_objects(objects) {
+    let sorted = {
+        settings: [],
+        notes: [],
+        tags: [],
+        tag_notes: [],
+        note_filters: [],
+    }
+    let keys = _.keys(objects);
+    for(let k = 0; k < keys.length; k++) {
+        let key = keys[k];
+        let object = _.cloneDeep(objects[key]);
+        let object_type = object.type;
+        switch(object_type) {
+            case "setting":
+                sorted.settings.push(object);
+                break;
+            case "tag":
+                sorted.tags.push(object);
+                break;
+            case "note":
+                sorted.notes.push(object);
+                break;
+            case "tag_note":
+                sorted.tag_notes.push(object);
+                break;
+            case "note_filter":
+                sorted.note_filters.push(object);
+                break;
+            default:
+                // console.error("неизвестный тип объекта", object);
+                break;
+        }
+    }
+    return sorted;
+  }
+}
+
+export class AlphaDataImporter extends BetaDataImporterBase {
+  _create_file_reader(file, callback) {
+    return new PartialAlphaDataReader(file, callback);
+  }
+}
+
 class PartialFileReaderMock {
   constructor(data, callback) {
     this.data = data;
