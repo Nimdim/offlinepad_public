@@ -399,6 +399,8 @@
 //   return promise;
 // };
 import platform from 'platform'
+import { sha3_256 } from 'js-sha3'
+import aesjs from 'aes-js'
 
 import moment from 'moment'
 import _ from 'lodash'
@@ -1355,6 +1357,11 @@ export default {
       let name = arg.notepad_name;
       let options = {
         encrypted: arg.encrypted,
+      };
+      if(arg.encrypted) {
+        let secret = sha3_256(arg.secret);
+        secret = aesjs.utils.hex.toBytes(secret);
+        options.secret = secret;
       }
       this.loadscreen_visible = true;
       await sleep(0.5);
