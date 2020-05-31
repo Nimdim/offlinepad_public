@@ -119,7 +119,7 @@
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
-                  <textarea id="secret" class="materialize-textarea">lorem ipsum dolor amet a vesla in a tesla</textarea>
+                  <textarea id="secret" class="materialize-textarea" v-model="creation_info.secret"></textarea>
                   <label for="secret">Textarea</label>
                 </div>
               </div>
@@ -290,7 +290,7 @@
       },
 
       generate_secret: function() {
-        return "lorem ipsum have s secret";
+        return "lorem ipsum have a secret";
       },
 
       encrypted_notepad_selected: function() {

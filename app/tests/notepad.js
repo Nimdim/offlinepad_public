@@ -69,16 +69,6 @@ describe("notepad simple tests", function() {
         assert.deepEqual(notes_events, EXPECTED_NOTES);
     });
 
-    it("second create notepad must fail", async function() {
-        reset_events();
-        let create_result = await notepad.create();
-        assert.equal(create_result, false);
-        let EXPECTED_TAGS = [];
-        let EXPECTED_NOTES = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
-    });
-
     it("create tag with empty name must fail", async function() {
         reset_events();
         let error = false;

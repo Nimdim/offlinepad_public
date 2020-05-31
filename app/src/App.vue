@@ -341,10 +341,8 @@
     <transition name="fade">
       <notepads-selector v-if="!notepad_working"
         :items="notepads"
-        @create="notepad_create($event)"
         @start-creation-wizard="notepad_wizard_show = true"
-        @import="notepad_import($event)"
-        @open="notepad_init($event)"
+        @open="notepad_open($event)"
         @save="save_notepad_by_id($event)"
         @remove="delete_notepad_by_id($event)"
       />
@@ -919,10 +917,26 @@ export default {
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
-    notepad_init: async function(id) {
+    notepad_open: async function(arg) {
+      let id = arg.id;
+      let options;
+      if(arg.secret == null) {
+        options = {
+          encrypted: false,
+        };
+      } else {
+        let secret = sha3_256(arg.secret);
+        secret = aesjs.utils.hex.toBytes(secret);
+        options = {
+          encrypted: true,
+          secret: secret,
+        };
+      }
+      debugger
+
       this.loadscreen_visible = true
       await sleep(0.5);
-      notepad = await notepads_list.open(id);
+      notepad = await notepads_list.open(id, options);
       this.notepad_register(notepad);
       notepad._reset_info();
       this.notepad_working = true;
@@ -1225,8 +1239,21 @@ export default {
       await notepad._reset_notes();
     },
 
-    save_notepad_by_id: async function(notepad_id) {
-      let notepad = await notepads_list.open(notepad_id);
+    save_notepad_by_id: async function(arg) {
+      let notepad_id = arg.id;
+      let options;
+      if(arg.secret == null) {
+        options = {
+          encrypted: false,
+        };
+      } else {
+        options = {
+          encrypted: true,
+          secret: arg.secret,
+        };
+      }
+
+      let notepad = await notepads_list.open(notepad_id, options);
       await this.export_notepad(notepad);
       await notepad.close();
     },
@@ -1316,6 +1343,7 @@ export default {
         secret = aesjs.utils.hex.toBytes(secret);
         options.secret = secret;
       }
+      debugger
       this.loadscreen_visible = true;
       await sleep(0.5);
       let info = await notepads_list.create(name, options);

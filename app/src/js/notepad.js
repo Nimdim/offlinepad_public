@@ -50,7 +50,6 @@ class Notepad {
         this._storage = null;
 
         this._working = false;
-        this._options = null;
         this._state = {
             "notes": [],
             "tags": [],
@@ -104,20 +103,18 @@ class Notepad {
     }
 
     async create(db_name, name, options) {
-        /* Аргументы
-           db_name - название БД
-           name - название блокнота
-           options - настройки блокнота
-             encrypted - зашифрован true/false
-             key - ключ шифрования (если зашифрован)
-        */
+        //  Аргументы:
+        //  db_name - название БД
+        //  name - название блокнота
+        //  options - настройки блокнота
+        //    encrypted - зашифрован true/false
+        //    secret - ключ шифрования (если зашифрован)
+        
         if(!this._working) {
-            this._options = options;
             this._storage = new NotepadStorage();
-            await this._storage.init(db_name);
+            await this._storage.init(db_name, options);
             await this.create_notepad_info(name, options.encrypted);
             this._reset_info();
-            // this._storage.set_options(options);
             this._reset_filter();
             // await this._reset_state();
             this._working = true;
@@ -136,9 +133,8 @@ class Notepad {
              key - ключ шифрования (если зашифрован)
         */
         if(!this._working) {
-            this._options = options;
             this._storage = new NotepadStorage();
-            await this._storage.init(db_name);
+            await this._storage.init(db_name, options);
             this._working = true;
             // return true;
         }
@@ -164,10 +160,10 @@ class Notepad {
         // await this._reset_state();
     }
 
-    async sync(db_name) {
+    async sync(db_name, options) {
         if(!this._working) {
             this._storage = new NotepadStorage();
-            await this._storage.init(db_name);
+            await this._storage.init(db_name, options);
             await this.sub_sync();
             return true;
         } else {

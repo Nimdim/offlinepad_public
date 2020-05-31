@@ -141,10 +141,10 @@ class NotepadsList {
         return list.length > 0;
     }
 
-    async open(notepad_id) {
+    async open(notepad_id, options) {
         if(this.has(notepad_id)) {
             let notepad = new Notepad();
-            await notepad.sync(NOTEPAD_DB_PREFIX + notepad_id);
+            await notepad.sync(NOTEPAD_DB_PREFIX + notepad_id, options);
             return notepad;
         } else {
             return false;
@@ -166,10 +166,10 @@ class NotepadsList {
         return {"id": notepad_id, "notepad": notepad};
     }
 
-    async create_empty() {
+    async create_empty(options) {
         let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
-        await notepad.create_empty(NOTEPAD_DB_PREFIX + notepad_id);
+        await notepad.create_empty(NOTEPAD_DB_PREFIX + notepad_id, options);
         return {"id": notepad_id, "notepad": notepad};
     }
 }

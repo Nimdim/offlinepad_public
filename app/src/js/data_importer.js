@@ -13,6 +13,14 @@ class BetaDataImporterBase {
   constructor(data) {
     this.name = data.name;
     this.file = data.file;
+
+    this.options = {
+      encrypted: data.encrypted,
+    };
+    if(data.secret != null) {
+      this.options.secret = data.secret;
+    }
+
     this.notepads_list = data.notepads_list;
     this.import_progress = 0;
 
@@ -42,7 +50,7 @@ class BetaDataImporterBase {
   }
 
   async execute() {
-    let info = await this.notepads_list.create_empty();
+    let info = await this.notepads_list.create_empty(this.options);
     let notepad = info.notepad;
     let notepad_id = info.id;
 
