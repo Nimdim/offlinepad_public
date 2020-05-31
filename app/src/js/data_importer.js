@@ -90,7 +90,8 @@ class BetaDataImporterBase {
     // let reader = new PartialFileReader(this.file, object_recved);
     let reader = this._create_file_reader(this.file, object_recved);
     this._reader = reader;
-    let done = await reader.start();
+    let done;
+    done = await reader.start();
     if(done) {
       await this.write_accumulator();
     } else {
@@ -138,7 +139,6 @@ class PartialAlphaDataReader {
       if(item.type == "notepad") {
         item.type = "setting";
         item.name = "info";
-        item.notepad_name = name;
         item.encrypted = false;
         item.schema_type = "beta";
       }
@@ -218,6 +218,102 @@ export class AlphaDataImporter extends BetaDataImporterBase {
   }
 }
 
+class PartialAlphaDataReaderFromDict {
+  constructor(dict, callback) {
+    this.dict = _.cloneDeep(dict);
+    this.callback = callback;
+    this._abort = false;
+  }
+
+  _migrate_data(import_data) {
+    _.forEach(import_data, (item) => {
+      if(item.type == "notepad") {
+        item.type = "setting";
+        item.name = "info";
+        item.encrypted = false;
+        item.schema_type = "beta";
+      }
+    });
+  }
+
+  abort() {
+    this._abort = true;
+  }
+
+  async start() {
+    let import_data = this.dict;
+    this._migrate_data(import_data);
+
+    let sorted = this.sort_import_objects(import_data);
+    
+    let total = 0, current = 0;
+    let k, i;
+    for(k = 0; k < TYPES.length; k++) {
+      let type = TYPES[k][0];
+      let objects = sorted[type];
+      total += objects.length;
+    }
+
+    for(k = 0; k < TYPES.length; k++) {
+      let type = TYPES[k][0];
+      let objects = sorted[type];
+      for(i = 0; i < objects.length; i++) {
+        if(this._abort) {
+          return false;
+        }
+        let object = objects[i];
+        await this.callback(object, current / total);
+        current += 1;
+      }
+    }
+    return true;
+  }
+
+  sort_import_objects(objects) {
+    let sorted = {
+        settings: [],
+        notes: [],
+        tags: [],
+        tag_notes: [],
+        note_filters: [],
+    }
+    let keys = _.keys(objects);
+    for(let k = 0; k < keys.length; k++) {
+        let key = keys[k];
+        let object = _.cloneDeep(objects[key]);
+        object.id = parseInt(key);
+        let object_type = object.type;
+        switch(object_type) {
+            case "setting":
+                sorted.settings.push(object);
+                break;
+            case "tag":
+                sorted.tags.push(object);
+                break;
+            case "note":
+                sorted.notes.push(object);
+                break;
+            case "tag_note":
+                sorted.tag_notes.push(object);
+                break;
+            case "note_filter":
+                sorted.note_filters.push(object);
+                break;
+            default:
+                // console.error("неизвестный тип объекта", object);
+                break;
+        }
+    }
+    return sorted;
+  }
+}
+
+export class AlphaDataImporterFromDict extends BetaDataImporterBase {
+  _create_file_reader(file, callback) {
+    return new PartialAlphaDataReaderFromDict(file, callback);
+  }
+}
+
 class PartialFileReaderMock {
   constructor(data, callback) {
     this.data = data;
@@ -257,5 +353,34 @@ class PartialFileReaderMock {
 export class MockedBetaDataImporter extends BetaDataImporterBase {
   _create_file_reader(file, callback) {
     return new PartialFileReaderMock(file, callback);
+  }
+}
+
+class BetaDataArrayReader {
+  constructor(array, callback) {
+    this.array = _.cloneDeep(array);
+    this.callback = callback;
+    this._abort = false;
+  }
+
+  abort() {
+    this._abort = true;
+  }
+
+  async start() {
+    for(let k = 0; k < this.array.length; k++) {
+      if(this._abort) {
+        return false;
+      }
+      let object = this.array[k];
+      await this.callback(object, k / this.array.length);
+    }
+    return true;
+  }
+}
+
+export class BetaDataImporterFromArray extends BetaDataImporterBase {
+  _create_file_reader(file, callback) {
+    return new BetaDataArrayReader(file, callback);
   }
 }

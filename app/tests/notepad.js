@@ -3,27 +3,33 @@ import Notepad  from "./../src/js/notepad.js";
 import { assert } from "chai";
 import _ from "lodash";
 import NotepadsList from "../src/js/notepads_list.js";
-import { MockedBetaDataImporter } from '../src/js/data_importer.js'
+import { MockedBetaDataImporter, AlphaDataImporterFromDict,
+         BetaDataImporterFromArray } from '../src/js/data_importer.js'
 
-let map_tag = function(tag, maps) {
-    tag.id = maps.tags[tag.id];
-};
+let import_alpha_data = async function(name, notepads_list, data) {
+  let arg = {
+    "name": name,
+    "file": data,
+    "notepads_list": notepads_list,
+  };
+  let importer = new AlphaDataImporterFromDict(arg);
+  let import_result = await importer.execute();
+  assert.equal(import_result.error, null);
+  return import_result;
+}
 
-let map_tags = function(tags, maps) {
-    _.forEach(tags, (item) => map_tag(item, maps));
-};
-
-let map_note = function(note, maps) {
-    note.id = maps.notes[note.id];
-    for(let k = 0; k < note.tags.length; k++) {
-        note.tags[k] = maps.tags[note.tags[k]];
-    }
-};
-
-let map_notes = function(notes, maps) {
-    _.forEach(notes, (item) => map_note(item, maps));
-};
-
+let import_beta_data = async function(name, notepads_list, data) {
+    let arg = {
+      "name": name,
+      "file": data,
+      "notepads_list": notepads_list,
+    };
+    let importer = new BetaDataImporterFromArray(arg);
+    let import_result = await importer.execute();
+    assert.equal(import_result.error, null);
+    return import_result;
+  }
+  
 let DB_NAME = "test_db";
 let NOTEPAD_NAME = "test_notepad";
 let NOTEPAD_OPTIONS = {
@@ -214,15 +220,11 @@ describe("notepad simple tests", function() {
     });
 });
 
-describe("notepad import export", function() {
+describe("notepad alpha import export", function() {
     let IMPORT_DATA = {
         1: {
-            "type": "setting",
-            "name": "info",
+            "type": "notepad",
             "notepad_name": NOTEPAD_NAME,
-            "options": {
-                "encrypted": false,
-            },
         },
         2: {
             "type":"tag",
@@ -281,7 +283,7 @@ describe("notepad import export", function() {
         assert.deepEqual(notes_events, expected_notes);
     };
 
-    let map_import_data = function(import_data, maps) {
+    let map_import_data = function(import_data) {
         let sorted = {
             "settings": {},
             "tags": {},
@@ -296,19 +298,21 @@ describe("notepad import export", function() {
             let object = _.cloneDeep(import_data[key]);
             let type = object.type;
             switch(type) {
-                case "setting":
-                    sorted.settings[maps.settings[key]] = object;
+                case "notepad":
+                    object.type = "setting";
+                    object.name = "info";
+                    object.encrypted = false;
+                    object.schema_type = "beta";
+                    sorted.settings[key] = object;
                     break;
                 case "tag":
-                    sorted.tags[maps.tags[key]] = object;
+                    sorted.tags[key] = object;
                     break;
                 case "note":
-                    sorted.notes[maps.notes[key]] = object;
+                    sorted.notes[key] = object;
                     break;
                 case "tag_note":
-                    object.tag_id = maps.tags[object.tag_id];
-                    object.note_id = maps.notes[object.note_id];
-                    sorted.tag_notes[maps.tag_notes[key]] = object;
+                    sorted.tag_notes[key] = object;
                     break;
                 case "note_filter":
                     throw new Error("not implemented");
@@ -360,9 +364,9 @@ describe("notepad import export", function() {
 
     it("import notepad", async function() {
         await notepads_list.init();
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_alpha_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         notepad = info.notepad;
-        notepad_id = info.id;
+        notepad_id = info.notepad_id;
         maps = info.maps;
 
         notepad.on("reset_tags", function(tags) {
@@ -391,7 +395,6 @@ describe("notepad import export", function() {
                 },
             ],
         ];
-        map_tags(EXPECTED_TAGS[0], maps);
 
         let EXPECTED_NOTES = [
             [
@@ -423,25 +426,14 @@ describe("notepad import export", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
 
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
-    });
-
-    it("second import notepad must fail", async function() {
-        reset_events();
-        let result = await notepad.import(IMPORT_DATA);
-        assert.equal(result, false);
-        let EXPECTED_TAGS = [];
-        let EXPECTED_NOTES = [];
-        let EXPECTED_WORKING = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
     it("export notepad", async function() {
         reset_events();
         let exported_data = await notepad.export();
-        let mapped_import_data = map_import_data(IMPORT_DATA, maps);
+        let mapped_import_data = map_import_data(IMPORT_DATA);
         let mapped_export_data = map_exported_data(exported_data);
         assert.deepEqual(mapped_export_data, mapped_import_data);
     });
@@ -469,9 +461,9 @@ describe("notepad import export", function() {
     it("delete notepad", async function() {
         let result = await notepads_list.delete(notepad_id);
         assert.equal(result, true);
-
     });
 });
+
 
 describe("notepad tags and notes and filters", function() {
     let notepads_list = new NotepadsList();
@@ -803,58 +795,67 @@ describe("notepad tags and notes and filters", function() {
 });
 
 describe("notepad filtering and sorting", function() {
-    let IMPORT_DATA = {
-        "1": {
+    let IMPORT_DATA = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": NOTEPAD_NAME,
-            "options": {
-                "encypted": false,
-            }
+            "encypted": false,
+            "schema_type": "beta",
         },
-        "2": {
+        {
+            "id": 2,
             "type":"tag",
             "name":"один"
         },
-        "3": {
+        {
+            "id": 3,
             "type":"tag",
             "name":"два"
         },
-        "13": {
+        {
+            "id": 21,
+            "type":"tag",
+            "name":"одинцово"
+        },
+        {
+            "id": 13,
             "type":"note",
             "text":"Запись без меток",
             "created_at":1586634372651
         },
-        "16": {
-            "type":"note",
-            "text":"Запись с метками \"один\" и \"два\"",
-            "created_at":1586634372656
-        },
-        "17": {
-            "type":"tag_note",
-            "tag_id":"2",
-            "note_id":"16"
-        },
-        "18": {
-            "type":"tag_note",
-            "tag_id":"3",
-            "note_id":"16"
-        },
-        "19": {
+        {
+            "id": 19,
             "type":"note",
             "text":"Запись с меткой \"один\"",
             "created_at":1586634372660
         },
-        "20": {
+        {
+            "id": 16,
+            "type":"note",
+            "text":"Запись с метками \"один\" и \"два\"",
+            "created_at":1586634372656
+        },
+        {
+            "id": 17,
             "type":"tag_note",
-            "tag_id":"2",
-            "note_id":"19"
+            "tag_id":2,
+            "note_id":16
         },
-        "21": {
-            "type":"tag",
-            "name":"одинцово"
+        {
+            "id": 18,
+            "type":"tag_note",
+            "tag_id":3,
+            "note_id":16
         },
-    };
+        {
+            "id": 20,
+            "type":"tag_note",
+            "tag_id":2,
+            "note_id":19
+        },
+    ];
 
     let notepads_list = new NotepadsList();
     let notepad_id;
@@ -873,9 +874,9 @@ describe("notepad filtering and sorting", function() {
 
     it("initial", async function() {
         await notepads_list.init();
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA);
         notepad = info.notepad;
-        notepad_id = info.id;
+        notepad_id = info.notepad_id;
         maps = info.maps;
         assert.notEqual(maps, false);
         notepad.on("reset_tags", function(tags) {
@@ -922,8 +923,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
@@ -961,8 +960,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
@@ -988,8 +985,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ],
         ];
-        map_tags(EXPECTED_TAGS[0], maps);
-
         let EXPECTED_NOTES = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
@@ -1016,8 +1011,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ],
         ];
-        map_tags(EXPECTED_TAGS[0], maps);
-
         let EXPECTED_NOTES = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
@@ -1049,8 +1042,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
@@ -1081,14 +1072,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
     it("filter notes by attached tag desc", async function() {
         reset_events();
-        await notepad.set_notes_filter({"sorting_asc": false, "tags": [maps.tags[2]]});
+        await notepad.set_notes_filter({"sorting_asc": false, "tags": [2]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
             [
@@ -1113,14 +1102,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
     it("filter notes by attached tag asc", async function() {
         reset_events();
-        await notepad.set_notes_filter({"sorting_asc": true, "tags": [maps.tags[2]]});
+        await notepad.set_notes_filter({"sorting_asc": true, "tags": [2]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
             [
@@ -1145,8 +1132,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        map_notes(EXPECTED_NOTES[0], maps);
-
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
@@ -1167,8 +1152,6 @@ describe("notepad filtering and sorting", function() {
                 },
             ],
         ];
-        map_tags(EXPECTED_TAGS[0], maps);
-
         let EXPECTED_NOTES = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
@@ -1190,15 +1173,13 @@ describe("notepad filtering and sorting", function() {
                 },
             ],
         ];
-        map_tags(EXPECTED_TAGS[0], maps);
-
         let EXPECTED_NOTES = [];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
     });
 
     it("filter notes by not attached tag desc", async function() {
         reset_events();
-        await notepad.set_notes_filter({"sorting_asc": false, "tags": [maps.tags[21]]});
+        await notepad.set_notes_filter({"sorting_asc": false, "tags": [21]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
@@ -1206,7 +1187,7 @@ describe("notepad filtering and sorting", function() {
 
     it("filter notes by not attached tag asc", async function() {
         reset_events();
-        await notepad.set_notes_filter({"sorting_asc": true, "tags": [maps.tags[21] ]});
+        await notepad.set_notes_filter({"sorting_asc": true, "tags": [21]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
         assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
@@ -1277,44 +1258,55 @@ class NotepadTestEvents {
 }
 
 describe("notepad pagination", function() {
-    let IMPORT_DATA_ZERO = {
-        "1": {
+    let IMPORT_DATA_ZERO = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": NOTEPAD_NAME,
+            "schema_type": "beta",
+            "ecnrypted": false,
         },
-    };
+    ];
 
-    let IMPORT_DATA_ONE_PAGE = {
-        "1": {
+    let IMPORT_DATA_ONE_PAGE = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": NOTEPAD_NAME,
+            "schema_type": "beta",
+            "ecnrypted": false,
         },
-    };
+    ];
     for(let k = 0; k < 20; k++) {
-        let id = (k + 2).toString();
-        IMPORT_DATA_ONE_PAGE[id] = {
+        let id = k;
+        IMPORT_DATA_ONE_PAGE.push({
+            "id": id,
             "type":"note",
             "text":"Запись " + k,
             "created_at": 1586634372660 + k,
-        };
+        });
     }
 
-    let IMPORT_DATA_TWO_PAGES = {
-        "1": {
+    let IMPORT_DATA_TWO_PAGES = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": NOTEPAD_NAME,
+            "schema_type": "beta",
+            "ecnrypted": false,
         },
-    };
+    ];
     for(let k = 0; k < 60; k++) {
-        let id = (k + 2).toString();
-        IMPORT_DATA_TWO_PAGES[id] = {
+        let id = k;
+        IMPORT_DATA_TWO_PAGES.push({
+            "id": id,
             "type":"note",
             "text":"Запись " + k,
             "created_at": 1586634372660 + k,
-        };
+        });
     }
 
     let notepads_list = new NotepadsList();
@@ -1324,11 +1316,9 @@ describe("notepad pagination", function() {
     });
 
     it("no records initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA_ZERO);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_ZERO)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
 
         events.reset();
 
@@ -1342,12 +1332,12 @@ describe("notepad pagination", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);    
+        let result = await notepads_list.delete(info.notepad_id);    
         assert.equal(result, true);
     });
 
     it("records less than one page initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA_ONE_PAGE);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_ONE_PAGE)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
         let maps = info.maps;
@@ -1359,7 +1349,7 @@ describe("notepad pagination", function() {
         let EXPECTED_TAGS = [];
         let notes = [];
         for(let k = 0; k < 20; k++) {
-            let id = (k + 2).toString();
+            let id = k;
             notes.push({
                 "id": id,
                 "tags": [],
@@ -1368,7 +1358,6 @@ describe("notepad pagination", function() {
                 "creation_time": 1586634372660 + k,    
             });
         }
-        map_notes(notes, maps);
         let EXPECTED_NOTES = [notes];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
@@ -1376,16 +1365,14 @@ describe("notepad pagination", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);    
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("records less than two pages", async function() {
-        let info = await notepads_list.import(IMPORT_DATA_TWO_PAGES);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_TWO_PAGES)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
 
         events.reset();
 
@@ -1393,7 +1380,7 @@ describe("notepad pagination", function() {
         let EXPECTED_TAGS = [];
         let notes = [];
         for(let k = 0; k < 40; k++) {
-            let id = (k + 2).toString();
+            let id = k;
             notes.push({
                 "id": id,
                 "tags": [],
@@ -1402,14 +1389,13 @@ describe("notepad pagination", function() {
                 "creation_time": 1586634372660 + k,    
             });
         }
-        map_notes(notes, maps);
         let EXPECTED_NOTES = [notes];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         await notepad.load_next_notes();
         notes = [];
         for(let k = 40; k < 60; k++) {
-            let id = (k + 2).toString();
+            let id = k;
             notes.push({
                 "id": id,
                 "tags": [],
@@ -1418,37 +1404,40 @@ describe("notepad pagination", function() {
                 "creation_time": 1586634372660 + k,    
             });
         }
-        map_notes(notes, maps);
         events.assert_append([notes]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);    
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 });
 
 describe("notepad pagination with filtering", function() {
-    let IMPORT_DATA = {
-        1: {
+    let IMPORT_DATA = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": NOTEPAD_NAME,
+            "schema_type": "beta",
+            "encrypted": false,
         },
-    };
+    ];
 
     for(let k = 0; k < 2; k++) {
-        let id = (k + 2);
-        IMPORT_DATA[id] = {
+        let id = k + 2;
+        IMPORT_DATA.push({
+            "id": id,
             "type": "tag",
             "name": "тег " + k,
-        };
+        });
     }
 
     let notepads_list = new NotepadsList();
     let notes = [];
 
     for(let k = 0; k < 240; k++) {
-        let id = (k + 4);
+        let id = k + 2;
         let name = "альфа ";
         let tags = [2];
         if((k % 4) >= 2) {
@@ -1457,11 +1446,12 @@ describe("notepad pagination with filtering", function() {
         if(k % 2) {
             name = "бета ";
         }
-        IMPORT_DATA[id] = {
+        IMPORT_DATA.push({
+            "id": id,
             "type": "note",
             "text": name + k,
             "created_at": 1586634372660 + k,
-        };
+        });
         notes.push({
             "id": id,
             "tags": tags,
@@ -1472,16 +1462,17 @@ describe("notepad pagination with filtering", function() {
     }
 
     for(let k = 0; k < 240; k++) {
-        let id = (k + 1000);
+        let id = k;
         let tag_id = 2;
         if((k % 4) >= 2) {
             tag_id = 3;
         }
-        IMPORT_DATA[id] = {
+        IMPORT_DATA.push({
+            "id": id,
             "type": "tag_note",
             "tag_id": tag_id,
-            "note_id": k + 4,
-        };    
+            "note_id": k + 2,
+        });
     }
 
     it("init", async function() {
@@ -1489,11 +1480,9 @@ describe("notepad pagination with filtering", function() {
     });
 
     it("no filter asc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
@@ -1501,38 +1490,32 @@ describe("notepad pagination with filtering", function() {
         let EXPECTED_TAGS = [];
 
         let notes_part = _.cloneDeep(notes.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes.slice(120, 160));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes.slice(160, 200));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes.slice(200, 240));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1541,16 +1524,14 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);    
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("no filter desc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
@@ -1560,38 +1541,32 @@ describe("notepad pagination with filtering", function() {
         let notes_set = _.cloneDeep(notes);
         notes_set.reverse();
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(120, 160));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(160, 200));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(200, 240));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1600,16 +1575,14 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);    
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("text filter asc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
@@ -1620,20 +1593,17 @@ describe("notepad pagination with filtering", function() {
             _.filter(notes, (note, index) => {return index % 2 == 0})
         );
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1642,16 +1612,14 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("text filter desc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
         
@@ -1663,20 +1631,17 @@ describe("notepad pagination with filtering", function() {
         );
         notes_set.reverse();
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1685,40 +1650,35 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("tag filter asc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
-        await notepad.set_notes_filter({"tags": [1], "sorting_asc": true});
+        await notepad.set_notes_filter({"tags": [2], "sorting_asc": true});
         let EXPECTED_TAGS = [];
 
         let notes_set = _.cloneDeep(
             _.filter(notes, (note, index) => {return (index % 4) < 2})
         );
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1727,20 +1687,18 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("tag filter desc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
-        await notepad.set_notes_filter({"tags": [1], "sorting_asc": false});
+        await notepad.set_notes_filter({"tags": [2], "sorting_asc": false});
         let EXPECTED_TAGS = [];
 
         let notes_set = _.cloneDeep(
@@ -1748,20 +1706,17 @@ describe("notepad pagination with filtering", function() {
         );
         notes_set.reverse();
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 80));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(80, 120));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1770,34 +1725,30 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("tag and text filter asc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
-        await notepad.set_notes_filter({"tags": [1], "text": "альфа", "sorting_asc": true});
+        await notepad.set_notes_filter({"tags": [2], "text": "альфа", "sorting_asc": true});
         let EXPECTED_TAGS = [];
 
         let notes_set = _.cloneDeep(
             _.filter(notes, (note, index) => {return (index % 4) == 0})
         );
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 60));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1806,20 +1757,18 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 
     it("tag and text filter asc initial", async function() {
-        let info = await notepads_list.import(IMPORT_DATA);
+        let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         let notepad = info.notepad;
         let events = new NotepadTestEvents(notepad);
-        let maps = info.maps;
-        assert.notEqual(maps, false);
         
         events.reset();
 
-        await notepad.set_notes_filter({"tags": [1], "text": "альфа", "sorting_asc": false});
+        await notepad.set_notes_filter({"tags": [2], "text": "альфа", "sorting_asc": false});
         let EXPECTED_TAGS = [];
 
         let notes_set = _.cloneDeep(
@@ -1827,14 +1776,12 @@ describe("notepad pagination with filtering", function() {
         );
         notes_set.reverse();
         let notes_part = _.cloneDeep(notes_set.slice(0, 40));
-        map_notes(notes_part, maps);
         let EXPECTED_NOTES = [notes_part];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
         
         events.reset();
         notes_part = _.cloneDeep(notes_set.slice(40, 60));
-        map_notes(notes_part, maps);
         await notepad.load_next_notes();
         events.assert_append([notes_part]);
 
@@ -1843,7 +1790,7 @@ describe("notepad pagination with filtering", function() {
         events.assert_append([]);
 
         await notepad.close();
-        let result = await notepads_list.delete(info.id);
+        let result = await notepads_list.delete(info.notepad_id);
         assert.equal(result, true);
     });
 });
@@ -1936,115 +1883,131 @@ describe("notepads_list tests", function() {
 describe("multi notepads tests", function() {
     let notepads_list = new NotepadsList();
 
-    let IMPORT_DATA1 = {
-        1: {
+    let IMPORT_DATA1 = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": "TEST_1",
             "encrypted": false,
             "schema_type": "beta",
         },
-        2: {
+        {
+            "id": 2,
             "type": "tag",
             "name": "Тег 1",
         },
-        3: {
+        {
+            "id": 3,
             "type": "tag",
             "name": "Тег 2",
         },
-        4: {
+        {
+            "id": 4,
             "type": "note",
             "text": "Запись 1",
             "created_at": 1,
         },
-        5: {
+        {
+            "id": 5,
             "type": "note",
             "text": "Запись 2",
             "created_at": 2,
         },
-        6: {
+        {
+            "id": 6,
             "type": "note",
             "text": "Запись 3",
             "created_at": 3,
         },
-        7: {
+        {
+            "id": 7,
             "type": "tag_note",
             "tag_id": 2,
             "note_id": 4,
         },
-
-        8: {
+        {
+            "id": 8,
             "type": "tag_note",
             "tag_id": 3,
             "note_id": 5,
         },
-
-        9: {
+        {
+            "id": 9,
             "type": "tag_note",
             "tag_id": 2,
             "note_id": 6,
         },
-        10: {
+        {
+            "id": 10,
             "type": "tag_note",
             "tag_id": 3,
             "note_id": 6,
         },
-    };
+    ];
 
-    let IMPORT_DATA2 = {
-        1: {
+    let IMPORT_DATA2 = [
+        {
+            "id": 1,
             "type": "setting",
             "name": "info",
             "notepad_name": "TEST_2",
             "encrypted": false,
             "schema_type": "beta",
         },
-        2: {
+        {
+            "id": 2,
             "type": "tag",
             "name": "Тег 12",
         },
-        3: {
+        {
+            "id": 3,
             "type": "tag",
             "name": "Тег 22",
         },
-        4: {
+        {
+            "id": 4,
             "type": "note",
             "text": "Запись 12",
             "created_at": 1,
         },
-        5: {
+        {
+            "id": 5,
             "type": "note",
             "text": "Запись 22",
             "created_at": 2,
         },
-        6: {
+        {
+            "id": 6,
             "type": "note",
             "text": "Запись 32",
             "created_at": 3,
         },
-        7: {
+        {
+            "id": 7,
             "type": "tag_note",
             "tag_id": 2,
             "note_id": 4,
         },
-
-        8: {
+        {
+            "id": 8,
             "type": "tag_note",
             "tag_id": 3,
             "note_id": 5,
         },
-
-        9: {
+        {
+            "id": 9,
             "type": "tag_note",
             "tag_id": 2,
             "note_id": 6,
         },
-        10: {
+        {
+            "id": 10,
             "type": "tag_note",
             "tag_id": 3,
             "note_id": 6,
         },
-    };
+    ];
 
     let notepad_id1;
     let notepad_id2;
@@ -2058,8 +2021,8 @@ describe("multi notepads tests", function() {
     });
 
     it("create two notepads", async function() {
-        let info = await notepads_list.import(IMPORT_DATA1);
-        notepad_id1 = info.id;
+        let info = await import_beta_data("TEST_1", notepads_list, IMPORT_DATA1)
+        notepad_id1 = info.notepad_id;
         maps1 = info.maps;
 
         await info.notepad.close();
@@ -2077,8 +2040,8 @@ describe("multi notepads tests", function() {
         ];
         assert.deepEqual(list, EXPECTED);
 
-        info = await notepads_list.import(IMPORT_DATA2);
-        notepad_id2 = info.id;
+        info = await import_beta_data("TEST_2", notepads_list, IMPORT_DATA2)
+        notepad_id2 = info.notepad_id;
         maps2 = info.maps;
 
         await info.notepad.close();
@@ -2136,7 +2099,6 @@ describe("multi notepads tests", function() {
                 "tags": [2],
             },
         ]];
-        map_notes(EXPECTED_NOTES[0], maps1);
         let EXPECTED_TAGS = [[
             {
                 "id": 2,
@@ -2149,7 +2111,6 @@ describe("multi notepads tests", function() {
                 "count": 2,
             },
         ]];
-        map_tags(EXPECTED_TAGS[0], maps1);
         let EXPECTED_INFO = [
             {
                 "notepad_name": "TEST_1",
