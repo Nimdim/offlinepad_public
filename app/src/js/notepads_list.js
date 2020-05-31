@@ -172,16 +172,6 @@ class NotepadsList {
         await notepad.create_empty(NOTEPAD_DB_PREFIX + notepad_id);
         return {"id": notepad_id, "notepad": notepad};
     }
-
-    async import(import_data, options) {
-        let notepad_id = await this._new_notepad_record();
-        let notepad = new Notepad();
-        let maps = await notepad.import(
-            NOTEPAD_DB_PREFIX + notepad_id, import_data, options
-        );
-        return {"id": notepad_id, "notepad": notepad, "maps": maps};
-    }
-  
 }
 
 export default NotepadsList;
