@@ -263,7 +263,17 @@ describe("notepad alpha import export", function() {
             "type":"tag_note",
             "tag_id": 2,
             "note_id": 19,
-        }
+        },
+        21: {
+            "type": "note_filter",
+            "name": "раздел1",
+            "tags": [2],
+        },
+        22: {
+            "type": "note_filter",
+            "name": "раздел2",
+            "tags": [2, 3],
+        },
     };
 
     let notepads_list = new NotepadsList();
@@ -315,7 +325,7 @@ describe("notepad alpha import export", function() {
                     sorted.tag_notes[key] = object;
                     break;
                 case "note_filter":
-                    throw new Error("not implemented");
+                    sorted.note_filters[key] = object;
                     break;
                 default:
                     throw new Error("unknown type " + type);
@@ -352,7 +362,7 @@ describe("notepad alpha import export", function() {
                     sorted.tag_notes[key] = object;
                     break;
                 case "note_filter":
-                    throw new Error("not implemented");
+                    sorted.note_filters[key] = object;
                     break;
                 default:
                     throw new Error("unknown type " + type);
