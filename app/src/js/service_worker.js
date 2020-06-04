@@ -9,7 +9,8 @@ class ServiceWorkerAPI {
 
   is_available() {
     if (('serviceWorker' in navigator) &&
-        ('ReadableStream' in window)) {
+        ('ReadableStream' in window) &&
+        (window.crypto.getRandomValues != null)) {
       return true;
     } else {
       return false;

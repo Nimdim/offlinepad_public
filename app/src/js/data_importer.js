@@ -13,6 +13,14 @@ class BetaDataImporterBase {
   constructor(data) {
     this.name = data.name;
     this.file = data.file;
+
+    this.options = {
+      encrypted: data.encrypted,
+    };
+    if(data.secret != null) {
+      this.options.secret = data.secret;
+    }
+
     this.notepads_list = data.notepads_list;
     this.import_progress = 0;
 
@@ -20,6 +28,7 @@ class BetaDataImporterBase {
 
     this.type_selector = 0;
     this.current_type = TYPES[this.type_selector];
+    this.already_encrypted = false;
   }
 
   abort() {
@@ -36,13 +45,13 @@ class BetaDataImporterBase {
 
   async write_accumulator() {
     await this.notepad._storage.create_items_in_store(
-      this.current_type[0], this.accumulator
+      this.current_type[0], this.accumulator, this.already_encrypted
     );
     this.accumulator = [];
   }
 
   async execute() {
-    let info = await this.notepads_list.create_empty();
+    let info = await this.notepads_list.create_empty(this.options);
     let notepad = info.notepad;
     let notepad_id = info.id;
 
@@ -62,7 +71,9 @@ class BetaDataImporterBase {
         if((type == "setting") &&
            (object.name == "info") &&
            (object.schema_type == "beta")) {
+          this.already_encrypted = object.encrypted;
           object.notepad_name = this.name;
+          object.encrypted = this.options.encrypted;
           info_object_recved = true;
         }
         // Не пришел объект с настройками блокнота, или не там схема

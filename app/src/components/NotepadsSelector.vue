@@ -20,165 +20,27 @@
           v-for="item in items" :key="item.id"
           :item="item"
           :active="active == item.id"
-          @click="active = item.id"
-          @open="$emit('open', item.id)"
-          @save="$emit('save', item.id)"
-          @remove="$emit('remove', item.id)"
+          @click="open_handler(item)"
         />
         <li class="collection-item"
           @click="$emit('start-creation-wizard')"
         >
-          <span v-if="active == 'add'">
-            <form class="col s12">
-              <div class="row" style="margin-bottom: 0px;">
-                <div class="input-field col s12">
-                  <span class="new-notepad-mode"
-                    :class="{'active': add_mode == 'create'}"
-                    @click="add_mode = 'create'"
-                  >
-                    Создать
-                  </span>
-                  <span class="new-notepad-mode"
-                    :class="{'active': add_mode == 'import'}"
-                    @click="add_mode = 'import'"
-                  >
-                    Импорт
-                  </span>
-                </div>
-              </div>
-              <div class="row" style="margin-bottom: 0px;">
-                <div class="input-field col s12">
-                  <input
-                    ref="add_name_input"
-                    placeholder="Название блокнота"
-                    type="text"
-                    class="validate"
-                    v-model="add_name"
-                  >
-                  <span v-if="error_text"
-                    class="left red-text" style=""
-                  >
-                    {{error_text}}
-                  </span>
-                </div>
-                <div class="input-field col s12">
-                  <select ref="selects">
-                    <option value="1" selected>Не шифрованный</option>
-                    <option value="2" disabled>Зашифрованный</option>
-                  </select>
-                  <label>Тип блокнота</label>
-                </div>
-                <div v-if="add_mode == 'import'"
-                  class="file-field input-field col s12"
-                >
-                  <div class="btn-small" style="height: 32px;">
-                    <span style="line-height: unset;">
-                      файл
-                    </span>
-                    <input ref="import_file" type="file" @change="validate">
-                  </div>
-                  <div class="file-path-wrapper">
-                    <input class="file-path validate" type="text">
-                  </div>
-                  <span v-if="import_file_error" style="color: red;">
-                    {{import_file_error}}
-                  </span>
-                </div>
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn"
-                    @click="create_notepad"
-                  >
-                    <font-awesome-icon icon="plus"/>
-                    Создать блокнот
-                  </a>
-                </div>
-              </div>
-            </form>
-          </span>
-          <span v-else>
+          <span>
             <font-awesome-icon icon="plus"/>
           </span>
         </li>
       </ul>
     </span>
+    <enter-password-screen v-if="show_enter_password_form"
+      @submit="password_entered($event)"
+      @cancel="password_canceled"
+    />
   </full-screen-box>
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
   import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
-  import PartialFileReader from './../js/partial_file_reader.js'
-  import _ from "lodash";
-
-  class Validator {
-    constructor(file) {
-      this._file = file
-    }
-
-    async validate() {
-      let result = {
-        error: "wrong file",
-      };
-
-      let reader = new PartialFileReader(
-        this._file, async (import_data) => {
-          if(this.is_beta_schema_type(import_data)) {
-            result = {
-              error: "ok",
-              schema: "beta",
-            };
-          } else if(this.is_alpha_schema_type(import_data)) {
-            result = {
-              error: "ok",
-              schema: "alpha",
-            };
-          } else {
-            result = {
-              error: "unknown schema",
-            };
-          }
-          reader.abort();
-        }
-      );
-      await reader.start();
-      return result;
-    }
-
-    is_beta_schema_type(object) {
-      if((object.type == "setting") &&
-         (object.name == "info") &&
-         (object.schema_type == "beta") &&
-         (object.notepad_name != null) &&
-         (object.encrypted != null)
-        ) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    is_alpha_schema_type(container) {
-      let keys = _.keys(container);
-      for(let k = 0; k < keys.length; k++) {
-        let key = keys[k];
-        let object = container[key];
-        if(!this.is_alpha_schema_object(object)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    is_alpha_schema_object(object) {
-      let ALPHA_OBJECT_TYPES = [
-        "notepad",
-        "note",
-        "tag",
-        "tag_note",
-        "note_filter",
-      ];
-      return ALPHA_OBJECT_TYPES.indexOf(object.type) >= 0;
-    }
-  }
+  import EnterPasswordScreen from "./EnterPasswordScreen.vue";
 
   export default {
     props: {
@@ -188,6 +50,7 @@
     components: {
       FullScreenBox,
       NotepadsSelectorItem,
+      EnterPasswordScreen
     },
 
     computed: {
@@ -206,6 +69,7 @@
         add_mode: "create",
         error: null,
         import_file_error: null,
+        show_enter_password_form: false,
       };
       return data;
     },
@@ -244,25 +108,26 @@
     },
 
     methods: {
-      async validate () {
-        let file = this.$refs.import_file.files[0];
-        let validator = new Validator(file);
-        let result = await validator.validate();
-        this.import_file_schema = null;
-        switch(result.error) {
-          case "ok":
-            this.import_file_schema = result.schema;
-            this.import_file_error = null;
-            break;
-          case "unknown schema":
-            this.import_file_error = "Неизвестный формат";
-            break;
-          case "wrong file":
-            this.import_file_error = "Некорректный файл";
-            break;
-          default:
-            this.import_file_error = "Неизвестная ошибка";
-            break;
+      password_entered: function(password) {
+        let data = {
+          id: this._selected_item.id,
+          secret: password,
+        };
+        this.$emit("open", data);
+        this.password_canceled();
+      },
+
+      password_canceled: function() {
+        this._selected_item = null;
+        this.show_enter_password_form = false;
+      },
+
+      open_handler: function(item) {
+        if(item.encrypted) {
+          this.show_enter_password_form = true;
+          this._selected_item = item;
+        } else {
+          this.$emit('open', {id: item.id})
         }
       },
 
@@ -274,29 +139,6 @@
         // if(this.items.length == 1) {
         //   this.active = this.items[0].id;
         // }
-      },
-
-      create_notepad: function() {
-        // TODO это перенести
-        if(this.add_name == "") {
-          this.error = "empty";
-          this.$refs.add_name_input.focus();
-          return;
-        }
-        if(this.add_mode == "import") {
-          let files = this.$refs.import_file.files;
-          if(files.length == 0) {
-            return
-          }
-          let data = {
-            "name": this.add_name,
-            "file": files[0],
-            "schema": this.import_file_schema,
-          };
-          this.$emit('import', data);
-        } else {
-          this.$emit('create', this.add_name);
-        }
       },
     },
   }

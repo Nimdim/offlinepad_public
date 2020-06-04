@@ -1,4 +1,5 @@
 import _ from "lodash";
+import aesjs from "aes-js";
 
 let indexedDB;
 if(global == null) {
@@ -8,9 +9,63 @@ if(global == null) {
     var window = global;
 }
 
+let create_aes = function(key, iv) {
+    return new aesjs.ModeOfOperation.cbc(key, iv);
+}
+
+let add_padding = function(bytes) {
+    let filled = bytes.length % 16;
+    let needed = 16 - filled;
+    let result = new Uint8Array(bytes.length + needed);
+    result.set(bytes);
+    let zeros = (new Array(needed)).fill(0);
+    result.set(zeros, bytes.length);
+    return result;
+};
+
+let remove_padding = function(bytes) {
+    let last_index = bytes.length - 1;
+    while(last_index > 0) {
+        if(bytes[last_index] != 0) {
+            break;
+        }
+        last_index -= 1;
+    }
+    let result = bytes.slice(0, last_index + 1);
+    return result;
+}
+
+let encrypt = function(open_text, key) {
+    var iv = new Uint8Array(16);
+    window.crypto.getRandomValues(iv);
+    let aes = create_aes(key, iv);
+
+    var open_bytes = aesjs.utils.utf8.toBytes(open_text);
+    open_bytes = add_padding(open_bytes);
+    let encrypted_bytes = aes.encrypt(open_bytes);
+    let encrypted_text = aesjs.utils.hex.fromBytes(iv) +
+                         aesjs.utils.hex.fromBytes(encrypted_bytes);
+    return encrypted_text;
+}
+
+let decrypt = function(encrypted_text, key) {
+    let encrypted_bytes = aesjs.utils.hex.toBytes(encrypted_text);
+
+    let iv = encrypted_bytes.slice(0, 16);
+    let aes = create_aes(key, iv);
+    encrypted_bytes = encrypted_bytes.slice(16);
+
+    let open_bytes = aes.decrypt(encrypted_bytes);
+    open_bytes = remove_padding(open_bytes);
+    let open_text = aesjs.utils.utf8.fromBytes(open_bytes);
+    return open_text;
+}
+
 class IndexedDBStorage {
     constructor() {
-
+        this._options = {
+            encrypted: false,
+        }
     }
 
     set_options() {
@@ -47,7 +102,10 @@ class IndexedDBStorage {
         this.db.close();
     }
 
-    init(db_name) {
+    init(db_name, options) {
+        if(options) {
+            this._options = _.cloneDeep(options);
+        }
         this._db_name = db_name;
         if(this.DB_VERSION == null) {
             throw new Error("no DB_VERSION constant");
@@ -71,11 +129,66 @@ class IndexedDBStorage {
         return promise;
     }
 
+    encrypt_item(item, store) {
+        let result = item;
+        if(this._options.encrypted) {
+            result = _.cloneDeep(item);
+            switch(store) {
+                case 'tags':
+                    result.name = encrypt(result.name, this._options.secret);
+                    break;
+                case 'notes':
+                    result.text = encrypt(result.text, this._options.secret);
+                    break;
+                case 'note_filters':
+                    result.name = encrypt(result.name, this._options.secret);
+                    break;
+                case 'settings':
+                    if(result.name == "info") {
+                        if(result.secret_check != null) {
+                            result.secret_check = encrypt(result.secret_check, this._options.secret);
+                        }
+                    }
+                    break;
+            }
+        }
+        return result;
+    }
+
+    decrypt_item(item, store) {
+        let result = item;
+        if(this._options.encrypted) {
+            result = _.cloneDeep(item);
+            switch(store) {
+                case 'tags':
+                    result.name = decrypt(result.name, this._options.secret);
+                    break;
+                case 'notes':
+                    result.text = decrypt(result.text, this._options.secret);
+                    break;
+                case 'note_filters':
+                    result.name = decrypt(result.name, this._options.secret);
+                    break;
+                case 'settings':
+                    if(result.name == "info") {
+                        if(result.secret_check != null) {
+                            result.secret_check = decrypt(result.secret_check, this._options.secret);
+                        }
+                    }
+                    break;
+            }
+        }
+        return result;
+    }
+
     create_item_in_store(store_name, item) {
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readwrite");
             let store = transaction.objectStore(store_name);
             let new_id;
+
+            item = this.encrypt_item(item, store_name);
+
             let request = store.add(item);
             request.onsuccess = function() {
                 new_id = request.result;
@@ -91,13 +204,16 @@ class IndexedDBStorage {
         return promise;
     }
 
-    create_items_in_store(store_name, items) {
+    create_items_in_store(store_name, items, disable_encryption) {
         let promise = new Promise((resolve, reject) => {
             let transaction = this.db.transaction(store_name, "readwrite");
             let store = transaction.objectStore(store_name);
             let result = [];
             for(let k = 0; k < items.length; k++) {
                 let item = items[k];
+                if(!disable_encryption) {
+                    item = this.encrypt_item(item, store_name);
+                }
                 let request = store.add(item);
                 request.onsuccess = function() {
                     result[k] = request.result;
@@ -183,8 +299,9 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let item = null;
             let request = store.get(id);
-            request.onsuccess = function() {
+            request.onsuccess = () => {
                 item = request.result;
+                item = this.decrypt_item(item, store_name);
             };
             transaction.oncomplete = () => {
                 resolve(item);
@@ -203,8 +320,9 @@ class IndexedDBStorage {
             let index = store.index(index_name);
             let item = null;
             let request = index.get(value);
-            request.onsuccess = function() {
+            request.onsuccess = () => {
                 item = request.result;
+                item = this.decrypt_item(item, store_name);
             };
             transaction.oncomplete = () => {
                 resolve(item);
@@ -224,8 +342,9 @@ class IndexedDBStorage {
             for(let k = 0; k < ids.length; k++) {
                 let id = ids[k];
                 let request = store.get(id);
-                request.onsuccess = function() {
+                request.onsuccess = () => {
                     result[k] = request.result;
+                    result[k] = this.decrypt_item(result[k], store_name);
                 };
             }
             transaction.oncomplete = () => {
@@ -244,9 +363,11 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let item;
             let request = store.get(id);
-            request.onsuccess = function() {
+            request.onsuccess = () => {
                 item = request.result;
+                item = this.decrypt_item(item, store_name);
                 _.extend(item, new_values);
+                item = this.encrypt_item(item, store_name);
                 store.put(item);
             };
             transaction.oncomplete = () => {
@@ -272,6 +393,7 @@ class IndexedDBStorage {
                     let key = cursor.key;
                     let value = cursor.value;
                     if(key != id) {
+                        value = this.decrypt_item(value, store_name);
                         if(value.name == name) {
                             exists = true;
                         } else {
@@ -306,15 +428,20 @@ class IndexedDBStorage {
         return promise;
     }
 
-    get_items_from_store(storage_name) {
+    get_items_from_store(store_name, disable_decryption) {
         let promise = new Promise((resolve, reject) => {
-            let transaction = this.db.transaction(storage_name, "readonly");
-            let store = transaction.objectStore(storage_name);
+            let transaction = this.db.transaction(store_name, "readonly");
+            let store = transaction.objectStore(store_name);
 
             let request = store.getAll();
-            request.onsuccess = function() {
+            request.onsuccess = () => {
                 if(request.result != null) {
                     let items = request.result;
+                    if(!disable_decryption) {
+                        _.forEach(items, (item, index) => {
+                            items[index] = this.decrypt_item(item, store_name);
+                        });
+                    }
                     resolve(items);
                 } else {
                     reject();
@@ -331,7 +458,11 @@ class IndexedDBStorage {
             let index = store.index(index_name);
             let request = index.getAll(value, count);
             request.addEventListener("success", function (event) {
-                resolve(event.target.result);
+                let items = event.target.result;
+                _.forEach(items, (item, index) => {
+                    items[index] = this.decrypt_item(item, store_name);
+                });
+                resolve(items);
             });
             request.addEventListener("error", () => {
                 reject();
