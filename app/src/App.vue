@@ -114,6 +114,12 @@
       </li>
     </ul>
 
+    <notepad-screen v-if="section == 'notepad' && notepad_working"
+      @export_encrypted="export_notepad(true)"
+      @export_unencrypted="export_notepad(false)"
+      @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
+    />
+
     <processing-screen v-if="processing" style="z-index: 1;" />
 
     <!-- <div class="tags_footer" v-if="section == 'tags'">
@@ -206,7 +212,9 @@
             </li> -->
 
 
-            <li>
+            <li
+              @click="section = 'notepad'"
+            >
               <a href="#!"
                 style="padding-right: 8px;"
               >
@@ -219,7 +227,7 @@
                     class="mobile-menu-icon left"
                     icon="home"
                     style="margin-top: 10px; width: 24px !important; height: 24px !important;"
-                    @click="notepad_goto_home"
+                    @click.stop="notepad_goto_home"
                   />
                 </div>
               </a>
@@ -241,6 +249,18 @@
               </a>
             </li>
             <li class="divider"></li>
+            <li @click="export_notepad(false)">
+              <a href="#">
+                <!-- <font-awesome-icon class="mobile-menu-icon" icon="tags" /> -->
+                <span>Открытый экспорт</span>
+              </a>
+            </li>
+            <li @click="export_notepad(true)">
+              <a href="#">
+                <!-- <font-awesome-icon class="mobile-menu-icon" icon="tags" /> -->
+                <span>Шифрованный экспорт</span>
+              </a>
+            </li>
           </ul>
 
           <div style="position: absolute;
@@ -343,7 +363,6 @@
         :items="notepads"
         @start-creation-wizard="notepad_wizard_show = true"
         @open="notepad_open($event)"
-        @save="save_notepad_by_id($event)"
         @remove="delete_notepad_by_id($event)"
       />
     </transition>
@@ -383,6 +402,15 @@
     </transition>
 
     <transition name="fade">
+      <prompt-screen v-if="prompt"
+        :title="prompt"
+        style="z-index: 2002"
+        @submit="prompt_submit"
+        @cancel="prompt_cancel"
+      />
+    </transition>
+
+    <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
   </div>
@@ -413,6 +441,8 @@ import BlockerScreen from './components/BlockerScreen.vue'
 import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
 import NotepadsSelector from './components/NotepadsSelector.vue'
 import NotepadCreationWizard from './components/NotepadCreationWizard.vue'
+import NotepadScreen from './components/NotepadScreen.vue'
+import PromptScreen from './components/PromptScreen.vue'
 import ImportScreen from './components/ImportScreen.vue'
 import NoteItem from './components/NoteItem.vue'
 import NoteFilterItem from './components/NoteFilterItem.vue'
@@ -477,6 +507,8 @@ export default {
     ImportScreen,
     NotepadsSelector,
     NotepadCreationWizard,
+    NotepadScreen,
+    PromptScreen,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -489,6 +521,9 @@ export default {
 
   data: function() {
     var data = {
+      prompt: null,
+      prompt_callback: null,
+
       startup: true,
       develop_mode: false,
       develop_console: false,
@@ -569,6 +604,9 @@ export default {
         this.fast_search = filter.text;
         this.sorting_order_asc = filter.sorting_asc;
         notepad._reset_notes();
+      } else if(section == "notepad") {
+        this.close_nav();
+        this.processing = false;
       }
       this.process_empty_screen();
     },
@@ -694,6 +732,20 @@ export default {
   },
 
   methods: {
+
+    show_prompt: function(title, callback) {
+      this.prompt_callback = callback;
+      this.prompt = title;
+    },
+
+    prompt_submit: function() {
+      this.prompt_callback();
+      this.prompt_cancel();
+    },
+
+    prompt_cancel: function() {
+      this.prompt = null;
+    },
 
     is_notes_filter_active: function() {
       return this.fast_search != "" || this.notes_filter_tags.length > 0;
@@ -932,16 +984,19 @@ export default {
           secret: secret,
         };
       }
-      debugger
 
-      this.loadscreen_visible = true
+      this.loadscreen_visible = true;
       await sleep(0.5);
       notepad = await notepads_list.open(id, options);
-      this.notepad_register(notepad);
-      notepad._reset_info();
-      this.notepad_working = true;
-      await notepad._reset_note_filters();
-      this.section = "notes";
+      if(_.isString(notepad)) {
+        alert(notepad);
+      } else {
+        this.notepad_register(notepad);
+        notepad._reset_info();
+        this.notepad_working = true;
+        await notepad._reset_note_filters();
+        this.section = "notes";
+      }
       await sleep(0.5);
       this.loadscreen_visible = false;
     },
@@ -1239,23 +1294,18 @@ export default {
       await notepad._reset_notes();
     },
 
-    save_notepad_by_id: async function(arg) {
-      let notepad_id = arg.id;
-      let options;
-      if(arg.secret == null) {
-        options = {
-          encrypted: false,
-        };
-      } else {
-        options = {
-          encrypted: true,
-          secret: arg.secret,
-        };
-      }
-
-      let notepad = await notepads_list.open(notepad_id, options);
-      await this.export_notepad(notepad);
+    delete_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      this.loadscreen_visible = true;
+      await sleep(0.5);
+      this.section = null;
       await notepad.close();
+      this.notepad_unregister(notepad);
+      notepad = null;
+      this.notepad_working = false;
+      await this.delete_notepad_by_id(notepad_id);
+      await sleep(0.5);
+      this.loadscreen_visible = false;
     },
 
     delete_notepad_by_id: async function(notepad_id) {
@@ -1267,10 +1317,10 @@ export default {
     // export_notepad_by_id: async function(notepad_id) {
     // },
 
-    export_notepad: async function(notepad) {
+    export_notepad: async function(disable_decryption) {
       let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
       let filename = notepad._state.info.notepad_name + " " + stamp + ".txt";
-      let data = await notepad.export();
+      let data = await notepad.export(disable_decryption);
       let data_serialized = "";
       for(let k = 0; k < data.length; k++) {
         let item = data[k];
@@ -1343,7 +1393,6 @@ export default {
         secret = aesjs.utils.hex.toBytes(secret);
         options.secret = secret;
       }
-      debugger
       this.loadscreen_visible = true;
       await sleep(0.5);
       let info = await notepads_list.create(name, options);
@@ -1360,6 +1409,11 @@ export default {
     },
 
     notepad_import: async function(arg) {
+      if(arg.secret) {
+        let secret = sha3_256(arg.secret);
+        secret = aesjs.utils.hex.toBytes(secret);
+        arg.secret = secret;
+      }
       this.import_error = null;
       this.importing = true;
       await sleep(0.5);
@@ -1383,12 +1437,7 @@ export default {
         let import_result = await importer.execute();
         clearTimeout(updater);
         if(import_result.error == null) {
-          notepad = import_result.notepad;
-          this.notepad_register(notepad);
-          this.section = "notes";
-          await notepad.sub_sync();
-          await notepad._reset_note_filters();
-          this.notepad_working = true;
+          await import_result.notepad.close();
           await sleep(0.5);
           this.importing = false;
         } else {

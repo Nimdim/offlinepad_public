@@ -26,6 +26,9 @@
                     <font-awesome-icon icon="plus"/>
                     Новый
                   </a>
+                  <span class="wizard-hinttext">
+                    Будет создан пустой блокнот
+                  </span>
                 </div>
               </div>
               <div
@@ -38,9 +41,27 @@
                     <font-awesome-icon icon="file-upload"/>
                     Открыть файл
                   </a>
-                  <span v-if="import_file_error">
+                  <span v-if="import_file_error"
+                    class="red-text"
+                    style="display: block;"
+                  >
                     {{import_file_error}}
                   </span>
+                  <span class="wizard-hinttext">
+                    Создайте блокнот из ранее созданной резервной копии
+                  </span>
+                </div>
+              </div>
+              <div
+                class="row" style="margin-bottom: 0px;"
+              >
+                <div class="input-field col s12">
+                  <a class="waves-effect waves-light btn left"
+                    @click="cancel_wizard"
+                  >
+                    <!-- <font-awesome-icon icon=""/> -->
+                    Отмена
+                  </a>
                 </div>
               </div>
             </div>
@@ -57,6 +78,9 @@
                     <font-awesome-icon icon="lock"/>
                     С шифрованием
                   </a>
+                  <span class="wizard-hinttext">
+                    Записи блокнота будут надежно зашифрованы и будут доступны только после введения пароля
+                  </span>
                 </div>
               </div>
               <div
@@ -68,6 +92,21 @@
                   >
                     <!-- <font-awesome-icon icon=""/> -->
                     Без шифрования
+                  </a>
+                  <span class="wizard-hinttext">
+                    Записи блокнота не будут зашифрованы и будут храниться в открытом виде
+                  </span>
+                </div>
+              </div>
+              <div
+                class="row" style="margin-bottom: 0px;"
+              >
+                <div class="input-field col s12">
+                  <a class="waves-effect waves-light btn left"
+                    @click="cancel_wizard"
+                  >
+                    <!-- <font-awesome-icon icon=""/> -->
+                    Отмена
                   </a>
                 </div>
               </div>
@@ -90,6 +129,9 @@
                     class="left red-text" style=""
                   >
                     {{error_text}}
+                  </span>
+                  <span class="wizard-hinttext">
+                    Данное название будет отображаться в списке блокнотов на главном экране приложения. Имя позднее можно изменить.
                   </span>
                 </div>
               </div>
@@ -119,8 +161,10 @@
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
-                  <textarea id="secret" class="materialize-textarea" v-model="creation_info.secret"></textarea>
-                  <label for="secret">Textarea</label>
+                  <span class="wizard-secret">{{creation_info.secret}}</span>
+                  <span class="wizard-hinttext">
+                    Надежно сохраните данную секретную фразу, т.к. получить доступ к блокноту при утере пароля можно будет только при помощи нее.
+                  </span>                  
                 </div>
               </div>
               <div
@@ -134,7 +178,7 @@
                     Отмена
                   </a>
                   <a class="waves-effect waves-light btn right"
-                    @click="step = STEPS.NOTEPAD_NAME"
+                    @click="goto_enter_name"
                   >
                     <!-- <font-awesome-icon icon=""/> -->
                     Далее
@@ -174,11 +218,13 @@
             result = {
               error: "ok",
               schema: "beta",
+              encrypted: import_data.encrypted,
             };
           } else if(this.is_alpha_schema_type(import_data)) {
             result = {
               error: "ok",
               schema: "alpha",
+              encrypted: false,
             };
           } else {
             result = {
@@ -281,6 +327,12 @@
     },
 
     methods: {
+      goto_enter_name: async function() {
+        this.step = STEPS.NOTEPAD_NAME;
+        await this.$nextTick();
+        this.$refs.add_name_input.focus();
+      },
+
       cancel_wizard: function() {
         this.$emit("cancel")
       },
@@ -299,9 +351,11 @@
         this.step = STEPS.SECRET;
       },
 
-      plain_notepad_selected: function() {
+      plain_notepad_selected: async function() {
         this.creation_info.encrypted = false;
         this.step = STEPS.NOTEPAD_NAME;
+        await this.$nextTick();
+        this.$refs.add_name_input.focus();
       },
 
       file_selected: async function() {
@@ -309,8 +363,15 @@
         let result = await this.validate(file);
         if(result != null) {
           this.creation_info.file = file;
-          this.creation_info.schema = result;
-          this.step = STEPS.NOTEPAD_NAME;
+          this.creation_info.schema = result.schema;
+          this.creation_info.encrypted = result.encrypted;
+          if(result.encrypted) {
+            this.step = STEPS.NOTEPAD_NAME;
+            await this.$nextTick();
+            this.$refs.add_name_input.focus();
+          } else {
+            this.step = STEPS.NOTEPAD_TYPE;
+          }
         } else {
           this.$refs.import_file.value = "";
         }
@@ -329,7 +390,7 @@
         switch(result.error) {
           case "ok":
             this.import_file_error = null;
-            validate_result = result.schema;
+            validate_result = result;
             break;
           case "unknown schema":
             this.import_file_error = "Неизвестный формат";
@@ -361,6 +422,16 @@
   .new-notepad-mode.active {
     text-decoration: underline;
     font-weight: bold;
+  }
+
+  .wizard-hinttext {
+    display: block;
+  }
+
+  .wizard-secret {
+    display: block;
+    border: 1px solid white;
+    padding: 10px;
   }
 
   /* .one-notepad-center {

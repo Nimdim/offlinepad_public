@@ -20,10 +20,7 @@
           v-for="item in items" :key="item.id"
           :item="item"
           :active="active == item.id"
-          @click="active = item.id"
-          @open="open_handler(item)"
-          @save="$emit('save', {id: item.id})"
-          @remove="$emit('remove', item.id)"
+          @click="open_handler(item)"
         />
         <li class="collection-item"
           @click="$emit('start-creation-wizard')"
@@ -44,79 +41,6 @@
   import FullScreenBox from "./FullScreenBox.vue";
   import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
   import EnterPasswordScreen from "./EnterPasswordScreen.vue";
-  import PartialFileReader from './../js/partial_file_reader.js'
-  import _ from "lodash";
-
-  class Validator {
-    constructor(file) {
-      this._file = file
-    }
-
-    async validate() {
-      let result = {
-        error: "wrong file",
-      };
-
-      let reader = new PartialFileReader(
-        this._file, async (import_data) => {
-          if(this.is_beta_schema_type(import_data)) {
-            result = {
-              error: "ok",
-              schema: "beta",
-            };
-          } else if(this.is_alpha_schema_type(import_data)) {
-            result = {
-              error: "ok",
-              schema: "alpha",
-            };
-          } else {
-            result = {
-              error: "unknown schema",
-            };
-          }
-          reader.abort();
-        }
-      );
-      await reader.start();
-      return result;
-    }
-
-    is_beta_schema_type(object) {
-      if((object.type == "setting") &&
-         (object.name == "info") &&
-         (object.schema_type == "beta") &&
-         (object.notepad_name != null) &&
-         (object.encrypted != null)
-        ) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    is_alpha_schema_type(container) {
-      let keys = _.keys(container);
-      for(let k = 0; k < keys.length; k++) {
-        let key = keys[k];
-        let object = container[key];
-        if(!this.is_alpha_schema_object(object)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    is_alpha_schema_object(object) {
-      let ALPHA_OBJECT_TYPES = [
-        "notepad",
-        "note",
-        "tag",
-        "tag_note",
-        "note_filter",
-      ];
-      return ALPHA_OBJECT_TYPES.indexOf(object.type) >= 0;
-    }
-  }
 
   export default {
     props: {
@@ -184,28 +108,6 @@
     },
 
     methods: {
-      async validate () {
-        let file = this.$refs.import_file.files[0];
-        let validator = new Validator(file);
-        let result = await validator.validate();
-        this.import_file_schema = null;
-        switch(result.error) {
-          case "ok":
-            this.import_file_schema = result.schema;
-            this.import_file_error = null;
-            break;
-          case "unknown schema":
-            this.import_file_error = "Неизвестный формат";
-            break;
-          case "wrong file":
-            this.import_file_error = "Некорректный файл";
-            break;
-          default:
-            this.import_file_error = "Неизвестная ошибка";
-            break;
-        }
-      },
-
       password_entered: function(password) {
         let data = {
           id: this._selected_item.id,
@@ -221,7 +123,6 @@
       },
 
       open_handler: function(item) {
-        debugger
         if(item.encrypted) {
           this.show_enter_password_form = true;
           this._selected_item = item;

@@ -150,37 +150,41 @@ class Notepad {
             encrypted: encrypted,
             schema_type: "beta",
         };
+        if(encrypted) {
+            info.secret_check = "secret check";
+        }
         await this._storage.create_item_in_store("settings", info);
         this._state.info = info;
     }
 
-    async sub_sync() {
-        this._reset_filter();
-        await this._load_data();
-        // await this._reset_state();
-    }
 
     async sync(db_name, options) {
         if(!this._working) {
             this._storage = new NotepadStorage();
             await this._storage.init(db_name, options);
-            await this.sub_sync();
-            return true;
-        } else {
-            return false;
-        }
-    }
 
-    async _load_data() {
-        let info = await this._storage.get_item_from_store_using_index(
-            "settings", "name_idx", "info"
-        );
-        if(info == null) {
-            this._working = false;
-        } else{
-            this._state.info = info;
-            this._reset_info();
-            this._working = true;    
+            let info = await this._storage.get_item_from_store_using_index(
+                "settings", "name_idx", "info"
+            );
+            if(info != null) {
+                if(info.encrypted) {
+                    if(options.secret == null) {
+                        return "secret required";
+                    }
+                    if(info.secret_check != "secret check") {
+                        return "wrong secret";
+                    }
+                }
+                this._state.info = info;
+                this._reset_info();
+                this._reset_filter();
+                this._working = true;    
+                return true;
+            } else {
+                return "no notepad info";
+            }
+        } else {
+            return "already working";
         }
     }
 
@@ -448,7 +452,7 @@ class Notepad {
         }
     }
 
-    async export() {
+    async export(disable_decryption) {
         let result = [];
         let STORE_NAMES = [
             ["settings", "setting"],
@@ -460,10 +464,17 @@ class Notepad {
         for(let i = 0; i < STORE_NAMES.length; i++) {
             let store_name = STORE_NAMES[i][0];
             let type = STORE_NAMES[i][1];
-            let items = await this._storage.get_items_from_store(store_name);
+            let items = await this._storage.get_items_from_store(store_name, disable_decryption);
             for(let k = 0; k < items.length; k++) {
                 let item = items[k];
                 item.type = type;
+                if(item.type == "setting" && item.name == "info") {
+                    if(item.encrypted) {
+                        if(!disable_decryption) {
+                            item.encrypted = false;
+                        }
+                    }
+                }
                 result.push(item);
             }
         }

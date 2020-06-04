@@ -1,6 +1,6 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span :class="{'one-notepad-center': true}">
+    <span>
       <ul
         class="collection notepads-selector"
       >

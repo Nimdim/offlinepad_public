@@ -144,10 +144,15 @@ class NotepadsList {
     async open(notepad_id, options) {
         if(this.has(notepad_id)) {
             let notepad = new Notepad();
-            await notepad.sync(NOTEPAD_DB_PREFIX + notepad_id, options);
-            return notepad;
+            let result = await notepad.sync(NOTEPAD_DB_PREFIX + notepad_id, options);
+            if (result === true) {
+                notepad._state.info.id = notepad_id;
+                return notepad;    
+            } else {
+                return result;
+            }
         } else {
-            return false;
+            return "id not existing";
         }
     }
 
