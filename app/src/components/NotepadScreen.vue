@@ -1,6 +1,6 @@
 <template>
   <full-screen-box>
-    <a
+    <a v-if="encrypted"
       class="waves-effect waves-teal btn"
       @click.prevent="$emit('export_encrypted')"
     >
@@ -28,6 +28,10 @@
 
   export default {
     props: {
+      encrypted: {
+        type: Boolean,
+        default: false,
+      },
     },
 
     components: {

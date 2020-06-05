@@ -115,8 +115,9 @@
     </ul>
 
     <notepad-screen v-if="section == 'notepad' && notepad_working"
-      @export_encrypted="export_notepad(true)"
-      @export_unencrypted="export_notepad(false)"
+      :encrypted="encrypted"
+      @export_encrypted="export_encrypted"
+      @export_unencrypted="export_unencrypted_handler"
       @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
     />
 
@@ -411,6 +412,14 @@
     </transition>
 
     <transition name="fade">
+      <message-screen v-if="message"
+        :title="message"
+        style="z-index: 2002"
+        @close="message = null"
+      />
+    </transition>
+
+    <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
   </div>
@@ -439,6 +448,7 @@ import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.
 import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
 import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
+import MessageScreen from './components/MessageScreen.vue'
 import NotepadsSelector from './components/NotepadsSelector.vue'
 import NotepadCreationWizard from './components/NotepadCreationWizard.vue'
 import NotepadScreen from './components/NotepadScreen.vue'
@@ -500,6 +510,7 @@ export default {
     LoadScreen,
     ProcessingScreen,
     WarningScreen,
+    MessageScreen,
     NotepadEmptyScreen,
     FeaturesNotAvailableScreen,
     BlockerScreen,
@@ -521,6 +532,7 @@ export default {
 
   data: function() {
     var data = {
+      message: null,
       prompt: null,
       prompt_callback: null,
 
@@ -972,6 +984,7 @@ export default {
     notepad_open: async function(arg) {
       let id = arg.id;
       let options;
+      this.encrypted = false;
       if(arg.secret == null) {
         options = {
           encrypted: false,
@@ -989,8 +1002,9 @@ export default {
       await sleep(0.5);
       notepad = await notepads_list.open(id, options);
       if(_.isString(notepad)) {
-        alert(notepad);
+        this.message = notepad;
       } else {
+        this.encrypted = notepad._state.info.encrypted;
         this.notepad_register(notepad);
         notepad._reset_info();
         this.notepad_working = true;
@@ -1312,6 +1326,24 @@ export default {
       await notepads_list.delete(notepad_id);
       await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
+    },
+
+    export_unencrypted_handler: function() {
+      if(this.encrypted) {
+        this.show_prompt(
+          'Вы уверены, что сохранить незашифрованную резерную копию?',
+          this.export_unencrypted);
+      } else {
+        this.export_unencrypted();
+      }
+    },
+
+    export_unencrypted: function() {
+      this.export_notepad(false);
+    },
+
+    export_encrypted: function() {
+      this.export_notepad(true);
     },
 
     // export_notepad_by_id: async function(notepad_id) {

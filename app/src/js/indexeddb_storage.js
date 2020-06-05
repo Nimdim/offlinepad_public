@@ -457,7 +457,7 @@ class IndexedDBStorage {
             let store = transaction.objectStore(store_name);
             let index = store.index(index_name);
             let request = index.getAll(value, count);
-            request.addEventListener("success", function (event) {
+            request.addEventListener("success", (event) => {
                 let items = event.target.result;
                 _.forEach(items, (item, index) => {
                     items[index] = this.decrypt_item(item, store_name);

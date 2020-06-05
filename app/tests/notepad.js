@@ -6,11 +6,16 @@ import NotepadsList from "../src/js/notepads_list.js";
 import { MockedBetaDataImporter, AlphaDataImporterFromDict,
          BetaDataImporterFromArray } from '../src/js/data_importer.js'
 
-let import_alpha_data = async function(name, notepads_list, data) {
+let import_alpha_data = async function(name, notepads_list, data, encrypted, secret) {
+  if(encrypted == null) {
+    encrypted = false;
+  }
   let arg = {
     "name": name,
     "file": data,
     "notepads_list": notepads_list,
+    "encrypted": encrypted,
+    "secret": secret,
   };
   let importer = new AlphaDataImporterFromDict(arg);
   let import_result = await importer.execute();
@@ -18,11 +23,16 @@ let import_alpha_data = async function(name, notepads_list, data) {
   return import_result;
 }
 
-let import_beta_data = async function(name, notepads_list, data) {
+let import_beta_data = async function(name, notepads_list, data, encrypted, secret) {
+    if(encrypted == null) {
+        encrypted = false;
+    }
     let arg = {
       "name": name,
       "file": data,
       "notepads_list": notepads_list,
+      "encrypted": encrypted,
+      "secret": secret,
     };
     let importer = new BetaDataImporterFromArray(arg);
     let import_result = await importer.execute();
@@ -2117,7 +2127,7 @@ describe("multi notepads tests", function() {
                 "name": "info",
                 "encrypted": false,
                 "schema_type": "beta",
-                "id": 1,
+                "id": notepad_id1,
             }
         ];
 

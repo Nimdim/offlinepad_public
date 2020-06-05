@@ -5,16 +5,9 @@
     </span>
     <a
       class="waves-effect waves-teal btn"
-      @click.prevent="$emit('submit')"
+      @click.prevent="$emit('close')"
     >
-      Подтвердить
-    </a>
-
-    <a
-      class="waves-effect waves-teal btn"
-      @click.prevent="$emit('cancel')"
-    >
-      Отменить
+      Закрыть
     </a>
 
   </full-screen-box>

@@ -1,6 +1,6 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span :class="{'one-notepad-center': items.length == 0}">
+    <span>
       <span v-if="items.length > 0"
         class="notepads-selector"
         style="display: block; margin: 0 auto;"
