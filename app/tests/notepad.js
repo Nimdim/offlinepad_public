@@ -2331,3 +2331,220 @@ describe("partial file reader import tests", function() {
         assert.deepEqual(list, EXPECTED);
     });
 });
+
+describe("encryption tests", function() {
+    let notepads_list = new NotepadsList();
+
+    let ENCRYPTED_NOTEPAD_OPTIONS;
+
+    let notepad_id;
+    let notepad;
+    let events;
+
+    let EXPECTED_TAGS;
+    let EXPECTED_NOTES;
+    let EXPECTED_NOTE_FILTERS;
+
+    let exported_unencrypted_data;
+    let exported_encrypted_data;
+
+    it("initial zero notepads", async function() {
+        await notepads_list.init();
+        let EXPECTED = [];
+        assert.deepEqual(notepads_list.notepads, EXPECTED);
+    });
+
+    it("create notepad and fill", async function() {
+        ENCRYPTED_NOTEPAD_OPTIONS = {
+            encrypted: true,
+            secret: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        };
+        let info = await notepads_list.create(NOTEPAD_NAME, ENCRYPTED_NOTEPAD_OPTIONS);
+        notepad_id = info.id;
+        notepad = info.notepad;
+
+        let tag_ids = [
+            await notepad.create_tag("один"),
+            await notepad.create_tag("два"),
+            await notepad.create_tag("три"),
+            await notepad.create_tag("четыре"),
+        ];
+
+        let note_ids = [
+            await notepad.create_note("запись 1", 1000000000, tag_ids.slice(0, 2)),
+            await notepad.create_note("запись 2", 1000000001, tag_ids.slice(1, 3)),
+            await notepad.create_note("запись 3", 1000000002, tag_ids.slice(2, 4)),
+        ];
+
+        let notefilter_ids = [
+            await notepad.create_note_filter("раздел 1", tag_ids.slice(0, 3)),
+            await notepad.create_note_filter("раздел 2", tag_ids.slice(1, 4)),
+        ];
+
+        events = new NotepadTestEvents(notepad);
+        await notepad._reset_tags();
+        await notepad._reset_notes();
+        await notepad._reset_note_filters();
+
+        EXPECTED_TAGS = [
+            [
+                {
+                  "count": 2,
+                  "id": tag_ids[1],
+                  "name": "два",
+                },
+                {
+                  "count": 1,
+                  "id": tag_ids[0],
+                  "name": "один",
+                },
+                {
+                  "count": 2,
+                  "id": tag_ids[2],
+                  "name": "три",
+                },
+                {
+                  "count": 1,
+                  "id": tag_ids[3],
+                  "name": "четыре",
+                },
+            ],
+        ];
+        EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1000000002,
+                    "id": note_ids[2],
+                    "tags": [
+                        tag_ids[2],
+                        tag_ids[3],
+                    ],
+                    "text": "запись 3",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1000000001,
+                    "id": note_ids[1],
+                    "tags": [
+                        tag_ids[1],
+                        tag_ids[2],
+                    ],
+                    "text": "запись 2",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1000000000,
+                    "id": note_ids[0],
+                    "tags": [
+                        tag_ids[1],
+                        tag_ids[0],
+                    ],
+                    "text": "запись 1",
+                    "text_highlighted": undefined,
+                },
+            ],     
+        ];
+        EXPECTED_NOTE_FILTERS = [
+            [
+                {
+                    "deletable": false,
+                    "id": "internal_all",
+                    "name": "Все",
+                    "tags": [],
+                },
+                {
+                    "deletable": true,
+                    "id": notefilter_ids[0],
+                    "name": "раздел 1",
+                    "tags": [
+                        tag_ids[0],
+                        tag_ids[1],
+                        tag_ids[2],
+                    ],
+                },
+                {
+                    "deletable": true,
+                    "id": notefilter_ids[1],
+                    "name": "раздел 2",
+                    "tags": [
+                        tag_ids[1],
+                        tag_ids[2],
+                        tag_ids[3],
+                    ],
+                },
+            ],
+        ];
+
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        events.assert_note_filters(EXPECTED_NOTE_FILTERS);
+
+        exported_encrypted_data = await notepad.export(true);
+        exported_unencrypted_data = await notepad.export(false);
+        
+        await notepad.close();
+        await notepads_list.delete(notepad_id);
+        notepad = null;
+        notepad_id = null;
+    });
+
+    it("import unencrypted data", async function() {
+        await notepads_list.reread_list();
+        let EXPECTED = [];
+        assert.deepEqual(notepads_list.notepads, EXPECTED);
+
+        let info = await import_beta_data(
+            NOTEPAD_NAME, notepads_list, exported_unencrypted_data,
+            true, ENCRYPTED_NOTEPAD_OPTIONS.secret
+        );
+
+        notepad = info.notepad;
+        notepad_id = info.notepad_id;
+
+        events = new NotepadTestEvents(notepad);
+        await notepad._reset_tags();
+        await notepad._reset_notes();
+        await notepad._reset_note_filters();
+
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        events.assert_note_filters(EXPECTED_NOTE_FILTERS);
+
+        await notepad.close();
+        await notepads_list.delete(notepad_id);
+        notepad = null;
+        notepad_id = null;
+    });
+
+    it("import encrypted data", async function() {
+        await notepads_list.reread_list();
+        let EXPECTED = [];
+        assert.deepEqual(notepads_list.notepads, EXPECTED);
+
+        let info = await import_beta_data(
+            NOTEPAD_NAME, notepads_list, exported_encrypted_data,
+            true
+        );
+        await info.notepad.close();
+        notepad_id = info.notepad_id;
+
+        await notepads_list.reread_list();
+        notepad = await notepads_list.open(
+            notepad_id, ENCRYPTED_NOTEPAD_OPTIONS
+        );
+
+        events = new NotepadTestEvents(notepad);
+        await notepad._reset_tags();
+        await notepad._reset_notes();
+        await notepad._reset_note_filters();
+
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        events.assert_note_filters(EXPECTED_NOTE_FILTERS);
+
+        await notepad.close();
+        await notepads_list.delete(notepad_id);
+        notepad = null;
+        notepad_id = null;
+    });
+});

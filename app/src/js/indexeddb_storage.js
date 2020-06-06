@@ -2,10 +2,19 @@ import _ from "lodash";
 import aesjs from "aes-js";
 
 let indexedDB;
+let random_numbers_generator;
+
 if(global == null) {
     indexedDB = window.indexedDB;
+    random_numbers_generator = window.crypto.getRandomValues;
 } else {
     indexedDB = global.indexedDB;
+    let crypto = require('crypto');
+    random_numbers_generator = (buf) => {
+        let crypto_buf = crypto.randomBytes(buf.length);
+        let typed_buf = new Uint8Array(crypto_buf);
+        buf.set(typed_buf);
+    }
     var window = global;
 }
 
@@ -37,7 +46,7 @@ let remove_padding = function(bytes) {
 
 let encrypt = function(open_text, key) {
     var iv = new Uint8Array(16);
-    window.crypto.getRandomValues(iv);
+    random_numbers_generator(iv);
     let aes = create_aes(key, iv);
 
     var open_bytes = aesjs.utils.utf8.toBytes(open_text);
