@@ -2,18 +2,29 @@
   <full-screen-box>
     <a v-if="encrypted"
       class="waves-effect waves-teal btn"
+      @click.prevent="$emit('set_password')"
+    >
+      Задать пароль
+    </a>
+    <a v-if="encrypted"
+      class="waves-effect waves-teal btn"
+      @click.prevent="$emit('delete_password')"
+    >
+      Удалить пароль
+    </a>
+
+    <a v-if="encrypted"
+      class="waves-effect waves-teal btn"
       @click.prevent="$emit('export_encrypted')"
     >
       Зашифрованный бекап
     </a>
-
     <a
       class="waves-effect waves-teal btn"
       @click.prevent="$emit('export_unencrypted')"
     >
       Незашифрованный бекап
     </a>
-
     <a
       class="waves-effect waves-teal btn"
       @click.prevent="$emit('delete')"
