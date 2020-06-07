@@ -120,6 +120,7 @@
       @export_unencrypted="export_unencrypted_handler"
       @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
       @set_password="set_password_for_notepad"
+      @delete_password="delete_password_for_notepad"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -423,6 +424,7 @@
     <transition name="fade">
       <enter-password-screen v-if="enter_password"
         :title="enter_password"
+        :available_methods="enter_password_available"
         style="z-index: 2002"
         @submit="enter_password_callback"
         @cancel="enter_password_cancel"
@@ -437,12 +439,6 @@
 
 <script>
 
-// let sleep = function(s) {
-//   let promise = new Promise(function(resolve) {
-//     setTimeout(resolve, s * 1000);
-//   });
-//   return promise;
-// };
 import platform from 'platform'
 import { sha3_256 } from 'js-sha3'
 import aesjs from 'aes-js'
@@ -545,6 +541,7 @@ export default {
   data: function() {
     var data = {
       enter_password: null,
+      enter_password_available: null,
       enter_password_callback: null,
 
       message: null,
@@ -764,31 +761,37 @@ export default {
       this.enter_password = null;
     },
 
-    set_password_for_notepad: async function() {
-      this.enter_password = "Введите защитную фразу";
+    prompt_password: async function(title, notepad_id) {
+      let password_secret = await notepads_list.get_password_secret(notepad_id);
+      let pin_secret = await notepads_list.get_pin_secret(notepad_id);
+      let available_items = {
+        passphrase: true,
+        password: password_secret != null,
+        pin: pin_secret != null,
+      };
+      this.enter_password_available = available_items;
+      this.enter_password = title;
       let promise = new Promise((resolve) => {
         this.enter_password_callback = (info) => {
           resolve(info);
           this.enter_password_cancel();
         };     
       });
-      let pass_info = await promise;
+      return promise;
+    },
+
+    set_password_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      let pass_info = await this.prompt_password("Введите защитную фразу", notepad_id);
       await this.$nextTick();
-      let secret = await this.process_secret(pass_info, notepad._state.info.id);
+      let secret = await this.process_secret(pass_info, notepad_id);
       if(!_.isEqual(notepad._storage._options.secret, secret)) {
         this.message = "Неверный пароль";
         return;
       }
 
-      // TODO тут надо переключить в состояние пароль и остальное заблочить
-      this.enter_password = "Введите пароль";
-      promise = new Promise((resolve) => {
-        this.enter_password_callback = (info) => {
-          resolve(info);
-          this.enter_password_cancel();
-        };
-      });
-      pass_info = await promise;
+      // TODO тут нужна спец форма ввода чисто пароля с оценкой сложности и возможностью генерации DiceWare
+      pass_info = await this.prompt_password("Введите пароль", notepad_id);
       this.$nextTick();
       let password_hash = sha3_256(pass_info.value);
       password_hash = aesjs.utils.hex.toBytes(password_hash);
@@ -802,6 +805,11 @@ export default {
       if(!result) {
         this.message = "Не удалось задать пароль";
       }
+    },
+
+    delete_password_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      notepads_list.delete_password_secret(notepad_id);
     },
 
     show_prompt: function(title, callback) {
@@ -1065,6 +1073,12 @@ export default {
     },
 
     notepad_open: async function(arg) {
+      if(arg.encrypted) {
+        let pass_info = await this.prompt_password("Введите пароль", arg.id);
+        let secret = await this.process_secret(pass_info, arg.id);
+        arg.secret = secret;
+      }
+
       let id = arg.id;
       let options;
       this.encrypted = false;
@@ -1073,10 +1087,9 @@ export default {
           encrypted: false,
         };
       } else {
-        let secret = await this.process_secret(arg.secret, id);
         options = {
           encrypted: true,
-          secret: secret,
+          secret: arg.secret,
         };
       }
 

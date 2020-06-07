@@ -139,6 +139,12 @@ class NotepadsList {
         return list.length > 0;
     }
 
+    async get_pin_secret(notepad_id) {
+        // TODO пока не готово
+        notepad_id;
+        return null;
+    }
+
     async get_password_secret(notepad_id) {
         let item = await this._storage.get_item_from_store("passwords", notepad_id);
         if(item != null) {

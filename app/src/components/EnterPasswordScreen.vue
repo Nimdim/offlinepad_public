@@ -85,6 +85,7 @@
   export default {
     props: {
       "items": Array,
+      "available_methods": Object,
     },
     
     components: {
@@ -110,11 +111,6 @@
         },
         password: "",
         current_method: "passphrase",
-        available_methods: {
-          passphrase: true,
-          password: true,
-          pin: false,
-        },
       };
       return data;
     },
