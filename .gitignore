@@ -2,6 +2,8 @@
 app/node_modules
 app/dist
 
+__pycache__
+
 # local env files
 .env.local
 .env.*.local
