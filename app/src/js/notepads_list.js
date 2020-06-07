@@ -17,13 +17,11 @@ class NotepadsListStorage extends IndexedDBStorage {
     _upgrade_needed(event) {
         let db = event.target.result;
         let store_options = { keyPath: "id", autoIncrement: true};
-        // let index_options = {"unique": false};
-        let unique_index = {"unique": true};
         switch(event.oldVersion) {
             case 0: {
                 db.createObjectStore("notepads", store_options);
-                let pin_codes = db.createObjectStore("pin_codes", store_options);
-                pin_codes.createIndex("notepad_id_idx", "notepad_id", unique_index);
+                db.createObjectStore("pin_codes", store_options);
+                db.createObjectStore("passwords", store_options);
             }
         }
     }
@@ -139,6 +137,30 @@ class NotepadsList {
             return notepad.id == notepad_id;
         });
         return list.length > 0;
+    }
+
+    async get_password_secret(notepad_id) {
+        let item = await this._storage.get_item_from_store("passwords", notepad_id);
+        if(item != null) {
+            item = item.password_secret;
+        }
+        return item;
+    }
+
+    async set_password_secret(notepad_id, password_secret) {
+        let item = await this.get_password_secret(notepad_id);
+        if(item) {
+            this.delete_password_secret(notepad_id);
+        }
+        await this._storage.create_item_in_store("passwords", {
+            id: notepad_id,
+            password_secret: password_secret,
+        });
+        return true;
+    }
+
+    async delete_password_secret(notepad_id) {
+        await this._storage.delete_item_in_store("passwords", notepad_id);
     }
 
     async open(notepad_id, options) {

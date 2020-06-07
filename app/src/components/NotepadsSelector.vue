@@ -108,10 +108,10 @@
     },
 
     methods: {
-      password_entered: function(password) {
+      password_entered: function(auth_info) {
         let data = {
           id: this._selected_item.id,
-          secret: password,
+          secret: auth_info,
         };
         this.$emit("open", data);
         this.password_canceled();

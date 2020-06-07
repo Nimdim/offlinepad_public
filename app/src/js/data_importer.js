@@ -74,6 +74,9 @@ class BetaDataImporterBase {
           this.already_encrypted = object.encrypted;
           object.notepad_name = this.name;
           object.encrypted = this.options.encrypted;
+          if(object.encrypted && object.secret_check == null) {
+            object.secret_check = "secret check";
+          }
           info_object_recved = true;
         }
         // Не пришел объект с настройками блокнота, или не там схема

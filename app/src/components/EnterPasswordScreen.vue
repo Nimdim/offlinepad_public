@@ -9,14 +9,34 @@
           <span>
             <form class="col s12">
               <div>
-                Пароль
+                <span
+                  class="left text-selector"
+                  :class="{'active': current_method=='passphrase'}"
+                  @click="set_current_method('passphrase')"
+                >
+                  Фраза
+                </span>
+                <span
+                  class="text-selector"
+                  :class="{'active': current_method=='password', 'disabled': !available_methods['password']}"
+                  @click="set_current_method('password')"
+                >
+                  Пароль
+                </span>
+                <span
+                  class="right text-selector"
+                  :class="{'active': current_method=='pin', 'disabled': !available_methods['pin']}"
+                  @click="set_current_method('pin')"
+                >
+                  Онлайн-ПИН
+                </span>
                 <div
                   class="row" style="margin-bottom: 0px;"
                 >
                   <div class="input-field col s12">
                     <input
                       ref="add_name_input"
-                      placeholder="Название блокнота"
+                      :placeholder="secret_placeholder[current_method]"
                       type="text"
                       class="validate"
                       v-model="password"
@@ -41,7 +61,7 @@
                     Отмена
                   </a>
                   <a class="waves-effect waves-light btn right"
-                    @click="$emit('submit', password)"
+                    @click="$emit('submit', {'method': current_method, 'value': password})"
                   >
                     <!-- <font-awesome-icon icon=""/> -->
                     Создать
@@ -83,12 +103,24 @@
 
     data: function() {
       let data = {
+        secret_placeholder: {
+          "passphrase": "Защитная фраза",
+          "password": "Пароль",
+          "pin": "Пин",
+        },
         password: "",
+        current_method: "passphrase",
+        available_methods: {
+          passphrase: true,
+          password: true,
+          pin: false,
+        },
       };
       return data;
     },
 
     mounted: function() {
+      this.password = "";
     //   this.add_select_instances = null;
     //   this.update_active();
     },
@@ -122,6 +154,11 @@
     },
 
     methods: {
+      set_current_method: function(method) {
+        if(this.available_methods[method]) {
+          this.current_method = method;
+        }
+      },
     //   async validate () {
     //     let file = this.$refs.import_file.files[0];
     //     let validator = new Validator(file);
@@ -183,6 +220,14 @@
 <style>
   .collection.notepads-selector .collection-item {
     padding: 10px;
+  }
+
+  .text-selector.active {
+    text-decoration: underline;
+  }
+
+  .text-selector.disabled {
+    color: gray;
   }
 
   .new-notepad-mode {

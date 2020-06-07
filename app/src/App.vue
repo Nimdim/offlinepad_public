@@ -119,6 +119,7 @@
       @export_encrypted="export_encrypted"
       @export_unencrypted="export_unencrypted_handler"
       @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
+      @set_password="set_password_for_notepad"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -420,6 +421,15 @@
     </transition>
 
     <transition name="fade">
+      <enter-password-screen v-if="enter_password"
+        :title="enter_password"
+        style="z-index: 2002"
+        @submit="enter_password_callback"
+        @cancel="enter_password_cancel"
+      />
+    </transition>
+
+    <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
   </div>
@@ -442,6 +452,7 @@ import _ from 'lodash'
 moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
+import EnterPasswordScreen from './components/EnterPasswordScreen.vue'
 import ProcessingScreen from './components/ProcessingScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
 import FeaturesNotAvailableScreen from './components/FeaturesNotAvailableScreen.vue'
@@ -507,6 +518,7 @@ let sleep = function(seconds) {
 export default {
   name: 'app',
   components: {
+    EnterPasswordScreen,
     LoadScreen,
     ProcessingScreen,
     WarningScreen,
@@ -532,6 +544,9 @@ export default {
 
   data: function() {
     var data = {
+      enter_password: null,
+      enter_password_callback: null,
+
       message: null,
       prompt: null,
       prompt_callback: null,
@@ -744,6 +759,50 @@ export default {
   },
 
   methods: {
+
+    enter_password_cancel: function() {
+      this.enter_password = null;
+    },
+
+    set_password_for_notepad: async function() {
+      this.enter_password = "Введите защитную фразу";
+      let promise = new Promise((resolve) => {
+        this.enter_password_callback = (info) => {
+          resolve(info);
+          this.enter_password_cancel();
+        };     
+      });
+      let pass_info = await promise;
+      await this.$nextTick();
+      let secret = await this.process_secret(pass_info, notepad._state.info.id);
+      if(!_.isEqual(notepad._storage._options.secret, secret)) {
+        this.message = "Неверный пароль";
+        return;
+      }
+
+      // TODO тут надо переключить в состояние пароль и остальное заблочить
+      this.enter_password = "Введите пароль";
+      promise = new Promise((resolve) => {
+        this.enter_password_callback = (info) => {
+          resolve(info);
+          this.enter_password_cancel();
+        };
+      });
+      pass_info = await promise;
+      this.$nextTick();
+      let password_hash = sha3_256(pass_info.value);
+      password_hash = aesjs.utils.hex.toBytes(password_hash);
+      let pass_secret = [];
+      for(let k = 0; k < password_hash.length; k++) {
+        pass_secret.push(password_hash[k] ^ secret[k]);
+      }
+      let result = await notepads_list.set_password_secret(
+        notepad._state.info.id, pass_secret
+      );
+      if(!result) {
+        this.message = "Не удалось задать пароль";
+      }
+    },
 
     show_prompt: function(title, callback) {
       this.prompt_callback = callback;
@@ -981,6 +1040,30 @@ export default {
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
+    process_secret: async function(auth_info, notepad_id) {
+      switch(auth_info.method) {
+        case "passphrase": {
+          let secret = sha3_256(auth_info.value);
+          secret = aesjs.utils.hex.toBytes(secret);
+          return secret;
+        }
+        case "password": {
+          if(notepad_id == null) {
+            throw new Error("notepad_id is null");
+          }
+          let secret = sha3_256(auth_info.value);
+          secret = aesjs.utils.hex.toBytes(secret);
+          let password_secret = await notepads_list.get_password_secret(notepad_id);
+          for(let k = 0; k < secret.length; k++) {
+            secret[k] = secret[k] ^ password_secret[k];
+          }
+          return secret;
+        }
+        default:
+          throw new Error("not implemented " + auth_info.method);
+      }
+    },
+
     notepad_open: async function(arg) {
       let id = arg.id;
       let options;
@@ -990,8 +1073,7 @@ export default {
           encrypted: false,
         };
       } else {
-        let secret = sha3_256(arg.secret);
-        secret = aesjs.utils.hex.toBytes(secret);
+        let secret = await this.process_secret(arg.secret, id);
         options = {
           encrypted: true,
           secret: secret,
@@ -1421,19 +1503,14 @@ export default {
         encrypted: arg.encrypted,
       };
       if(arg.encrypted) {
-        let secret = sha3_256(arg.secret);
-        secret = aesjs.utils.hex.toBytes(secret);
+        let secret = await this.process_secret(arg.secret);
         options.secret = secret;
       }
       this.loadscreen_visible = true;
       await sleep(0.5);
       let info = await notepads_list.create(name, options);
       notepad = info.notepad;
-      this.notepad_register(notepad);
-      notepad._reset_info();
-      this.notepad_working = true;
-      await notepad._reset_note_filters();
-      this.section = "notes";
+      notepad.close();
       await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
       await sleep(0.5);
@@ -1442,8 +1519,7 @@ export default {
 
     notepad_import: async function(arg) {
       if(arg.secret) {
-        let secret = sha3_256(arg.secret);
-        secret = aesjs.utils.hex.toBytes(secret);
+        let secret = await this.process_secret(arg.secret);
         arg.secret = secret;
       }
       this.import_error = null;

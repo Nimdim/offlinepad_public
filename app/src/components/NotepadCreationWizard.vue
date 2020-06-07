@@ -161,7 +161,7 @@
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
-                  <span class="wizard-secret">{{creation_info.secret}}</span>
+                  <span class="wizard-secret">{{creation_info.secret.value}}</span>
                   <span class="wizard-hinttext">
                     Надежно сохраните данную секретную фразу, т.к. получить доступ к блокноту при утере пароля можно будет только при помощи нее.
                   </span>                  
@@ -198,9 +198,9 @@
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
-//   import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
-  import PartialFileReader from './../js/partial_file_reader.js'
+  import PartialFileReader from './../js/partial_file_reader.js';
   import _ from "lodash";
+  import diceware from "./../js/diceware/diceware.js";
 
   class Validator {
     constructor(file) {
@@ -342,7 +342,13 @@
       },
 
       generate_secret: function() {
-        return "lorem ipsum have a secret";
+        let indexes = diceware.generate_indexes_list(10);
+        let words = diceware.indexes_list_to_passphrase(indexes, "ru");
+        let result = {
+          method: "passphrase",
+          value: words.join(" ")
+        };
+        return result;
       },
 
       encrypted_notepad_selected: function() {
