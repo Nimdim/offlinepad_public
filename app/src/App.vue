@@ -121,6 +121,8 @@
       @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
       @set_password="set_password_for_notepad"
       @delete_password="delete_password_for_notepad"
+      @set_pin="set_pin_for_notepad"
+      @delete_pin="delete_pin_for_notepad"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -763,7 +765,7 @@ export default {
 
     prompt_password: async function(title, notepad_id) {
       let password_secret = await notepads_list.get_password_secret(notepad_id);
-      let pin_secret = await notepads_list.get_pin_secret(notepad_id);
+      let pin_secret = await notepads_list._get_pin_secret(notepad_id);
       let available_items = {
         passphrase: true,
         password: password_secret != null,
@@ -810,6 +812,37 @@ export default {
     delete_password_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
       notepads_list.delete_password_secret(notepad_id);
+    },
+
+    set_pin_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      let pass_info = await this.prompt_password("Введите защитную фразу", notepad_id);
+      await this.$nextTick();
+      let secret = await this.process_secret(pass_info, notepad_id);
+      if(!_.isEqual(notepad._storage._options.secret, secret)) {
+        this.message = "Неверный пароль";
+        return;
+      }
+
+      // TODO тут нужна спец форма ввода чисто пароля с оценкой сложности и возможностью генерации DiceWare
+      pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      this.$nextTick();
+      let pin = pass_info.value;
+      let result = await notepads_list.set_pin_secret(
+        notepad._state.info.id, pin, notepad._storage._options.secret
+      );
+      if(!result) {
+        this.message = "Не удалось задать пароль";
+      }
+    },
+
+    delete_pin_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      debugger
+      let pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      this.$nextTick();
+      let pin = pass_info.value;
+      notepads_list.delete_pin_secret(notepad_id, pin);
     },
 
     show_prompt: function(title, callback) {
@@ -1065,6 +1098,15 @@ export default {
           for(let k = 0; k < secret.length; k++) {
             secret[k] = secret[k] ^ password_secret[k];
           }
+          return secret;
+        }
+        case "pin": {
+          debugger
+          if(notepad_id == null) {
+            throw new Error("notepad_id is null");
+          }
+          let secret = await notepads_list.get_pin_secret(notepad_id, auth_info.value);
+          debugger
           return secret;
         }
         default:

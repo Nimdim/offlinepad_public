@@ -6,11 +6,12 @@ PINS = {}
 def get_new_id():
     global counter
     counter += 1
-    return counter
+    return str(counter)
 
 
 def auth_check(func):
     def wrapper(id, pin):
+        print(PINS)
         if id in PINS:
             pin_info = PINS[id];
             if pin_info["attempts"] <= 3:

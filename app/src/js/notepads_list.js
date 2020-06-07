@@ -2,7 +2,8 @@
 import Backbone from "backbone";
 import _ from "lodash";
 import IndexedDBStorage from "./indexeddb_storage.js";
-import Notepad from './notepad.js'
+import Notepad from './notepad.js';
+import cryptobox from './cryptobox.js';
 
 // if(global != null) {
 //     var window = global;
@@ -26,6 +27,42 @@ class NotepadsListStorage extends IndexedDBStorage {
         }
     }
 }
+
+let POST = async function(url, data) {
+    let request = await fetch(
+        url,
+        {
+            method: "POST",
+            headers: {'Content-Type': "application/json",},
+            body: JSON.stringify(data)
+        }
+    );
+    return await request.json();
+};
+
+let DELETE = async function(url, data) {
+    let request = await fetch(
+        url,
+        {
+            method: "DELETE",
+            headers: {'Content-Type': "application/json",},
+            body: JSON.stringify(data)
+        }
+    );
+    return await request.json();
+};
+
+// let GET = async function(url, data) {
+//     let request = await fetch(
+//         url,
+//         {
+//             method: "GET",
+//             headers: {'Content-Type': "application/json",},
+//             body: JSON.stringify(data)
+//         }
+//     );
+//     return await request.json();
+// };
 
 class NotepadReaderStorage extends IndexedDBStorage {
     constructor(version) {
@@ -139,10 +176,60 @@ class NotepadsList {
         return list.length > 0;
     }
 
-    async get_pin_secret(notepad_id) {
-        // TODO пока не готово
-        notepad_id;
-        return null;
+    async set_pin_secret(notepad_id, pin, secret) {
+        let part1 = cryptobox.random_numbers_list(secret.length);
+        let part2 = [];
+        for(let k = 0; k < secret.length; k++) {
+            part2.push(part1[k] ^ secret[k]);
+        }
+        let result = await POST("/api/pin", {pin: pin, secret: part1});
+        if(result.error == "ok") {
+            this._set_pin_secret(notepad_id, part2, result.result);
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    async _set_pin_secret(notepad_id, secret, pin_storage) {
+        if(await this._get_pin_secret(notepad_id) != null) {
+            await this._delete_pin_secret(notepad_id);
+        }
+        let data = {
+            id: notepad_id,
+            secret: secret,
+            pin_storage: pin_storage,
+        };
+        await this._storage.create_item_in_store("pin_codes", data);
+    }
+
+    async get_pin_secret(notepad_id, pin) {
+        debugger
+        let pin_secret_info = await this._get_pin_secret(notepad_id);
+        if(pin_secret_info != null) {
+            debugger
+            let part2 = pin_secret_info.secret;
+            let result = await POST("/api/pin/" + pin_secret_info.pin_storage, {pin});
+            debugger
+            if(result.error == "ok") {
+                debugger
+                let part1 = result.result;
+                let secret = [];
+                for(let k = 0; k < part1.length; k++) {
+                    secret.push(part1[k] ^ part2[k]);
+                }
+                debugger
+                return secret;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    async _get_pin_secret(notepad_id) {
+        return await this._storage.get_item_from_store("pin_codes", notepad_id);
     }
 
     async get_password_secret(notepad_id) {
@@ -151,6 +238,25 @@ class NotepadsList {
             item = item.password_secret;
         }
         return item;
+    }
+
+    async delete_pin_secret(notepad_id, pin) {
+        debugger
+        let pin_secret_info = await this._get_pin_secret(notepad_id);
+        if(pin_secret_info != null) {
+            let result = await DELETE("/api/pin/" + pin_secret_info.pin_storage, {pin});
+            if(result.error == "ok") {
+                await this._delete_pin_secret(notepad_id);
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    async _delete_pin_secret(notepad_id) {
+        await this._storage.delete_item_in_store("pin_codes", notepad_id);
     }
 
     async set_password_secret(notepad_id, password_secret) {
