@@ -1,24 +1,18 @@
-# import sqlalchemy
-
-counter = 0
-PINS = {}
-
-def get_new_id():
-    global counter
-    counter += 1
-    return str(counter)
+from database import db_session, PinCode
+from datetime import datetime
 
 
 def auth_check(func):
     def wrapper(id, pin):
-        print(PINS)
-        if id in PINS:
-            pin_info = PINS[id];
-            if pin_info["attempts"] <= 3:
-                if pin_info["pin"] == pin:
-                    return func(id, pin)
+        pin_info = db_session.query(PinCode).filter(PinCode.id == id).first()
+        if pin_info:
+            if pin_info.attempt <= 3:
+                if pin_info.pin == pin:
+                    return func(id, pin_info)
                 else:
-                    pin_info["attempts"] += 1
+                    pin.attempt += 1
+                    db_session.add(pin)
+                    db_session.commit()
             else:
                 return {"error": "attempts exceeded"}
         return {"error": "invalid id or pin"}
@@ -26,22 +20,20 @@ def auth_check(func):
 
 
 def create(pin, secret):
-    id = get_new_id()
-    PINS[id] = {
-        "pin": pin,
-        "secret": secret,
-        "attempts": 0,
-    }
+    id = str(datetime.now().timestamp())
+    pin = PinCode(id=id, secret_part=secret, pin=pin, attempt=0)
+    db_session.add(pin)
+    db_session.commit()
     return {"error": "ok", "result": id}
 
 
 @auth_check
 def get(id, pin):
-    pin_info = PINS[id];
-    return {"error": "ok", "result": pin_info["secret"]}
+    return {"error": "ok", "result": pin.secret_part}
 
 
 @auth_check
 def delete(id, pin):
-    del PINS[id]
+    db_session.delete(pin)
+    db_session.commit()
     return {"error": "ok"}
