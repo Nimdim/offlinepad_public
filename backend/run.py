@@ -5,18 +5,21 @@ app = Flask(__name__)
 
 @app.route('/api/pin', methods=["POST"])
 def create_pin():
-    pin = request.form["pin"]
-    secret = request.form["secret"]
+    data = request.json
+    pin = data["pin"]
+    secret = data["secret"]
     return jsonify(pin_utils.create(pin, secret))
 
-@app.route('/api/pin/<id>', methods=["GET"])
+@app.route('/api/pin/<id>', methods=["POST"])
 def get_pin(id):
-    pin = request.form["pin"]
+    data = request.json
+    pin = data["pin"]
     return jsonify(pin_utils.get(id, pin))
 
 @app.route('/api/pin/<id>', methods=["DELETE"])
 def delete_pin(id):
-    pin = request.form["pin"]
+    data = request.json
+    pin = data["pin"]
     return jsonify(pin_utils.delete(id, pin))
 
 app.run(debug=True)

@@ -2,6 +2,19 @@
   <full-screen-box>
     <a v-if="encrypted"
       class="waves-effect waves-teal btn"
+      @click.prevent="$emit('set_pin')"
+    >
+      Задать пин
+    </a>
+    <a v-if="encrypted"
+      class="waves-effect waves-teal btn"
+      @click.prevent="$emit('delete_pin')"
+    >
+      Удалить пин
+    </a>
+
+    <a v-if="encrypted"
+      class="waves-effect waves-teal btn"
       @click.prevent="$emit('set_password')"
     >
       Задать пароль

@@ -1,7 +1,7 @@
 <template>
   <full-screen-box :top="true">
-    <span>
-        {{title}}
+    <span v-for="line in title.split('\n')" :key="line">
+        {{line}}<br>
     </span>
     <a
       class="waves-effect waves-teal btn"

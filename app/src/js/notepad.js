@@ -226,7 +226,6 @@ class Notepad {
     async _filter_tags() {
         let tags = await this.get_tags_from_cache();
 
-        // TODO сделать тесты и выделить в функцию
         if(this._filter.tags.name != "") {
             tags = _.filter(
                 tags,
@@ -236,7 +235,6 @@ class Notepad {
             );
         }
 
-        // TODO сделать тесты и выделить в функцию
         let order;
         if(this._filter.tags.sorting_asc) {
             order = ["asc"];
@@ -522,7 +520,7 @@ class Notepad {
     async delete_tag(id) {
         this.invalidate_tags_cache();
         await this._storage.delete_item_in_store("tags", id);
-        // TODO в единую транзаецию
+        // TODO в единую транзакцию
         let tag_note_ids = await this._storage.get_item_ids_from_store_using_index(
             "tag_notes", "tag_id_idx", id
         );

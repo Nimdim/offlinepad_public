@@ -1,4 +1,7 @@
 module.exports = {
+  devServer: {
+    "proxy": "http://localhost:5000",
+  },
   chainWebpack: config => {
     if(config.plugins.has('extract-css')) {
       const extractCSSPlugin = config.plugin('extract-css')

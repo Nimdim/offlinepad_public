@@ -12,9 +12,6 @@
       @click="notepad_menu"
     />
 
-    <!-- <input type="file" ref="upload" style="display:none;" @change="do_upload" /> -->
-    <!-- <input type="file" ref="upload_old" style="display:none;" @change="do_upload_old" /> -->
-
     <notepad-empty-screen v-if="empty_msg"
       :develop_mode="develop_mode"
       :text="empty_msg"
@@ -121,6 +118,8 @@
       @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
       @set_password="set_password_for_notepad"
       @delete_password="delete_password_for_notepad"
+      @set_pin="set_pin_for_notepad"
+      @delete_pin="delete_pin_for_notepad"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -425,9 +424,27 @@
       <enter-password-screen v-if="enter_password"
         :title="enter_password"
         :available_methods="enter_password_available"
+        :auth_method="current_auth_method"
         style="z-index: 2002"
         @submit="enter_password_callback"
         @cancel="enter_password_cancel"
+      />
+    </transition>
+
+    <transition name="fade">
+      <new-password-screen v-if="create_password"
+        style="z-index: 2002"
+        @submit="create_password_callback"
+        @cancel="create_password_cancel"
+      />
+    </transition>
+
+    <transition name="fade">
+      <pin-screen v-if="create_pin"
+        style="z-index: 2002"
+        :numbers_count="4"
+        @submit="create_pin_callback"
+        @cancel="create_pin_cancel"
       />
     </transition>
 
@@ -456,9 +473,11 @@ import NotepadEmptyScreen from './components/NotepadEmptyScreen.vue'
 import BlockerScreen from './components/BlockerScreen.vue'
 import DevelopConsoleScreen from './components/DevelopConsoleScreen.vue'
 import MessageScreen from './components/MessageScreen.vue'
+import NewPasswordScreen from './components/NewPasswordScreen.vue'
 import NotepadsSelector from './components/NotepadsSelector.vue'
 import NotepadCreationWizard from './components/NotepadCreationWizard.vue'
 import NotepadScreen from './components/NotepadScreen.vue'
+import PinScreen from './components/PinScreen.vue'
 import PromptScreen from './components/PromptScreen.vue'
 import ImportScreen from './components/ImportScreen.vue'
 import NoteItem from './components/NoteItem.vue'
@@ -524,10 +543,12 @@ export default {
     BlockerScreen,
     DevelopConsoleScreen,
     ImportScreen,
+    NewPasswordScreen,
     NotepadsSelector,
     NotepadCreationWizard,
     NotepadScreen,
     PromptScreen,
+    PinScreen,
     NoteItem,
     NoteFilterItem,
     TagItem,
@@ -540,6 +561,14 @@ export default {
 
   data: function() {
     var data = {
+      current_auth_method: undefined,
+
+      create_pin: false,
+      create_pin_callback: null,
+
+      create_password: false,
+      create_password_callback: null,
+
       enter_password: null,
       enter_password_available: null,
       enter_password_callback: null,
@@ -558,7 +587,7 @@ export default {
       notes_preloading: false,
 
       current_theme: "light",
-      features_unawailable: false, // TODO показать скрин с недоступными функциями
+      features_unawailable: false,
 
       note_index_in_viewspot: 0,
       note_index_add: null,
@@ -756,6 +785,35 @@ export default {
   },
 
   methods: {
+    prompt_create_pin: async function() {
+      let promise = new Promise((resolve) => {
+        this.create_pin_callback = (pin) => {
+          this.create_pin_cancel();
+          resolve(pin);
+        };
+      });
+      this.create_pin = true;
+      return await promise;
+    },
+
+    create_pin_cancel: function() {
+      this.create_pin = false;
+    },
+
+    create_password_cancel: function() {
+      this.create_password = false;
+    },
+
+    prompt_create_password: async function() {
+      let promise = new Promise((resolve) => {
+        this.create_password_callback = (password) => {
+          this.create_password_cancel();
+          resolve(password);
+        };
+      });
+      this.create_password = true;
+      return await promise;
+    },
 
     enter_password_cancel: function() {
       this.enter_password = null;
@@ -763,7 +821,8 @@ export default {
 
     prompt_password: async function(title, notepad_id) {
       let password_secret = await notepads_list.get_password_secret(notepad_id);
-      let pin_secret = await notepads_list.get_pin_secret(notepad_id);
+      let pin_secret = await notepads_list._get_pin_secret(notepad_id);
+      this.current_auth_method = await notepads_list.get_current_auth_method(notepad_id);
       let available_items = {
         passphrase: true,
         password: password_secret != null,
@@ -772,7 +831,8 @@ export default {
       this.enter_password_available = available_items;
       this.enter_password = title;
       let promise = new Promise((resolve) => {
-        this.enter_password_callback = (info) => {
+        this.enter_password_callback = async (info) => {
+          await notepads_list.set_current_auth_method(info.method, notepad_id);
           resolve(info);
           this.enter_password_cancel();
         };     
@@ -790,10 +850,9 @@ export default {
         return;
       }
 
-      // TODO тут нужна спец форма ввода чисто пароля с оценкой сложности и возможностью генерации DiceWare
-      pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      let new_password = await this.prompt_create_password();
       this.$nextTick();
-      let password_hash = sha3_256(pass_info.value);
+      let password_hash = sha3_256(new_password);
       password_hash = aesjs.utils.hex.toBytes(password_hash);
       let pass_secret = [];
       for(let k = 0; k < password_hash.length; k++) {
@@ -804,6 +863,8 @@ export default {
       );
       if(!result) {
         this.message = "Не удалось задать пароль";
+      } else {
+        this.message = "Пароль установлен";
       }
     },
 
@@ -812,9 +873,49 @@ export default {
       notepads_list.delete_password_secret(notepad_id);
     },
 
+    set_pin_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      let pass_info = await this.prompt_password("Введите защитную фразу", notepad_id);
+      await this.$nextTick();
+      let secret = await this.process_secret(pass_info, notepad_id);
+      if(!_.isEqual(notepad._storage._options.secret, secret)) {
+        this.message = "Неверный пароль";
+        return;
+      }
+
+      let pin = await this.prompt_create_pin();
+      this.$nextTick();
+      let result = await notepads_list.set_pin_secret(
+        notepad._state.info.id, pin, notepad._storage._options.secret
+      );
+      if(!result) {
+        this.message = "Не удалось задать пин";
+      } else {
+        this.message = "Пин установлен";
+      }
+    },
+
+    delete_pin_for_notepad: async function() {
+      let notepad_id = notepad._state.info.id;
+      let pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      this.$nextTick();
+      let pin = pass_info.value;
+      notepads_list.delete_pin_secret(notepad_id, pin);
+    },
+
     show_prompt: function(title, callback) {
-      this.prompt_callback = callback;
-      this.prompt = title;
+      if(callback != null) {
+        this.prompt_callback = callback;
+        this.prompt = title;
+      } else {
+        let promise = new Promise((resolve) => {
+          this.prompt_callback = () => {
+            resolve(true);
+          };
+          this.prompt = title;
+        });
+        return promise;
+      }
     },
 
     prompt_submit: function() {
@@ -1067,15 +1168,48 @@ export default {
           }
           return secret;
         }
+        case "pin": {
+          if(notepad_id == null) {
+            throw new Error("notepad_id is null");
+          }
+          let secret = await notepads_list.get_pin_secret(notepad_id, auth_info.value);
+          return secret;
+        }
         default:
           throw new Error("not implemented " + auth_info.method);
       }
+    },
+
+    translate_message: function(message) {
+      let text = message;
+      let result;
+      if(_.isObject(text)) {
+        text = text.msg;
+      }
+      switch(text) {
+        case "wrong secret":
+          result = "Неправильный ключ";
+          break;
+        case "wrong pin":
+          result = "Неверный пин\nОсталось попыток: " + message.attempts;
+          break;
+        case "attempts exceeded":
+          result = "Попытки входа исчерпаны\nПин заблокирован";
+          break;
+        default:
+          throw new Error("not implemented '" + text + "'");
+      }
+      return result;
     },
 
     notepad_open: async function(arg) {
       if(arg.encrypted) {
         let pass_info = await this.prompt_password("Введите пароль", arg.id);
         let secret = await this.process_secret(pass_info, arg.id);
+        if(!_.isArray(secret)) {
+          this.message = this.translate_message(secret);
+          return;
+        }
         arg.secret = secret;
       }
 
@@ -1097,7 +1231,7 @@ export default {
       await sleep(0.5);
       notepad = await notepads_list.open(id, options);
       if(_.isString(notepad)) {
-        this.message = notepad;
+        this.message = this.translate_message(notepad);
       } else {
         this.encrypted = notepad._state.info.encrypted;
         this.notepad_register(notepad);
@@ -1250,30 +1384,6 @@ export default {
       return tags;
     },
 
-    upload: function() {
-      this.$refs.upload.click();
-    },
-
-    upload_old: function() {
-      this.$refs.upload_old.click();
-    },
-
-    do_upload: function() {
-      // TODO перенос кода импорта
-      let files = this.$refs.upload.files;
-      let file = files[0];
-
-      let reader = new PartialFileReader(
-        file, async (import_data) => {
-          notepad = await notepads_list.import("a_1", import_data);
-          this.notepad_working = true;
-          await notepad._reset_note_filters();
-          this.section = "notes";
-        }
-      );
-      reader.start();      
-    },
-
     wrap_notes: function(notes) {
       let k, item;
       for(k = 0; k < notes.length; k++) {
@@ -1423,11 +1533,18 @@ export default {
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
-    export_unencrypted_handler: function() {
+    export_unencrypted_handler: async function() {
       if(this.encrypted) {
-        this.show_prompt(
-          'Вы уверены, что сохранить незашифрованную резерную копию?',
-          this.export_unencrypted);
+        let accept = await this.show_prompt(
+          'Вы уверены, что сохранить незашифрованную резерную копию?');
+        if(accept) {
+          let notepad_id = notepad._state.info.id;
+          let pass_info = await this.prompt_password("Подтверждение доступа", notepad_id);
+          let secret = await this.process_secret(pass_info, notepad_id);
+          if(_.isEqual(secret, notepad._storage._options.secret)) {
+            this.export_unencrypted();
+          }
+        }
       } else {
         this.export_unencrypted();
       }
@@ -1572,12 +1689,6 @@ export default {
 
     notepad_menu: async function(command) {
       switch(command) {
-        case "open":
-          this.upload();
-          break;
-        case "open_old":
-          this.upload_old();
-          break;
         case "toggle_theme":
           this.toggle_theme();
           break;

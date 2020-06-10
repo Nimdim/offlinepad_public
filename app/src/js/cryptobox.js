@@ -20,11 +20,11 @@ let random_numbers_list = function(length) {
         result.push(buf[k]);
     }
     return result;
-}
+};
 
 let create_aes = function(key, iv) {
     return new aesjs.ModeOfOperation.cbc(key, iv);
-}
+};
 
 let add_padding = function(bytes) {
     let filled = bytes.length % 16;
@@ -46,7 +46,7 @@ let remove_padding = function(bytes) {
     }
     let result = bytes.slice(0, last_index + 1);
     return result;
-}
+};
 
 let encrypt = function(open_text, key) {
     var iv = new Uint8Array(16);
@@ -59,7 +59,7 @@ let encrypt = function(open_text, key) {
     let encrypted_text = aesjs.utils.hex.fromBytes(iv) +
                          aesjs.utils.hex.fromBytes(encrypted_bytes);
     return encrypted_text;
-}
+};
 
 let decrypt = function(encrypted_text, key) {
     let encrypted_bytes = aesjs.utils.hex.toBytes(encrypted_text);
@@ -72,10 +72,47 @@ let decrypt = function(encrypted_text, key) {
     open_bytes = remove_padding(open_bytes);
     let open_text = aesjs.utils.utf8.fromBytes(open_bytes);
     return open_text;
+};
+
+let LOWER_CASE_LETTERS_ENG = "abcdefghijklmnopqrstuvwxyz";
+let UPPER_CASE_LETTERS_ENG = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+let LOWER_CASE_LETTERS_RU = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
+let UPPER_CASE_LETTERS_RU = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+let NUMBERS = "0123456789";
+let SPECIALS = "`~!@#№$%^&*()[]{};:'\"<>\\/?-=+_";
+let ALPHABETS = [
+    LOWER_CASE_LETTERS_ENG,
+    UPPER_CASE_LETTERS_ENG,
+    LOWER_CASE_LETTERS_RU,
+    UPPER_CASE_LETTERS_RU,
+    NUMBERS,
+    SPECIALS,
+];
+
+let calc_alphabet_size = function(password) {
+    let size = 0;
+    for(let k = 0; k < ALPHABETS.length; k++) {
+        let alphabet = ALPHABETS[k];
+        if(is_alphabet_used(alphabet, password)) {
+            size = size + alphabet.length;
+        }
+    }
+    return size;
+};
+
+let is_alphabet_used = function(alphabet, password) {
+    for(let k = 0; k < password.length; k++) {
+        let letter = password[k];
+        if(alphabet.indexOf(letter) >= 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export default {
     random_numbers_list,
     encrypt,
     decrypt,
+    calc_alphabet_size,
 };

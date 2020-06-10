@@ -27,7 +27,6 @@ p {
 
 @media (max-width: 480px) {
   .notepads-selector {
-    /* TODO тут надо продумать для мелких экранов */
     width: calc(100% - 50px);
   }  
 }
