@@ -587,7 +587,7 @@ export default {
       notes_preloading: false,
 
       current_theme: "light",
-      features_unawailable: false, // TODO показать скрин с недоступными функциями
+      features_unawailable: false,
 
       note_index_in_viewspot: 0,
       note_index_add: null,
