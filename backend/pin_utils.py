@@ -6,22 +6,25 @@ def auth_check(func):
     def wrapper(id, pin):
         pin_info = db_session.query(PinCode).filter(PinCode.id == id).first()
         if pin_info:
-            if pin_info.attempt <= 3:
+            max_attempts = 3
+            if pin_info.attempt < max_attempts:
                 if pin_info.pin == pin:
                     return func(id, pin_info)
                 else:
-                    pin.attempt += 1
-                    db_session.add(pin)
+                    pin_info.attempt += 1
+                    db_session.add(pin_info)
                     db_session.commit()
+                    return {"error": {"msg": "wrong pin", "attempts": (max_attempts - pin_info.attempt)}}
             else:
                 return {"error": "attempts exceeded"}
-        return {"error": "invalid id or pin"}
+        else:
+            return {"error": "invalid id"}
     return wrapper
 
 
 def create(pin, secret):
     id = str(datetime.now().timestamp())
-    pin = PinCode(id=id, secret_part=secret, pin=pin, attempt=0)
+    pin = PinCode(id=id, secret_part=secret, pin=pin, attempt=0, type="4")
     db_session.add(pin)
     db_session.commit()
     return {"error": "ok", "result": id}

@@ -31,6 +31,7 @@
                   Онлайн-ПИН
                 </span>
                 <div
+                  v-if="current_method != 'pin'"
                   class="row" style="margin-bottom: 0px;"
                 >
                   <div class="input-field col s12">
@@ -51,6 +52,7 @@
               </div>
 
               <div
+                v-if="current_method != 'pin'"
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
@@ -64,10 +66,16 @@
                     @click="$emit('submit', {'method': current_method, 'value': password})"
                   >
                     <!-- <font-awesome-icon icon=""/> -->
-                    Создать
+                    Подтвердить
                   </a>
                 </div>
               </div>
+              <pin-pad
+                v-else
+                style="margin: 20px auto;"
+                :numbers_count="4"
+                @submit="$emit('submit', {'method': 'pin', 'value': $event})"
+              />
             </form>
           </span>
         </li>
@@ -77,20 +85,21 @@
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
-//   import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
-//   import PartialFileReader from './../js/partial_file_reader.js'
-//   import _ from "lodash";
-
+  import PinPad from "./PinPad.vue";
 
   export default {
     props: {
       "items": Array,
       "available_methods": Object,
+      "auth_method": {
+        type: String,
+        default: "passphrase",
+      }
     },
     
     components: {
       FullScreenBox,
-    //   NotepadsSelectorItem,  
+      PinPad,
     },
 
     computed: {
@@ -104,49 +113,22 @@
 
     data: function() {
       let data = {
+        current_method: this.auth_method,
         secret_placeholder: {
           "passphrase": "Защитная фраза",
           "password": "Пароль",
           "pin": "Пин",
         },
         password: "",
-        current_method: "passphrase",
       };
       return data;
     },
 
     mounted: function() {
       this.password = "";
-    //   this.add_select_instances = null;
-    //   this.update_active();
     },
 
     watch: {
-    //   "items": function() {
-    //     this.update_active();
-    //   },
-
-    //   'add_name': function() {
-    //     this.error = null;
-    //   },
-
-    //   'active': async function(value) {
-    //     if(value == "add") {
-    //       this.add_name = "";
-    //       await this.$nextTick()
-    //       this.$refs.add_name_input.focus();
-    //       let elems = this.$refs.selects;
-    //       this.add_select_instances = window.M.FormSelect.init(elems);
-    //     } else {
-    //       if(this.add_select_instances != null) {
-    //         for(let k = 0; k < this.add_select_instances.length; k++) {
-    //           let instance = this.add_select_instances[k];
-    //           instance.destroy();
-    //         }
-    //         this.add_select_instances = null;
-    //       }
-    //     }
-    //   },
     },
 
     methods: {
@@ -155,60 +137,6 @@
           this.current_method = method;
         }
       },
-    //   async validate () {
-    //     let file = this.$refs.import_file.files[0];
-    //     let validator = new Validator(file);
-    //     let result = await validator.validate();
-    //     this.import_file_schema = null;
-    //     switch(result.error) {
-    //       case "ok":
-    //         this.import_file_schema = result.schema;
-    //         this.import_file_error = null;
-    //         break;
-    //       case "unknown schema":
-    //         this.import_file_error = "Неизвестный формат";
-    //         break;
-    //       case "wrong file":
-    //         this.import_file_error = "Некорректный файл";
-    //         break;
-    //       default:
-    //         this.import_file_error = "Неизвестная ошибка";
-    //         break;
-    //     }
-    //   },
-
-    //   password_entered: function(password) {
-    //     let data = {
-    //       id: this._selected_item.id,
-    //       secret: password,
-    //     };
-    //     this.$emit("open", data);
-    //     this.password_canceled();
-    //   },
-
-    //   password_canceled: function() {
-    //     this._selected_item = null;
-    //     this.show_enter_password_form = false;
-    //   }
-
-    //   open_handler: function(item) {
-    //     if(item.encrypted) {
-    //       this.show_enter_password_form = true;
-    //       this._selected_item = item;
-    //     } else {
-    //       $emit('open', {id: item.id})
-    //     }
-    //   },
-
-    //   update_active: function() {
-    //     this.active = null;
-    //     // if(this.items.length == 0) {
-    //     //   this.active = "add";
-    //     // }
-    //     // if(this.items.length == 1) {
-    //     //   this.active = this.items[0].id;
-    //     // }
-    //   },
     },
   }
 </script>
@@ -216,6 +144,15 @@
 <style>
   .collection.notepads-selector .collection-item {
     padding: 10px;
+  }
+
+  .text-selector {
+    cursor: pointer;
+  }
+
+  .text-selector:hover,
+  .text-selector.active {
+    color: darkorange;
   }
 
   .text-selector.active {

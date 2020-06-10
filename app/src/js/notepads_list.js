@@ -204,27 +204,22 @@ class NotepadsList {
     }
 
     async get_pin_secret(notepad_id, pin) {
-        debugger
         let pin_secret_info = await this._get_pin_secret(notepad_id);
         if(pin_secret_info != null) {
-            debugger
             let part2 = pin_secret_info.secret;
             let result = await POST("/api/pin/" + pin_secret_info.pin_storage, {pin});
-            debugger
             if(result.error == "ok") {
-                debugger
                 let part1 = result.result;
                 let secret = [];
                 for(let k = 0; k < part1.length; k++) {
                     secret.push(part1[k] ^ part2[k]);
                 }
-                debugger
                 return secret;
             } else {
-                return null;
+                return result.error;
             }
         } else {
-            return null;
+            return "no pin configured";
         }
     }
 
@@ -240,8 +235,21 @@ class NotepadsList {
         return item;
     }
 
+    async get_current_auth_method(notepad_id) {
+        let item = await this._storage.get_item_from_store("notepads", notepad_id);
+        let result = item.current_auth_method;
+        if(result == null) {
+            result = undefined;
+        }
+        return result;
+    }
+
+    async set_current_auth_method(current_method, notepad_id) {
+        let data = {current_auth_method: current_method};
+        await this._storage.edit_item_in_store("notepads", notepad_id, data);
+    }
+
     async delete_pin_secret(notepad_id, pin) {
-        debugger
         let pin_secret_info = await this._get_pin_secret(notepad_id);
         if(pin_secret_info != null) {
             let result = await DELETE("/api/pin/" + pin_secret_info.pin_storage, {pin});

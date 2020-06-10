@@ -35,7 +35,6 @@ def init_db():
 
 
 Model = declarative_base(name='Model')
-# Model.query = db_session.query_property()
 
 
 class PinCode(Model):
@@ -44,6 +43,7 @@ class PinCode(Model):
     secret_part = Column('secret_part', JSON)
     attempt = Column('attempt', Integer)
     pin = Column('pin', String)
+    type = Column('type', String)
 
 if __name__ == "__main__":
     init_db()
