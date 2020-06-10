@@ -496,7 +496,6 @@ sanitize_html.defaults.allowedTags = [];
 import NotepadsList from './js/notepads_list.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
-import PartialFileReader from './js/partial_file_reader.js'
 import ScrollUpController from './js/scroll_up_controller.js'
 import { BetaDataImporter, AlphaDataImporter } from './js/data_importer.js'
 
