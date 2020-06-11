@@ -778,7 +778,6 @@ export default {
     }
 
     this.startup = false;
-    await sleep(0.5);
     this.loadscreen_visible = false;
   },
 
@@ -840,13 +839,11 @@ export default {
 
     set_password_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
-      let pass_info = await this.prompt_password("Введите защитную фразу", notepad_id);
-      await this.$nextTick();
-      let secret = await this.process_secret(pass_info, notepad_id);
-      if(!_.isEqual(notepad._storage._options.secret, secret)) {
-        this.message = "Неверный пароль";
+      let secret = await this.authenticate(notepad_id);
+      if(secret == null) {
         return;
       }
+      await this.$nextTick();
 
       let new_password = await this.prompt_create_password();
       this.$nextTick();
@@ -872,13 +869,11 @@ export default {
 
     set_pin_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
-      let pass_info = await this.prompt_password("Введите защитную фразу", notepad_id);
-      await this.$nextTick();
-      let secret = await this.process_secret(pass_info, notepad_id);
-      if(!_.isEqual(notepad._storage._options.secret, secret)) {
-        this.message = "Неверный пароль";
+      let secret = await this.authenticate(notepad_id);
+      if(secret == null) {
         return;
       }
+      await this.$nextTick();
 
       let pin = await this.prompt_create_pin();
       this.$nextTick();
@@ -894,9 +889,8 @@ export default {
 
     delete_pin_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
-      let pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      let pin = await this.prompt_create_pin();
       this.$nextTick();
-      let pin = pass_info.value;
       notepads_list.delete_pin_secret(notepad_id, pin);
     },
 
@@ -1197,12 +1191,27 @@ export default {
       return result;
     },
 
+    authenticate: async function(notepad_id) {
+      let pass_info = await this.prompt_password("Введите пароль", notepad_id);
+      let secret = await this.process_secret(pass_info, notepad_id);
+      if(!_.isArray(secret)) {
+        this.message = this.translate_message(secret);
+        return;
+      }
+      let info = await notepads_list.read_notepad_info_by_id(notepad_id);
+      let secret_check;
+      secret_check = cryptobox.decrypt(info.secret_check, secret);
+      if("secret check" == secret_check) {
+        return secret;
+      } else {
+        this.message = this.translate_message("wrong secret");
+      }
+    },
+
     notepad_open: async function(arg) {
       if(arg.encrypted) {
-        let pass_info = await this.prompt_password("Введите пароль", arg.id);
-        let secret = await this.process_secret(pass_info, arg.id);
-        if(!_.isArray(secret)) {
-          this.message = this.translate_message(secret);
+        let secret  = await this.authenticate(arg.id);
+        if(secret == null) {
           return;
         }
         arg.secret = secret;
@@ -1524,7 +1533,6 @@ export default {
 
     delete_notepad_by_id: async function(notepad_id) {
       await notepads_list.delete(notepad_id);
-      await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
@@ -1534,9 +1542,8 @@ export default {
           'Вы уверены, что сохранить незашифрованную резерную копию?');
         if(accept) {
           let notepad_id = notepad._state.info.id;
-          let pass_info = await this.prompt_password("Подтверждение доступа", notepad_id);
-          let secret = await this.process_secret(pass_info, notepad_id);
-          if(_.isEqual(secret, notepad._storage._options.secret)) {
+          let secret = await this.authenticate(notepad_id);
+          if(secret != null) {
             this.export_unencrypted();
           }
         }
@@ -1636,7 +1643,6 @@ export default {
       let info = await notepads_list.create(name, options);
       notepad = info.notepad;
       notepad.close();
-      await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
       await sleep(0.5);
       this.loadscreen_visible = false;
@@ -1678,7 +1684,6 @@ export default {
         }
       }
       this.import_progress = 0;
-      await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
@@ -1782,7 +1787,7 @@ export default {
 
 <style>
 .fade-enter-active, .fade-leave-active {
-  transition: opacity .5s;
+  transition: opacity .25s;
 }
 .fade-enter, .fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
   opacity: 0;

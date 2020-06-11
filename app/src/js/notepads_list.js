@@ -88,6 +88,27 @@ class NotepadsList {
         await this.reread_list();
     }
 
+    async read_notepad_info_by_id(notepad_id) {
+        let databases = await indexedDB.databases();
+        let database = _.find(
+            databases,
+            (item) => {
+                return item.name == NOTEPAD_DB_PREFIX + notepad_id
+            }
+        );
+        return await this.read_notepad_info(database);
+    }
+
+    async read_notepad_info(database) {
+        let reader = new NotepadReaderStorage(database.version);
+        await reader.init(database.name)
+        let info = await reader.get_item_from_store_using_index(
+            "settings", "name_idx", "info"
+        );
+        await reader.close();
+        return info;
+    }
+
     async reread_list() {
         let databases = await indexedDB.databases();
         let promises = [];
@@ -99,20 +120,7 @@ class NotepadsList {
                 this.databases[database.name] = database.version;
                 if(database.name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
                     notepad_db_names.push(database.name);
-                    let reader = new NotepadReaderStorage(database.version);
-                    let info_;
-                    let promise = reader.init(database.name).then(
-                        () => {
-                            return reader.get_item_from_store_using_index(
-                                "settings", "name_idx", "info"
-                            );
-                        }
-                    ).then(
-                        (info) => {
-                            info_ = info;
-                            return reader.close();
-                        }
-                    ).then(() => {return info_;})
+                    let promise = this.read_notepad_info(database);
                     promises.push(promise);
                 }
             }
@@ -142,7 +150,6 @@ class NotepadsList {
     // }
 
     async delete(notepad_id) {
-        await this.reread_list();
         if(this.has(notepad_id)) {
             await this._storage.delete_item_in_store("pin_codes", notepad_id);
             await this._storage.delete_item_in_store("passwords", notepad_id);
@@ -305,6 +312,7 @@ class NotepadsList {
         let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
+        await this.reread_list();
         return {"id": notepad_id, "notepad": notepad};
     }
 

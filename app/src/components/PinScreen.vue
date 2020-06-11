@@ -13,7 +13,7 @@
                   Выберите pin
                 </span>
                 <pin-pad
-                  style="margin: 20 auto;"
+                  style="margin: 20px auto;"
                   :numbers_count="numbers_count"
                   @submit="$emit('submit', $event)"
                   @cancel="$emit('cancel')"

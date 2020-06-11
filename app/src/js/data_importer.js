@@ -115,6 +115,7 @@ class BetaDataImporterBase {
       error: import_error,
     };
     if(import_error == null) {
+      await this.notepads_list.reread_list();
       result.notepad = notepad;
       result.notepad_id = notepad_id;
     } else {
