@@ -6,7 +6,8 @@
       <span v-for="(i, ix) in pin" :key="ix"
         class="pin-number"
       >
-        {{i}}
+        <span v-if="i == '_'">{{i}}</span>
+        <span v-else>*</span>
       </span>
     </div>
     <div

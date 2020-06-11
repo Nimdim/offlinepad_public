@@ -457,8 +457,6 @@
 <script>
 
 import platform from 'platform'
-import { sha3_256 } from 'js-sha3'
-import aesjs from 'aes-js'
 
 import moment from 'moment'
 import _ from 'lodash'
@@ -498,6 +496,7 @@ import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import ScrollUpController from './js/scroll_up_controller.js'
 import { BetaDataImporter, AlphaDataImporter } from './js/data_importer.js'
+import cryptobox from './js/cryptobox'
 
 let import_error_to_str = function(code) {
   let result;
@@ -851,8 +850,7 @@ export default {
 
       let new_password = await this.prompt_create_password();
       this.$nextTick();
-      let password_hash = sha3_256(new_password);
-      password_hash = aesjs.utils.hex.toBytes(password_hash);
+      let password_hash = cryptobox.hash_hex(new_password);
       let pass_secret = [];
       for(let k = 0; k < password_hash.length; k++) {
         pass_secret.push(password_hash[k] ^ secret[k]);
@@ -1151,16 +1149,14 @@ export default {
     process_secret: async function(auth_info, notepad_id) {
       switch(auth_info.method) {
         case "passphrase": {
-          let secret = sha3_256(auth_info.value);
-          secret = aesjs.utils.hex.toBytes(secret);
+          let secret = cryptobox.hash_hex(auth_info.value);
           return secret;
         }
         case "password": {
           if(notepad_id == null) {
             throw new Error("notepad_id is null");
           }
-          let secret = sha3_256(auth_info.value);
-          secret = aesjs.utils.hex.toBytes(secret);
+          let secret = cryptobox.hash_hex(auth_info.value);
           let password_secret = await notepads_list.get_password_secret(notepad_id);
           for(let k = 0; k < secret.length; k++) {
             secret[k] = secret[k] ^ password_secret[k];

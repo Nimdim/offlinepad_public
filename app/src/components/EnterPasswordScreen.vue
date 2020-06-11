@@ -8,7 +8,10 @@
        >
           <span>
             <form class="col s12">
-              <div>
+              <div class="row">
+                <span>{{title}}</span>
+              </div>
+              <div class="row">
                 <span
                   class="left text-selector"
                   :class="{'active': current_method=='passphrase'}"
@@ -75,6 +78,7 @@
                 style="margin: 20px auto;"
                 :numbers_count="4"
                 @submit="$emit('submit', {'method': 'pin', 'value': $event})"
+                @cancel="$emit('cancel')"
               />
             </form>
           </span>
@@ -89,6 +93,7 @@
 
   export default {
     props: {
+      "title": String,
       "items": Array,
       "available_methods": Object,
       "auth_method": {

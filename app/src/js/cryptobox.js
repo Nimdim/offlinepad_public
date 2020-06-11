@@ -1,4 +1,6 @@
 import aesjs from "aes-js";
+import { sha3_256 } from 'js-sha3'
+
 
 let random_numbers_generator;
 if(global == null) {
@@ -110,9 +112,15 @@ let is_alphabet_used = function(alphabet, password) {
     return false;
 }
 
+let hash_hex = function(data) {
+    let password_hash = sha3_256(data);
+    return aesjs.utils.hex.toBytes(password_hash);
+};
+
 export default {
     random_numbers_list,
     encrypt,
     decrypt,
     calc_alphabet_size,
+    hash_hex,
 };

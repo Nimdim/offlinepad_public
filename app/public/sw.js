@@ -1,4 +1,4 @@
-const APP_VERSION = "0.117";
+const APP_VERSION = "0.119";
 
 const RESOURCES = [
   '/',
@@ -15,6 +15,8 @@ const RESOURCES = [
   '/favicon.ico',
   '/index.html',
   '/style.css',
+  '/offlinepad.webmanifest',
+  '/icon.png',
 ];
 
 let server = location.protocol + "//" + location.host;

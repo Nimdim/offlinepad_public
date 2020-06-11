@@ -1,0 +1,16 @@
+{
+    "name": "OfflinePad Beta",
+    "short_name": "OfflinePad Beta",
+    "description": "Приложение для заметок безопасный оффлайн блокнот",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "247x247",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#B12A34",
+    "background_color": "#B12A34"
+}

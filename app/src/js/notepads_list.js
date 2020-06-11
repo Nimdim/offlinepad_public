@@ -144,13 +144,8 @@ class NotepadsList {
     async delete(notepad_id) {
         await this.reread_list();
         if(this.has(notepad_id)) {
-            let pin_code_ids = await this._storage.get_item_ids_from_store_using_index(
-                "pin_codes", "notepad_id_idx", notepad_id
-            );
-            for(let k = 0; k < pin_code_ids.length; k++) {
-                let pin_code_id = pin_code_ids[k];
-                await this._storage.delete_item_in_store("pin_codes", pin_code_id);
-            }
+            await this._storage.delete_item_in_store("pin_codes", notepad_id);
+            await this._storage.delete_item_in_store("passwords", notepad_id);
             await this._storage.delete_item_in_store("notepads", notepad_id);
             let promise = new Promise((resolve, reject) => {
                 let request = indexedDB.deleteDatabase(NOTEPAD_DB_PREFIX + notepad_id);
