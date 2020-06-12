@@ -1,5 +1,7 @@
 from database import db_session, PinCode
 from datetime import datetime
+import secrets
+import sqlalchemy
 
 
 def auth_check(func):
@@ -9,6 +11,9 @@ def auth_check(func):
             max_attempts = 3
             if pin_info.attempt < max_attempts:
                 if pin_info.pin == pin:
+                    pin_info.attempt = 0
+                    db_session.add(pin_info)
+                    db_session.commit()
                     return func(id, pin_info)
                 else:
                     pin_info.attempt += 1
@@ -23,10 +28,16 @@ def auth_check(func):
 
 
 def create(pin, secret):
-    id = str(datetime.now().timestamp())
-    pin = PinCode(id=id, secret_part=secret, pin=pin, attempt=0, type="4")
-    db_session.add(pin)
-    db_session.commit()
+    while True:
+        try:
+            id = secrets.token_hex(64)
+            pin_obj = PinCode(id=id, secret_part=secret, pin=pin, attempt=0, type="4")
+            db_session.add(pin_obj)
+            db_session.commit()
+        except sqlalchemy.orm.exc.FlushError:
+            db_session.rollback()
+            continue
+        break
     return {"error": "ok", "result": id}
 
 
@@ -35,8 +46,9 @@ def get(id, pin):
     return {"error": "ok", "result": pin.secret_part}
 
 
-@auth_check
-def delete(id, pin):
-    db_session.delete(pin)
-    db_session.commit()
+def delete(id):
+    pin = db_session.query(PinCode).filter(PinCode.id == id).first()
+    if pin:
+        db_session.delete(pin)
+        db_session.commit()
     return {"error": "ok"}

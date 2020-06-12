@@ -37,7 +37,12 @@ let POST = async function(url, data) {
             body: JSON.stringify(data)
         }
     );
-    return await request.json();
+    if(request.ok) {
+        return await request.json();
+    }
+    else {
+        return {"error": "server error"};
+    }
 };
 
 let DELETE = async function(url, data) {
@@ -49,7 +54,12 @@ let DELETE = async function(url, data) {
             body: JSON.stringify(data)
         }
     );
-    return await request.json();
+    if(request.ok) {
+        return await request.json();
+    }
+    else {
+        return {"error": "server error"};
+    }
 };
 
 // let GET = async function(url, data) {
@@ -251,17 +261,16 @@ class NotepadsList {
         await this._storage.edit_item_in_store("notepads", notepad_id, data);
     }
 
-    async delete_pin_secret(notepad_id, pin) {
+    async delete_pin_secret(notepad_id) {
         let pin_secret_info = await this._get_pin_secret(notepad_id);
         if(pin_secret_info != null) {
-            let result = await DELETE("/api/pin/" + pin_secret_info.pin_storage, {pin});
+            let result = await DELETE("/api/pin/" + pin_secret_info.pin_storage, {});
             if(result.error == "ok") {
                 await this._delete_pin_secret(notepad_id);
-            } else {
-                return null;
             }
+            return result;
         } else {
-            return null;
+            return {"error": "pin not set up"};
         }
     }
 
@@ -272,7 +281,7 @@ class NotepadsList {
     async set_password_secret(notepad_id, password_secret) {
         let item = await this.get_password_secret(notepad_id);
         if(item) {
-            this.delete_password_secret(notepad_id);
+            await this.delete_password_secret(notepad_id);
         }
         await this._storage.create_item_in_store("passwords", {
             id: notepad_id,

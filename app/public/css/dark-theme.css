@@ -118,3 +118,7 @@ input.validate.filter_name {
 .input-field input[type=search]:not(.browser-default) {
   color: darkorange;
 }
+
+input {
+  color: white;
+}

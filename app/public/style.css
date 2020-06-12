@@ -73,9 +73,6 @@ i.active {
 #records_filter li {
   border-left: solid white 1px;
 }
-.modal {
-  height: 70%;
-}
 
 .tags_footer {
   display: none;

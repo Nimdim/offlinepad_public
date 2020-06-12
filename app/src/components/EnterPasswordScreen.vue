@@ -41,10 +41,18 @@
                     <input
                       ref="add_name_input"
                       :placeholder="secret_placeholder[current_method]"
-                      type="text"
+                      :type="input_type"
                       class="validate"
                       v-model="password"
+                      show-password
                     >
+                    <a class="waves-effect waves-light btn left"
+                      @click="toggle_password"
+                    >
+                      <font-awesome-icon icon="eye"
+                      />
+                    </a>
+
                     <span v-if="error_text"
                       class="left red-text" style=""
                     >
@@ -75,6 +83,7 @@
               </div>
               <pin-pad
                 v-else
+                ref="pin_pad"
                 style="margin: 20px auto;"
                 :numbers_count="4"
                 @submit="$emit('submit', {'method': 'pin', 'value': $event})"
@@ -114,11 +123,31 @@
         }
         return null;
       },
+
+      "input_type": function() {
+        if(this.show_password) {
+          return "text";
+        } else {
+          return "password";
+        }
+      }
     },
 
     data: function() {
+      let current_method = this.auth_method;
+      if(this.available_methods[this.auth_method] !== true) {
+        let METHODS = ["pin", "password", "passphrase"];
+        for(let k = 0; k < METHODS.length; k++) {
+          let method = METHODS[k];
+          if(this.available_methods[method]) {
+            current_method = method;
+            break;
+          }
+        }
+      }
       let data = {
-        current_method: this.auth_method,
+        current_method: current_method,
+        show_password: false,
         secret_placeholder: {
           "passphrase": "Защитная фраза",
           "password": "Пароль",
@@ -134,6 +163,17 @@
     },
 
     watch: {
+      current_method: {
+        handler: async function(value) {
+          this.password = "";
+          this.show_password = false;
+          if(value == "passphrase" || value == "password") {
+            await this.$nextTick();
+            this.$refs.add_name_input.focus();
+          }
+        },
+        immediate: true,
+      },
     },
 
     methods: {
@@ -142,6 +182,14 @@
           this.current_method = method;
         }
       },
+
+      reset: function() {
+        this.$refs.pin_pad.clear();
+      },
+
+      toggle_password: function() {
+        this.show_password = !this.show_password;
+      }
     },
   }
 </script>

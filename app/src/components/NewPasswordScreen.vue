@@ -139,6 +139,7 @@
 
     mounted: function() {
       this.password = "";
+      this.$refs.add_name_input.focus()
     },
 
     watch: {

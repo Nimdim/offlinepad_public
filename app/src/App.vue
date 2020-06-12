@@ -413,15 +413,8 @@
     </transition>
 
     <transition name="fade">
-      <message-screen v-if="message"
-        :title="message"
-        style="z-index: 2002"
-        @close="message = null"
-      />
-    </transition>
-
-    <transition name="fade">
       <enter-password-screen v-if="enter_password"
+        ref="enter_password_screen"
         :title="enter_password"
         :available_methods="enter_password_available"
         :auth_method="current_auth_method"
@@ -445,6 +438,14 @@
         :numbers_count="4"
         @submit="create_pin_callback"
         @cancel="create_pin_cancel"
+      />
+    </transition>
+
+    <transition name="fade">
+      <message-screen v-if="message"
+        :title="message"
+        style="z-index: 2002"
+        @close="message = null"
       />
     </transition>
 
@@ -779,13 +780,23 @@ export default {
 
     this.startup = false;
     this.loadscreen_visible = false;
+    window.addEventListener("beforeunload", this.before_unload_handler);
+  },
+
+  beforeDestroy: function() {
+    window.removeEventListener("beforeunload", this.before_unload_handler);
   },
 
   methods: {
+    before_unload_handler: function(event) {
+      if(this.blockerscreen_visible) {
+        event.returnValue = "Если вы покинете страницу будут потеряны данные"
+      }
+    },
+    
     prompt_create_pin: async function() {
       let promise = new Promise((resolve) => {
         this.create_pin_callback = (pin) => {
-          this.create_pin_cancel();
           resolve(pin);
         };
       });
@@ -804,7 +815,6 @@ export default {
     prompt_create_password: async function() {
       let promise = new Promise((resolve) => {
         this.create_password_callback = (password) => {
-          this.create_password_cancel();
           resolve(password);
         };
       });
@@ -816,37 +826,22 @@ export default {
       this.enter_password = null;
     },
 
-    prompt_password: async function(title, notepad_id) {
-      let password_secret = await notepads_list.get_password_secret(notepad_id);
-      let pin_secret = await notepads_list._get_pin_secret(notepad_id);
-      this.current_auth_method = await notepads_list.get_current_auth_method(notepad_id);
-      let available_items = {
-        passphrase: true,
-        password: password_secret != null,
-        pin: pin_secret != null,
-      };
-      this.enter_password_available = available_items;
-      this.enter_password = title;
-      let promise = new Promise((resolve) => {
-        this.enter_password_callback = async (info) => {
-          await notepads_list.set_current_auth_method(info.method, notepad_id);
-          resolve(info);
-          this.enter_password_cancel();
-        };     
-      });
-      return promise;
-    },
-
     set_password_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
       let secret = await this.authenticate(notepad_id);
       if(secret == null) {
         return;
       }
-      await this.$nextTick();
 
-      let new_password = await this.prompt_create_password();
-      this.$nextTick();
+      let new_password = this.prompt_create_password();
+      await sleep(0.25);
+      this.enter_password_cancel();
+      new_password = await new_password;
+
+      this.loadscreen_visible = true;
+      await sleep(0.25);
+      this.create_password_cancel();
+
       let password_hash = cryptobox.hash_hex(new_password);
       let pass_secret = [];
       for(let k = 0; k < password_hash.length; k++) {
@@ -860,11 +855,22 @@ export default {
       } else {
         this.message = "Пароль установлен";
       }
+      await sleep(0.25);
+      this.loadscreen_visible = false;
     },
 
     delete_password_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
-      notepads_list.delete_password_secret(notepad_id);
+      await this.authenticate(notepad_id);
+
+      this.loadscreen_visible = true;
+      await sleep(0.25);
+      this.enter_password_cancel();
+      await notepads_list.delete_password_secret(notepad_id);
+
+      this.message = this.translate_message("password deleted");
+      await sleep(0.25);
+      this.loadscreen_visible = false;
     },
 
     set_pin_for_notepad: async function() {
@@ -873,25 +879,44 @@ export default {
       if(secret == null) {
         return;
       }
-      await this.$nextTick();
 
-      let pin = await this.prompt_create_pin();
-      this.$nextTick();
+      let pin = this.prompt_create_pin();
+      await sleep(0.25);
+      this.enter_password_cancel();
+      pin = await pin;
+
+      this.loadscreen_visible = true;
+      await sleep(0.25);
+      this.create_pin_cancel();
+
       let result = await notepads_list.set_pin_secret(
         notepad._state.info.id, pin, notepad._storage._options.secret
       );
+
       if(!result) {
         this.message = "Не удалось задать пин";
       } else {
         this.message = "Пин установлен";
       }
+      await sleep(0.25);
+      this.loadscreen_visible = false;
     },
 
     delete_pin_for_notepad: async function() {
       let notepad_id = notepad._state.info.id;
-      let pin = await this.prompt_create_pin();
-      this.$nextTick();
-      notepads_list.delete_pin_secret(notepad_id, pin);
+      await this.authenticate(notepad_id);
+
+      this.loadscreen_visible = true;
+      await sleep(0.25);
+      this.enter_password_cancel();
+      let result = await notepads_list.delete_pin_secret(notepad_id);
+      if(result.error == "ok") {
+        this.message = this.translate_message("pin deleted");
+      } else {
+        this.message = this.translate_message(result.error);
+      }
+      await sleep(0.25);
+      this.loadscreen_visible = false;
     },
 
     show_prompt: function(title, callback) {
@@ -1185,6 +1210,18 @@ export default {
         case "attempts exceeded":
           result = "Попытки входа исчерпаны\nПин заблокирован";
           break;
+        case "server error":
+          result = "Ошибка сервера";
+          break;
+        case "password deleted":
+          result = "Пароль удален";
+          break;
+        case "pin deleted":
+          result = "Пин удален";
+          break;
+        case "pin not set up":
+          result = "Пин не настроен";
+          break;
         default:
           throw new Error("not implemented '" + text + "'");
       }
@@ -1192,20 +1229,47 @@ export default {
     },
 
     authenticate: async function(notepad_id) {
-      let pass_info = await this.prompt_password("Введите пароль", notepad_id);
-      let secret = await this.process_secret(pass_info, notepad_id);
-      if(!_.isArray(secret)) {
-        this.message = this.translate_message(secret);
-        return;
-      }
+      let title = "Введите пароль";
+      
+      let password_secret = await notepads_list.get_password_secret(notepad_id);
+      let pin_secret = await notepads_list._get_pin_secret(notepad_id);
+      this.current_auth_method = await notepads_list.get_current_auth_method(notepad_id);
+      let available_items = {
+        passphrase: true,
+        password: password_secret != null,
+        pin: pin_secret != null,
+      };
+      this.enter_password_available = available_items;
+
+      this.enter_password = title;
+      let promise = new Promise((resolve) => {
+        this.enter_password_callback = async (info) => {
+
+          let secret = await this.process_secret(info, notepad_id);
+          if(!_.isArray(secret)) {
+            this.$refs.enter_password_screen.reset();
+            this.message = this.translate_message(secret);
+            return;
+          }
+
+          if(!await this.check_notepad_secret(secret, notepad_id)) {
+            this.message = this.translate_message("wrong secret");
+            return;
+          }
+
+          await notepads_list.set_current_auth_method(info.method, notepad_id);
+          resolve(secret);
+        };     
+      });
+
+      return await promise;
+    },
+
+    check_notepad_secret: async function(secret, notepad_id) {
       let info = await notepads_list.read_notepad_info_by_id(notepad_id);
       let secret_check;
       secret_check = cryptobox.decrypt(info.secret_check, secret);
-      if("secret check" == secret_check) {
-        return secret;
-      } else {
-        this.message = this.translate_message("wrong secret");
-      }
+      return "secret check" == secret_check;
     },
 
     notepad_open: async function(arg) {
@@ -1232,7 +1296,11 @@ export default {
       }
 
       this.loadscreen_visible = true;
-      await sleep(0.5);
+      await sleep(0.25);
+      if(arg.secret) {
+        this.enter_password_cancel();
+      }
+
       notepad = await notepads_list.open(id, options);
       if(_.isString(notepad)) {
         this.message = this.translate_message(notepad);
@@ -1244,7 +1312,7 @@ export default {
         await notepad._reset_note_filters();
         this.section = "notes";
       }
-      await sleep(0.5);
+      await sleep(0.25);
       this.loadscreen_visible = false;
     },
 
