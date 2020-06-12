@@ -115,7 +115,7 @@
       :encrypted="encrypted"
       @export_encrypted="export_encrypted"
       @export_unencrypted="export_unencrypted_handler"
-      @delete="show_prompt('Вы уверены, что хотите удалить блокнот?', delete_notepad)"
+      @delete="notepad_delete_handler"
       @set_password="set_password_for_notepad"
       @delete_password="delete_password_for_notepad"
       @set_pin="set_pin_for_notepad"
@@ -407,7 +407,7 @@
       <prompt-screen v-if="prompt"
         :title="prompt"
         style="z-index: 2002"
-        @submit="prompt_submit"
+        @submit="prompt_callback"
         @cancel="prompt_cancel"
       />
     </transition>
@@ -788,6 +788,17 @@ export default {
   },
 
   methods: {
+    notepad_delete_handler: async function() {
+      let accept = await this.show_prompt('Вы уверены, что хотите удалить блокнот?');
+      if(accept) {
+        this.loadscreen_visible = true;
+        await sleep(0.25);
+        this.prompt_cancel();
+        await this.delete_notepad();
+        this.loadscreen_visible = false;
+      }
+    },
+
     before_unload_handler: function(event) {
       if(this.blockerscreen_visible) {
         event.returnValue = "Если вы покинете страницу будут потеряны данные"
@@ -932,11 +943,6 @@ export default {
         });
         return promise;
       }
-    },
-
-    prompt_submit: function() {
-      this.prompt_callback();
-      this.prompt_cancel();
     },
 
     prompt_cancel: function() {
@@ -1608,28 +1614,34 @@ export default {
       if(this.encrypted) {
         let accept = await this.show_prompt(
           'Вы уверены, что сохранить незашифрованную резерную копию?');
-        if(accept) {
-          let notepad_id = notepad._state.info.id;
-          let secret = await this.authenticate(notepad_id);
-          if(secret != null) {
-            this.export_unencrypted();
-          }
+        if(!accept) {
+          return;
         }
+
+        let notepad_id = notepad._state.info.id;
+        let secret = this.authenticate(notepad_id);
+        await sleep(0.25);
+        this.prompt_cancel();
+        await secret;
+        
+        this.loadscreen_visible = true;
+        await sleep(0.25);
+        this.enter_password_cancel();
       } else {
-        this.export_unencrypted();
+        this.loadscreen_visible = true;
       }
+      
+      await this.export_unencrypted();
+      this.loadscreen_visible = false;
     },
 
-    export_unencrypted: function() {
-      this.export_notepad(false);
+    export_unencrypted: async function() {
+      await this.export_notepad(false);
     },
 
-    export_encrypted: function() {
-      this.export_notepad(true);
+    export_encrypted: async function() {
+      await this.export_notepad(true);
     },
-
-    // export_notepad_by_id: async function(notepad_id) {
-    // },
 
     export_notepad: async function(disable_decryption) {
       let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
