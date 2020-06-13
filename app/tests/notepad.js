@@ -878,35 +878,20 @@ describe("notepad filtering and sorting", function() {
     let notepad_id;
     let notepad;
     let maps;
-    let tags_events = [];
-    let notes_events = [];
-    let reset_events = function() {
-        tags_events.splice(0, tags_events.length);
-        notes_events.splice(0, notes_events.length);
-    };
-    let assert_events = function(expected_tags, expected_notes) {
-        assert.deepEqual(tags_events, expected_tags);
-        assert.deepEqual(notes_events, expected_notes);
-    };
+    let events;
 
     it("initial", async function() {
         await notepads_list.init();
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA);
         notepad = info.notepad;
         notepad_id = info.notepad_id;
+        events = new NotepadTestEvents(notepad);
         maps = info.maps;
         assert.notEqual(maps, false);
-        notepad.on("reset_tags", function(tags) {
-            tags_events.push(tags);
-        })
-        notepad.on("reset_notes", function(notes) {
-            notes_events.push(notes);
-        });
     });
 
     it("sort notes desc", async function() {
-
-        reset_events();
+        events.reset();
 
         await notepad.set_notes_filter({"sorting_asc": false});
         let EXPECTED_TAGS = [];
@@ -940,11 +925,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("sort notes asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": true});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
@@ -977,11 +963,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("sort tags desc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_tags_filter({"sorting_asc": false});
         let EXPECTED_TAGS = [
             [
@@ -1003,11 +990,12 @@ describe("notepad filtering and sorting", function() {
             ],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("sort tags asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_tags_filter({"sorting_asc": true});
         let EXPECTED_TAGS = [
             [
@@ -1029,11 +1017,12 @@ describe("notepad filtering and sorting", function() {
             ],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by text desc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": false, "text": "один"});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
@@ -1059,11 +1048,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by text asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": true, "text": "один"});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
@@ -1089,11 +1079,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by attached tag desc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": false, "tags": [2]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
@@ -1119,11 +1110,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by attached tag asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": true, "tags": [2]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [
@@ -1149,11 +1141,12 @@ describe("notepad filtering and sorting", function() {
                 },
             ]
         ];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter tags by name desc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_tags_filter({"sorting_asc": false, "name": "один"});
         let EXPECTED_TAGS = [
             [
@@ -1170,11 +1163,12 @@ describe("notepad filtering and sorting", function() {
             ],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter tags by name asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_tags_filter({"sorting_asc": true, "name": "один"});
         let EXPECTED_TAGS = [
             [
@@ -1191,23 +1185,26 @@ describe("notepad filtering and sorting", function() {
             ],
         ];
         let EXPECTED_NOTES = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by not attached tag desc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": false, "tags": [21]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("filter notes by not attached tag asc", async function() {
-        reset_events();
+        events.reset();
         await notepad.set_notes_filter({"sorting_asc": true, "tags": [21]});
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("close", async function() {
