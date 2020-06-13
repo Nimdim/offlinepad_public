@@ -154,11 +154,13 @@
       },
 
       press_pin: async function(number) {
-        this.pin.splice(this.current, 1, number);
-        this.current += 1;
-        if(this.current == this.pin.length) {
-          await sleep(0.5);
-          this.$emit("submit", this.pin.join(""));
+        if(this.current < this.numbers_count) {
+          this.pin.splice(this.current, 1, number);
+          this.current += 1;
+          if(this.current == this.pin.length) {
+            await sleep(0.5);
+            this.$emit("submit", this.pin.join(""));
+          }
         }
       },
 

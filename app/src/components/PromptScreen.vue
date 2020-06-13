@@ -1,22 +1,25 @@
 <template>
   <full-screen-box :top="true">
-    <span>
-        {{title}}
-    </span>
-    <a
-      class="waves-effect waves-teal btn"
-      @click.prevent="$emit('submit')"
-    >
-      Подтвердить
-    </a>
+    <div class="row">
+      <span>
+          {{title}}
+      </span>
+    </div>
+    <div class="row">
+      <a
+        class="waves-effect waves-teal btn"
+        @click.prevent="$emit('submit')"
+      >
+        <font-awesome-icon icon="check" />
+      </a>
 
-    <a
-      class="waves-effect waves-teal btn"
-      @click.prevent="$emit('cancel')"
-    >
-      Отменить
-    </a>
-
+      <a
+        class="waves-effect waves-teal btn red"
+        @click.prevent="$emit('cancel')"
+      >
+        <font-awesome-icon icon="times-circle" />
+      </a>
+    </div>
   </full-screen-box>
 </template>
 <script>

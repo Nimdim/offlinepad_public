@@ -216,6 +216,7 @@
 
             <li
               @click="section = 'notepad'"
+              :class="{'active': section =='notepad'}"
             >
               <a href="#!"
                 style="padding-right: 8px;"
@@ -331,13 +332,13 @@
       <font-awesome-icon icon="terminal" />
     </a>
 
-    <a v-if="section == 'tags' && notepad_working"
+    <a v-if="section == 'tags' && notepad_working && !add_button_hidden"
       class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="edit" />
     </a>
-    <a v-if="section == 'notes' && notepad_working"
+    <a v-if="section == 'notes' && notepad_working && !add_button_hidden"
       class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       @click="add_note"
       >
@@ -365,7 +366,6 @@
         :items="notepads"
         @start-creation-wizard="notepad_wizard_show = true"
         @open="notepad_open($event)"
-        @remove="delete_notepad_by_id($event)"
       />
     </transition>
 
@@ -650,6 +650,8 @@ export default {
         filter = notepad.get_tags_filter();
         this.fast_search = filter.name;
         this.sorting_order_asc = filter.sorting_asc;
+        // TODO костыль для того чтобы при переключении на раздел показывались нужные записи
+        this.notes_filter_tags = ['n'];
         notepad._reset_tags();
       } else if (section == "notes") {
         filter = notepad.get_notes_filter();
@@ -657,6 +659,8 @@ export default {
         this.sorting_order_asc = filter.sorting_asc;
         notepad._reset_notes();
       } else if(section == "notepad") {
+        // TODO костыль для того чтобы при переключении на раздел показывались нужные записи
+        this.notes_filter_tags = ['n'];
         this.close_nav();
         this.processing = false;
       }
@@ -789,11 +793,25 @@ export default {
 
   methods: {
     notepad_delete_handler: async function() {
+      let notepad_id = notepad._state.info.id;      
       let accept = await this.show_prompt('Вы уверены, что хотите удалить блокнот?');
       if(accept) {
-        this.loadscreen_visible = true;
-        await sleep(0.25);
-        this.prompt_cancel();
+
+        if(this.encrypted) {
+          let secret = this.authenticate(notepad_id);
+          await sleep(0.25);
+          this.prompt_cancel();
+          await secret;
+
+          this.loadscreen_visible = true;
+          await sleep(0.25);
+          this.enter_password_cancel();
+        } else {
+          this.loadscreen_visible = true;
+          await sleep(0.25);
+          this.prompt_cancel();
+        }
+
         await this.delete_notepad();
         this.loadscreen_visible = false;
       }
@@ -1333,10 +1351,11 @@ export default {
       });
     },
 
-    note_filter_click: function(id, tags) {
+    note_filter_click: async function(id, tags) {
       this.selected_note_filter = id;
-      this.notes_filter_tags = _.cloneDeep(tags);
       this.change_section('notes');
+      await this.$nextTick();
+      this.notes_filter_tags = _.cloneDeep(tags);
     },
 
     show_notes_popup: function(e) {
@@ -1367,17 +1386,22 @@ export default {
         var scroll = window.scrollY;
         //
         var delta = scroll - currenct_scrolltop;
+        if((delta > 0) && (scroll > 0)) {
+          this.header_hidden = true;
+        } else {
+          this.header_hidden = false;
+        }
         header_top -= delta;
         if(header_top + old_header_height == 0) {
           header_top = - header_height;
         }
         if(header_top < -header_height) {
           header_top = -header_height;
-          this.header_hidden = true;
+          // this.header_hidden = true;
         }
         if(header_top > 0) {
           header_top = 0;
-          this.header_hidden = false;
+          // this.header_hidden = false;
         }
         header.style.top = header_top + "px";
         this.header_top = header_top;
@@ -1592,17 +1616,15 @@ export default {
     },
 
     delete_notepad: async function() {
-      let notepad_id = notepad._state.info.id;
-      this.loadscreen_visible = true;
-      await sleep(0.5);
+      let notepad_id = notepad._state.info.id;      
       this.section = null;
       await notepad.close();
       this.notepad_unregister(notepad);
       notepad = null;
       this.notepad_working = false;
       await this.delete_notepad_by_id(notepad_id);
-      await sleep(0.5);
-      this.loadscreen_visible = false;
+      // await sleep(0.5);
+      // this.loadscreen_visible = false;
     },
 
     delete_notepad_by_id: async function(notepad_id) {

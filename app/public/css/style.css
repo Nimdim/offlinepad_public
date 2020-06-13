@@ -202,7 +202,8 @@ footer.page-footer {
   top: 7px;
 }
 
-input[type=text]:not(.browser-default) {
+input[type=text]:not(.browser-default),
+input[type=password]:not(.browser-default) {
   height: 2em;
   margin-bottom: 4px;
 }

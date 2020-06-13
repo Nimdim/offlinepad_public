@@ -43,17 +43,15 @@
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left"
+                  <a class="waves-effect waves-light btn left red"
                     @click="$emit('cancel')"
                   >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Отмена
+                    <font-awesome-icon icon="times-circle"/>
                   </a>
                   <a class="waves-effect waves-light btn right"
                     @click="submit"
                   >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Создать пароль
+                    <font-awesome-icon icon="check"/>
                   </a>
                 </div>
               </div>
