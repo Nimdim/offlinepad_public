@@ -104,35 +104,24 @@ describe("notepad simple tests", function() {
     let notepad;
     let tag_id;
     let note_id;
-    let tags_events = [];
-    let notes_events = [];
-    let reset_events = function() {
-        tags_events.splice(0, tags_events.length);
-        notes_events.splice(0, notes_events.length);
-    };
+    let events;
 
     it("create notepad", async function() {
         await notepads_list.init();
         let info = await notepads_list.create(NOTEPAD_NAME, NOTEPAD_OPTIONS);
         notepad_id = info.id;
         notepad = info.notepad;
+        events = new NotepadTestEvents(notepad);
 
-        notepad.on("reset_tags", function(tags) {
-            tags_events.push(tags);
-        })
-        notepad.on("reset_notes", function(notes) {
-            notes_events.push(notes);
-        });
-        reset_events();
         await notepad._reset_state();
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("create tag with empty name must fail", async function() {
-        reset_events();
+        events.reset();
         let error = false;
         try {
             await notepad.create_tag("");
@@ -144,18 +133,18 @@ describe("notepad simple tests", function() {
     });
 
     it("create tag", async function() {
-        reset_events();
+        events.reset();
         tag_id = await notepad.create_tag("test_tag");
         let EXPECTED_TAGS = [
             [{id: tag_id, name: "test_tag", count: 0}],
         ];
         let EXPECTED_NOTES = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("create tag with existing name must fail", async function() {
-        reset_events();
+        events.reset();
         let error = false;
         try {
             await notepad.create_tag("test_tag");
@@ -167,27 +156,27 @@ describe("notepad simple tests", function() {
     });
 
     it("edit tag", async function() {
-        reset_events();
+        events.reset();
         await notepad.edit_tag(tag_id, "test_tag_new");
         let EXPECTED_TAGS = [
             [{id: tag_id, name: "test_tag_new", count: 0}],
         ];
         let EXPECTED_NOTES = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("delete tag", async function() {
-        reset_events();
+        events.reset();
         await notepad.delete_tag(tag_id);
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("create note with empty text must fail", async function() {
-        reset_events()
+        events.reset();
         let error = false;
         try {
             await notepad.create_note("", 1111, []);
@@ -200,7 +189,7 @@ describe("notepad simple tests", function() {
     });
 
     it("create note", async function() {
-        reset_events()
+        events.reset();
         note_id = await notepad.create_note("test note text", 1111, []);
         let EXPECTED_NOTES = [
             [
@@ -214,12 +203,12 @@ describe("notepad simple tests", function() {
             ],
         ];
         let EXPECTED_TAGS = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("edit note", async function() {
-        reset_events()
+        events.reset();
         await notepad.edit_note(note_id, "test note new text", 1111, []);
         let EXPECTED_NOTES = [
             [
@@ -233,37 +222,37 @@ describe("notepad simple tests", function() {
             ],
         ];
         let EXPECTED_TAGS = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("delete note", async function() {
-        reset_events()
+        events.reset();
         await notepad.delete_note(note_id);
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [[]];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("close notepad", async function() {
-        reset_events();
+        events.reset();
         let close_result = await notepad.close();
         assert.equal(close_result, true);
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("second close notepad must fail", async function() {
-        reset_events();
+        events.reset();
         let close_result = await notepad.close();
         assert.equal(close_result, false);
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [];
-        assert.deepEqual(tags_events, EXPECTED_TAGS);
-        assert.deepEqual(notes_events, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("delete notepad", async function() {
