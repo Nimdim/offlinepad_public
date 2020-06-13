@@ -320,19 +320,8 @@ describe("notepad alpha import export", function() {
     let notepads_list = new NotepadsList();
     let notepad_id;
     let notepad;
-    let tags_events = [];
-    let notes_events = [];
+    let events;
     let maps;
-
-    let reset_events = function() {
-        tags_events.splice(0, tags_events.length);
-        notes_events.splice(0, notes_events.length);
-    };
-
-    let assert_events = function(expected_tags, expected_notes) {
-        assert.deepEqual(tags_events, expected_tags);
-        assert.deepEqual(notes_events, expected_notes);
-    };
 
     let map_import_data = function(import_data) {
         let sorted = {
@@ -418,16 +407,8 @@ describe("notepad alpha import export", function() {
         let info = await import_alpha_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
         notepad = info.notepad;
         notepad_id = info.notepad_id;
+        events = new NotepadTestEvents(notepad);
         maps = info.maps;
-
-        notepad.on("reset_tags", function(tags) {
-            tags_events.push(tags);
-        })
-        notepad.on("reset_notes", function(notes) {
-            notes_events.push(notes);
-        });
-
-        reset_events();
 
         assert.notEqual(maps, false);
         await notepad._reset_state();
@@ -478,11 +459,12 @@ describe("notepad alpha import export", function() {
             ]
         ];
 
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("export notepad", async function() {
-        reset_events();
+        events.reset();
         let exported_data = await notepad.export();
         let mapped_import_data = map_import_data(IMPORT_DATA);
         let mapped_export_data = map_exported_data(exported_data);
@@ -490,23 +472,23 @@ describe("notepad alpha import export", function() {
     });
 
     it("close notepad", async function() {
-        reset_events();
+        events.reset();
         let close_result = await notepad.close();
         assert.equal(close_result, true);
         let EXPECTED_TAGS = [[]];
         let EXPECTED_NOTES = [[]];
-        let EXPECTED_WORKING = [false];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("second close notepad must fail", async function() {
-        reset_events();
+        events.reset();
         let close_result = await notepad.close();
         assert.equal(close_result, false);
         let EXPECTED_TAGS = [];
         let EXPECTED_NOTES = [];
-        let EXPECTED_WORKING = [];
-        assert_events(EXPECTED_TAGS, EXPECTED_NOTES);
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
     });
 
     it("delete notepad", async function() {
