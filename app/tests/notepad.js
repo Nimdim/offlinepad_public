@@ -40,11 +40,63 @@ let import_beta_data = async function(name, notepads_list, data, encrypted, secr
     return import_result;
   }
   
-let DB_NAME = "test_db";
 let NOTEPAD_NAME = "test_notepad";
 let NOTEPAD_OPTIONS = {
     "encrypted": false,
 };
+
+class NotepadTestEvents {
+    constructor(notepad) {
+        this.tags = [];
+        this.notes = [];
+        this.append = [];
+        this.info = [];
+        this.note_filters = [];
+        notepad.on("reset_tags", (tags) => {
+            this.tags.push(tags);
+        })
+        notepad.on("reset_notes", (notes) => {
+            this.notes.push(notes);
+        });
+        notepad.on("reset_info", (info) => {
+            this.info.push(info);
+        });
+        notepad.on("append_notes", (notes) => {
+            this.append.push(notes);
+        });
+        notepad.on("reset_note_filters", (note_filters) => {
+            this.note_filters.push(note_filters)
+        });
+    }
+
+    reset() {
+        this.tags.splice(0, this.tags.length);
+        this.notes.splice(0, this.notes.length);
+        this.append.splice(0, this.append.length);
+        this.info.splice(0, this.info.length);
+        this.note_filters.splice(0, this.note_filters.length);
+    }
+
+    assert_tags(EXPECTED) {
+        assert.deepEqual(this.tags, EXPECTED);
+    }
+
+    assert_notes(EXPECTED) {
+        assert.deepEqual(this.notes, EXPECTED);
+    }
+
+    assert_append(EXPECTED) {
+        assert.deepEqual(this.append, EXPECTED);
+    }
+
+    assert_info(EXPECTED) {
+        assert.deepEqual(this.info, EXPECTED);
+    }
+
+    assert_note_filters(EXPECTED) {
+        assert.deepEqual(this.note_filters, EXPECTED);
+    }
+}
 
 describe("notepad simple tests", function() {
     let notepads_list = new NotepadsList();
@@ -1213,59 +1265,6 @@ describe("notepad filtering and sorting", function() {
         assert.equal(result, true);
     });
 });
-
-class NotepadTestEvents {
-    constructor(notepad) {
-        this.tags = [];
-        this.notes = [];
-        this.append = [];
-        this.info = [];
-        this.note_filters = [];
-        notepad.on("reset_tags", (tags) => {
-            this.tags.push(tags);
-        })
-        notepad.on("reset_notes", (notes) => {
-            this.notes.push(notes);
-        });
-        notepad.on("reset_info", (info) => {
-            this.info.push(info);
-        });
-        notepad.on("append_notes", (notes) => {
-            this.append.push(notes);
-        });
-        notepad.on("reset_note_filters", (note_filters) => {
-            this.note_filters.push(note_filters)
-        });
-    }
-
-    reset() {
-        this.tags.splice(0, this.tags.length);
-        this.notes.splice(0, this.notes.length);
-        this.append.splice(0, this.append.length);
-        this.info.splice(0, this.info.length);
-        this.note_filters.splice(0, this.note_filters.length);
-    }
-
-    assert_tags(EXPECTED) {
-        assert.deepEqual(this.tags, EXPECTED);
-    }
-
-    assert_notes(EXPECTED) {
-        assert.deepEqual(this.notes, EXPECTED);
-    }
-
-    assert_append(EXPECTED) {
-        assert.deepEqual(this.append, EXPECTED);
-    }
-
-    assert_info(EXPECTED) {
-        assert.deepEqual(this.info, EXPECTED);
-    }
-
-    assert_note_filters(EXPECTED) {
-        assert.deepEqual(this.note_filters, EXPECTED);
-    }
-}
 
 describe("notepad pagination", function() {
     let IMPORT_DATA_ZERO = [
