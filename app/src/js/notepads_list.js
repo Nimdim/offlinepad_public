@@ -4,6 +4,7 @@ import _ from "lodash";
 import IndexedDBStorage from "./indexeddb_storage.js";
 import Notepad from './notepad.js';
 import cryptobox from './cryptobox.js';
+import axios from 'axios';
 
 // if(global != null) {
 //     var window = global;
@@ -29,16 +30,9 @@ class NotepadsListStorage extends IndexedDBStorage {
 }
 
 let POST = async function(url, data) {
-    let request = await fetch(
-        url,
-        {
-            method: "POST",
-            headers: {'Content-Type': "application/json",},
-            body: JSON.stringify(data)
-        }
-    );
-    if(request.ok) {
-        return await request.json();
+    let response = await axios.post(url, data);
+    if(response.status == 200) {
+        return response.data;
     }
     else {
         return {"error": "server error"};
@@ -46,33 +40,18 @@ let POST = async function(url, data) {
 };
 
 let DELETE = async function(url, data) {
-    let request = await fetch(
-        url,
-        {
-            method: "DELETE",
-            headers: {'Content-Type': "application/json",},
-            body: JSON.stringify(data)
-        }
-    );
-    if(request.ok) {
-        return await request.json();
+    let response = await axios({
+        method: 'delete',
+        url: url,
+        data: data
+    });
+    if(response.status == 200) {
+        return response.data;
     }
     else {
         return {"error": "server error"};
     }
 };
-
-// let GET = async function(url, data) {
-//     let request = await fetch(
-//         url,
-//         {
-//             method: "GET",
-//             headers: {'Content-Type': "application/json",},
-//             body: JSON.stringify(data)
-//         }
-//     );
-//     return await request.json();
-// };
 
 class NotepadReaderStorage extends IndexedDBStorage {
     constructor(version) {

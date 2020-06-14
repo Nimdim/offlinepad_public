@@ -18,7 +18,6 @@ def get_pin(id):
 
 @app.route('/api/pin/<id>', methods=["DELETE"])
 def delete_pin(id):
-    data = request.json
     return jsonify(pin_utils.delete(id))
 
 app.run(debug=True)
