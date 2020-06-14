@@ -30,6 +30,9 @@ class NotepadsListStorage extends IndexedDBStorage {
 }
 
 let POST = async function(url, data) {
+    if(global != null) {
+        url = "http://127.0.0.1:5000" + url;
+    }
     let response = await axios.post(url, data);
     if(response.status == 200) {
         return response.data;
@@ -40,6 +43,9 @@ let POST = async function(url, data) {
 };
 
 let DELETE = async function(url, data) {
+    if(global != null) {
+        url = "http://127.0.0.1:5000" + url;
+    }
     let response = await axios({
         method: 'delete',
         url: url,
@@ -175,11 +181,11 @@ class NotepadsList {
         }
         let result = await POST("/api/pin", {pin: pin, secret: part1});
         if(result.error == "ok") {
-            this._set_pin_secret(notepad_id, part2, result.result);
+            await this._set_pin_secret(notepad_id, part2, result.result);
+            return true;
         } else {
             return false;
         }
-        return true;
     }
 
     async _set_pin_secret(notepad_id, secret, pin_storage) {
