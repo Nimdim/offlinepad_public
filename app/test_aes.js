@@ -1,16 +1,19 @@
 aesjs = require("aes-js");
 
 // An example 128-bit key (16 bytes * 8 bits/byte = 128 bits)
-var key = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 ];
- 
+var key16 = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 ];
+var key32 = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+              17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+            ];
+
 // Convert text to bytes
 var text = 'Text may be any length you wish, no padding is required.';
 var textBytes = aesjs.utils.utf8.toBytes(text);
- 
+
 // The counter is optional, and if omitted will begin at 1
 console.time("a")
 for(let k = 0; k < 1000000; k++) {
-    var aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
+    var aesCtr = new aesjs.ModeOfOperation.ctr(key16, new aesjs.Counter(5));
     var encryptedBytes = aesCtr.encrypt(textBytes);
 }
 console.timeEnd("a")

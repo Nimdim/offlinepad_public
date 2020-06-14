@@ -2516,9 +2516,6 @@ describe("password tests", function() {
     let EXPECTED_NOTES;
     let EXPECTED_NOTE_FILTERS;
 
-    let exported_unencrypted_data;
-    let exported_encrypted_data;
-
     it("initial zero notepads", async function() {
         await notepads_list.init();
         let EXPECTED = [];
@@ -2687,13 +2684,10 @@ describe("password tests", function() {
         events.assert_note_filters(EXPECTED_NOTE_FILTERS);
 
         await notepad.close();
-        // await notepads_list.delete(notepad_id);
-        // notepad = null;
         notepad_id = null;
     });
 
     it("delete notepad", async function() {
-        // await notepad.close();
         await notepads_list.delete(notepad_id);
         notepad = null;
         notepad_id = null;
