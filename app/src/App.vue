@@ -871,13 +871,8 @@ export default {
       await sleep(0.25);
       this.create_password_cancel();
 
-      let password_hash = cryptobox.hash_hex(new_password);
-      let pass_secret = [];
-      for(let k = 0; k < password_hash.length; k++) {
-        pass_secret.push(password_hash[k] ^ secret[k]);
-      }
       let result = await notepads_list.set_password_secret(
-        notepad._state.info.id, pass_secret
+        notepad._state.info.id, new_password, secret
       );
       if(!result) {
         this.message = "Не удалось задать пароль";
@@ -1189,35 +1184,6 @@ export default {
       this.notepads = _.cloneDeep(notepads_list.notepads);
     },
 
-    process_secret: async function(auth_info, notepad_id) {
-      switch(auth_info.method) {
-        case "passphrase": {
-          let secret = cryptobox.hash_hex(auth_info.value);
-          return secret;
-        }
-        case "password": {
-          if(notepad_id == null) {
-            throw new Error("notepad_id is null");
-          }
-          let secret = cryptobox.hash_hex(auth_info.value);
-          let password_secret = await notepads_list.get_password_secret(notepad_id);
-          for(let k = 0; k < secret.length; k++) {
-            secret[k] = secret[k] ^ password_secret[k];
-          }
-          return secret;
-        }
-        case "pin": {
-          if(notepad_id == null) {
-            throw new Error("notepad_id is null");
-          }
-          let secret = await notepads_list.get_pin_secret(notepad_id, auth_info.value);
-          return secret;
-        }
-        default:
-          throw new Error("not implemented " + auth_info.method);
-      }
-    },
-
     translate_message: function(message) {
       let text = message;
       let result;
@@ -1269,7 +1235,7 @@ export default {
       let promise = new Promise((resolve) => {
         this.enter_password_callback = async (info) => {
 
-          let secret = await this.process_secret(info, notepad_id);
+          let secret = await notepads_list.process_secret(info, notepad_id);
           if(!_.isArray(secret)) {
             this.$refs.enter_password_screen.reset();
             this.message = this.translate_message(secret);
@@ -1737,7 +1703,7 @@ export default {
         encrypted: arg.encrypted,
       };
       if(arg.encrypted) {
-        let secret = await this.process_secret(arg.secret);
+        let secret = await notepads_list.process_secret(arg.secret);
         options.secret = secret;
       }
       this.loadscreen_visible = true;
@@ -1752,7 +1718,7 @@ export default {
 
     notepad_import: async function(arg) {
       if(arg.secret) {
-        let secret = await this.process_secret(arg.secret);
+        let secret = await notepads_list.process_secret(arg.secret);
         arg.secret = secret;
       }
       this.import_error = null;

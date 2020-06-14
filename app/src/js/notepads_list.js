@@ -278,10 +278,45 @@ class NotepadsList {
         await this._storage.delete_item_in_store("pin_codes", notepad_id);
     }
 
-    async set_password_secret(notepad_id, password_secret) {
+    async process_secret(auth_info, notepad_id) {
+      switch(auth_info.method) {
+        case "passphrase": {
+          let secret = cryptobox.hash_hex(auth_info.value);
+          return secret;
+        }
+        case "password": {
+          if(notepad_id == null) {
+            throw new Error("notepad_id is null");
+          }
+          let secret = cryptobox.hash_hex(auth_info.value);
+          let password_secret = await this.get_password_secret(notepad_id);
+          for(let k = 0; k < secret.length; k++) {
+            secret[k] = secret[k] ^ password_secret[k];
+          }
+          return secret;
+        }
+        case "pin": {
+          if(notepad_id == null) {
+            throw new Error("notepad_id is null");
+          }
+          let secret = await this.get_pin_secret(notepad_id, auth_info.value);
+          return secret;
+        }
+        default:
+          throw new Error("not implemented " + auth_info.method);
+      }
+    }
+  
+    async set_password_secret(notepad_id, password, secret) {
         let item = await this.get_password_secret(notepad_id);
         if(item) {
             await this.delete_password_secret(notepad_id);
+        }
+
+        let password_hash = cryptobox.hash_hex(password);
+        let password_secret = [];
+        for(let k = 0; k < password_hash.length; k++) {
+          password_secret.push(password_hash[k] ^ secret[k]);
         }
         await this._storage.create_item_in_store("passwords", {
             id: notepad_id,

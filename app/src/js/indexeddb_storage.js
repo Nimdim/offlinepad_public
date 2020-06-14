@@ -53,6 +53,11 @@ class IndexedDBStorage {
 
     init(db_name, options) {
         if(options) {
+            if(options.secret != null) {
+                if(options.secret.length != 32) {
+                    throw new Error("secret length not 32");
+                }    
+            }
             this._options = _.cloneDeep(options);
         }
         this._db_name = db_name;
