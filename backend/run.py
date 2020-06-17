@@ -20,4 +20,5 @@ def get_pin(id):
 def delete_pin(id):
     return jsonify(pin_utils.delete(id))
 
-app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)

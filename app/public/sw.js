@@ -1,4 +1,4 @@
-const APP_VERSION = "0.120";
+const APP_VERSION = "0.125";
 
 const RESOURCES = [
   '/',
@@ -172,6 +172,13 @@ self.addEventListener('fetch', (event) => {
   if(is_download(resource)) {
     event.respondWith(process_download(event.request.url));
     return;
+  }
+
+  if(resource != null) {
+    if(resource.indexOf("/api") == 0) {
+      event.respondWith(fetch(event.request));
+      return;
+    }  
   }
 
   if(event.request.url.indexOf("https://i3.ytimg.com/vi/") == 0) {

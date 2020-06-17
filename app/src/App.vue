@@ -251,19 +251,6 @@
                 <span>Теги</span>
               </a>
             </li>
-            <li class="divider"></li>
-            <li @click="export_notepad(false)">
-              <a href="#">
-                <!-- <font-awesome-icon class="mobile-menu-icon" icon="tags" /> -->
-                <span>Открытый экспорт</span>
-              </a>
-            </li>
-            <li @click="export_notepad(true)">
-              <a href="#">
-                <!-- <font-awesome-icon class="mobile-menu-icon" icon="tags" /> -->
-                <span>Шифрованный экспорт</span>
-              </a>
-            </li>
           </ul>
 
           <div style="position: absolute;
@@ -675,6 +662,8 @@ export default {
         await sleep(0);
         let copy = _.cloneDeep(value);
         copy = _.filter(copy, (item) => item != "0");
+        // TODO костыль
+        if(notepad == null) return;
         await notepad.set_notes_filter({
           "tags": copy,
         });
@@ -994,7 +983,8 @@ export default {
     notepad_goto_home: async function() {
       this.loadscreen_visible = true;
       await sleep(0.5);
-      // await this.$nextTick();
+      // TODO костыль
+      this.notes_filter_tags.splice(0, this.notes_filter_tags.length);
       this.close_nav();
       this.section = null;
       await notepad.close();

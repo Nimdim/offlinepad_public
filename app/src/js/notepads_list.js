@@ -30,7 +30,7 @@ class NotepadsListStorage extends IndexedDBStorage {
 }
 
 let POST = async function(url, data) {
-    if(global != null) {
+    if(typeof window == "undefined") {
         url = "http://127.0.0.1:5000" + url;
     }
     let response = await axios.post(url, data);
@@ -43,7 +43,7 @@ let POST = async function(url, data) {
 };
 
 let DELETE = async function(url, data) {
-    if(global != null) {
+    if(typeof window == "undefined") {
         url = "http://127.0.0.1:5000" + url;
     }
     let response = await axios({
