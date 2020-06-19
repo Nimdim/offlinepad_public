@@ -9,7 +9,7 @@
         placeholder="Название метки"
         type="text"
         class="validate tag_name text-input--standart-style"
-        style="width: calc(100% - 95px);"
+        style="width: calc(100% - 105px);"
         v-model="data.name"
         @keydown.ctrl.enter="submit_edit"
         />
@@ -21,7 +21,7 @@
         >
           <font-awesome-icon icon="check" />
         </a>
-        <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn red button-space"
           key="edit_cancel"
           @click.prevent="cancel_edit">
           <font-awesome-icon icon="times-circle" />
@@ -33,7 +33,7 @@
           @click.prevent="delete_prompt = false">
           <font-awesome-icon icon="times-circle" />
         </a>
-        <a class="waves-effect waves-teal btn-small right tag_delete_btn red"
+        <a class="waves-effect waves-teal btn-small right tag_delete_btn red button-space"
           key="delete_submit"
           @click.prevent="$emit('delete', data.id)">
           <font-awesome-icon icon="trash" />
@@ -46,7 +46,7 @@
         >
           <font-awesome-icon icon="trash" class="grey_icon" />
         </a>
-        <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
+        <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn button-space"
           key="normal_edit"
           v-on:click.prevent="edit_item"
         >

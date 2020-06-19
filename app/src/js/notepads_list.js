@@ -33,7 +33,13 @@ let POST = async function(url, data) {
     if(typeof window == "undefined") {
         url = "http://127.0.0.1:5000" + url;
     }
-    let response = await axios.post(url, data);
+    let response;
+    try {
+        response = await axios.post(url, data);
+    } catch (e) {
+        response = e.response;
+    }
+
     if(response.status == 200) {
         return response.data;
     }
@@ -46,11 +52,17 @@ let DELETE = async function(url, data) {
     if(typeof window == "undefined") {
         url = "http://127.0.0.1:5000" + url;
     }
-    let response = await axios({
-        method: 'delete',
-        url: url,
-        data: data
-    });
+    let response;
+    try {
+        response = await axios({
+            method: 'delete',
+            url: url,
+            data: data
+        });
+    } catch(e) {
+        response = e.response;
+    }
+
     if(response.status == 200) {
         return response.data;
     }
@@ -71,6 +83,14 @@ class NotepadReaderStorage extends IndexedDBStorage {
 }
 
 let NOTEPAD_DB_PREFIX = "a_";
+
+let remove_multiple_spaces = function(text) {
+    text = text.trim();
+    while(text.indexOf("  ") >= 0) {
+        text = text.replace("  ", " ");
+    }
+    return text;
+};
 
 class NotepadsList {
     constructor() {
@@ -266,7 +286,8 @@ class NotepadsList {
     async process_secret(auth_info, notepad_id) {
       switch(auth_info.method) {
         case "passphrase": {
-          let secret = cryptobox.hash_hex(auth_info.value);
+          let cleaned_value = remove_multiple_spaces(auth_info.value)
+          let secret = cryptobox.hash_hex(cleaned_value);
           return secret;
         }
         case "password": {

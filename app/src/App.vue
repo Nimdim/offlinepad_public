@@ -179,14 +179,19 @@
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
             <a href="#">Метки</a>
           </li>
-          <li>
+          <li :class="{active: section == 'notepad'}" v-on:click="change_section('notepad')">
+            <a>
+              Блокнот
+            </a>
+          </li>
+          <li :class="{active: section == 'notepad'}" v-on:click="change_section('notepad')">
             <a 
+              style="padding: 0px 5px;"
               @click.stop="show_notepad_popup($event)"
             >
-              Блокнот
               <font-awesome-icon
                 icon="caret-down"
-                style="height: 64px; margin-left: 5px;"
+                style="height: 64px;"
                 class="right"
               />
             </a>
@@ -807,6 +812,9 @@ export default {
     },
 
     before_unload_handler: function(event) {
+      if(this.skip_page_leave_check) {
+        return;
+      }
       if(this.blockerscreen_visible) {
         event.returnValue = "Если вы покинете страницу будут потеряны данные"
       }
@@ -1227,8 +1235,9 @@ export default {
 
           let secret = await notepads_list.process_secret(info, notepad_id);
           if(!_.isArray(secret)) {
-            this.$refs.enter_password_screen.reset();
             this.message = this.translate_message(secret);
+            await sleep(0.25);
+            this.$refs.enter_password_screen.reset();
             return;
           }
 
@@ -1297,6 +1306,7 @@ export default {
     },
 
     update_service_worker: function() {
+      this.skip_page_leave_check = true;
       sw_api.activate_new_worker();
     },
 

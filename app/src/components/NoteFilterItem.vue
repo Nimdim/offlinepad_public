@@ -9,7 +9,7 @@
       <input v-if="data.edit_state"
         ref="name"
         type="text"
-        style="width: calc(100% - 100px);"
+        style="width: calc(100% - 110px);"
         @click.stop=""
         v-model="data.name" />
       <span v-else>
@@ -22,7 +22,7 @@
             v-on:click.prevent.stop="submit">
             <font-awesome-icon icon="check" />
           </a>
-          <a class="waves-effect waves-teal btn-small right red note-filter-btn"
+          <a class="waves-effect waves-teal btn-small right red note-filter-btn button-space"
             key="edit_cancel"
             @click.prevent.stop="cancel_edit">
             <font-awesome-icon icon="times-circle" />
@@ -35,7 +35,7 @@
           >
             <font-awesome-icon icon="times-circle" />
           </a>
-          <a class="waves-effect waves-teal btn-small red right note-filter-btn"
+          <a class="waves-effect waves-teal btn-small red right note-filter-btn button-space"
             key="delete_submit"
             @click.prevent.stop="$emit('delete')"
           >
@@ -49,7 +49,7 @@
           >
             <font-awesome-icon icon="trash" />
           </a>
-          <a class="waves-effect waves-teal btn-small btn-flat right note-filter-btn"
+          <a class="waves-effect waves-teal btn-small btn-flat right note-filter-btn button-space"
             key="normal_edit"
             @click.prevent.stop="edit_item"
           >

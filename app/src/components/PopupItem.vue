@@ -20,7 +20,7 @@
           >
             <font-awesome-icon icon="check" />
           </a>
-          <a class="waves-effect waves-teal btn-small right red popup-item-btn"
+          <a class="waves-effect waves-teal btn-small right red popup-item-btn button-space"
             key="edit_cancel"
             @click.prevent.stop="cancel_edit_state"
           >
@@ -34,7 +34,7 @@
           >
             <font-awesome-icon icon="times-circle" />
           </a>
-          <a class="waves-effect waves-teal btn-small right red popup-item-btn"
+          <a class="waves-effect waves-teal btn-small right red popup-item-btn button-space"
             key="delete_submit"
             @click.prevent.stop="$emit('delete')"
           >
@@ -48,7 +48,7 @@
           >
             <font-awesome-icon icon="trash" />
           </a>
-          <a class="waves-effect waves-teal btn-small btn-flat right popup-item-btn"
+          <a class="waves-effect waves-teal btn-small btn-flat right popup-item-btn button-space"
             key="normal_edit"
             @click.prevent.stop="enter_edit_state"
           >

@@ -7,7 +7,7 @@
     </div>
     <div class="row">
       <a
-        class="waves-effect waves-teal btn"
+        class="waves-effect waves-teal btn button-space"
         @click.prevent="$emit('submit')"
       >
         <font-awesome-icon icon="check" />

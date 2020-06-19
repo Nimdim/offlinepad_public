@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 180px;">
+  <div style="width: 180px;" v-if="entering">
     <div
       class="row" style="margin-bottom: 0px;"
     >
@@ -78,14 +78,20 @@
       </div>
     </div>
   </div>
+  <preloader v-else />
 </template>
 <script>
+  import Preloader from "./Preloader.vue"
 
   let sleep = function(seconds) {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
   };
 
   export default {
+    components: {
+      Preloader,
+    },
+
     props: {
       "numbers_count": {
         type: Number,
@@ -96,16 +102,17 @@
       let data = {
         pin: (new Array(this.numbers_count)).fill("_"),
         current: 0,
+        entering: true,
       };
       return data;
     },
 
     mounted: function() {
-        window.document.body.addEventListener("keydown", this.on_key_down)
+      window.document.body.addEventListener("keydown", this.on_key_down)
     },
 
     beforeDestroy: function() {
-        window.document.body.removeEventListener("keydown", this.on_key_down)
+      window.document.body.removeEventListener("keydown", this.on_key_down)
     },
 
     watch: {
@@ -158,6 +165,8 @@
           this.pin.splice(this.current, 1, number);
           this.current += 1;
           if(this.current == this.pin.length) {
+            await sleep(0.25);
+            this.entering = false;
             await sleep(0.5);
             this.$emit("submit", this.pin.join(""));
           }
@@ -165,6 +174,7 @@
       },
 
       clear: function() {
+        this.entering = true;
         for(let k = 0; k < this.pin.length; k++) {
           this.pin.splice(k, 1, "_");
         }
@@ -187,10 +197,10 @@
     padding: 9px;
   }
 
-  .pin-button:hover {
+  /* .pin-button:hover {
     background: darkorange;
     color: black;
-  }
+  } */
 
   .pin-number {
     /* display: inline-block; */

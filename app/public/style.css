@@ -74,6 +74,10 @@ i.active {
   border-left: solid white 1px;
 }
 
+.button-space {
+  margin-right: 10px !important;
+}
+
 .tags_footer {
   display: none;
   position: fixed;

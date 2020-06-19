@@ -75,7 +75,7 @@ nav,
 .toggle-extended-filter-btn.active,
 .toggle-extended-filter-btn.active:focus,
 .toggle-extended-filter-btn.active:hover {
-  background-color: rgb(244, 67, 54);
+  background-color: darkorange;
 }
 
 .timepicker-plate {
