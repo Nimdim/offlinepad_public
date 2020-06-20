@@ -11,7 +11,7 @@
               <div>
                 <span>
                   Выберите pin
-                </span>
+                </span><br>
                 <pin-pad
                   style="margin: 20px auto;"
                   :numbers_count="numbers_count"
