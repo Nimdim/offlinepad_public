@@ -15,7 +15,7 @@ class NotepadsListStorage extends IndexedDBStorage {
         super()
         this.DB_VERSION = 1;
     }
-    
+
     _upgrade_needed(event) {
         let db = event.target.result;
         let store_options = { keyPath: "id", autoIncrement: true};
@@ -71,6 +71,28 @@ let DELETE = async function(url, data) {
     }
 };
 
+class NotepadVersionReader extends IndexedDBStorage {
+    constructor() {
+        super()
+        this.DB_VERSION = 999999999;
+    }
+    
+    _upgrade_needed(event) {
+        this.old_version = event.oldVersion;
+        event.target.transaction.abort();
+    }
+}
+
+let read_db_version = async function(db_name) {
+    let version = new NotepadVersionReader();
+    try {
+        await version.init(db_name);
+    } catch (e) {
+        e;
+    }
+    return version.old_version;
+};
+
 class NotepadReaderStorage extends IndexedDBStorage {
     constructor(version) {
         super()
@@ -103,8 +125,26 @@ class NotepadsList {
         await this.reread_list();
     }
 
+    async _databases() {
+        let notepads
+        if(indexedDB.databases != null) {
+            notepads = await indexedDB.databases();
+        } else {
+            notepads = await this._storage.get_items_from_store("notepads");
+            for(let k = 0; k < notepads.length; k++) {
+                let item = notepads[k];
+                let notepad = {
+                    name: NOTEPAD_DB_PREFIX + item.id,
+                };
+                notepads[k] = notepad;
+                notepad.version = await read_db_version(notepad.name);
+            }
+        }
+        return notepads;
+    }
+
     async read_notepad_info_by_id(notepad_id) {
-        let databases = await indexedDB.databases();
+        let databases = await this._databases();
         let database = _.find(
             databases,
             (item) => {
@@ -125,7 +165,7 @@ class NotepadsList {
     }
 
     async reread_list() {
-        let databases = await indexedDB.databases();
+        let databases = await this._databases();
         let promises = [];
         let notepad_db_names = [];
         this.databases = {};

@@ -74,7 +74,7 @@ class IndexedDBStorage {
             };
             // request.onversionchange = ;
             // request.onblocked = ;
-            request.onupgradeneeded = this._upgrade_needed;
+            request.onupgradeneeded = this._upgrade_needed.bind(this);
             request.onsuccess = (event) => {
                 this.db = event.target.result;
                 resolve();
