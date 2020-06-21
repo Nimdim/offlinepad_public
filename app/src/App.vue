@@ -1708,9 +1708,7 @@ export default {
       }
       this.loadscreen_visible = true;
       await sleep(0.5);
-      let info = await notepads_list.create(name, options);
-      notepad = info.notepad;
-      notepad.close();
+      await notepads_list.create(name, options);
       this.notepads = _.cloneDeep(notepads_list.notepads);
       await sleep(0.5);
       this.loadscreen_visible = false;
@@ -1744,8 +1742,7 @@ export default {
         let import_result = await importer.execute();
         clearTimeout(updater);
         if(import_result.error == null) {
-          await import_result.notepad.close();
-          await sleep(0.5);
+          await sleep(0.25);
           this.importing = false;
         } else {
           this.import_error = import_error_to_str(import_result.error);

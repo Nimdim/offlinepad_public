@@ -402,6 +402,7 @@ class NotepadsList {
         let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
+        await notepad.close();
         await this.reread_list();
         return {"id": notepad_id, "notepad": notepad};
     }

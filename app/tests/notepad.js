@@ -20,6 +20,7 @@ let import_alpha_data = async function(name, notepads_list, data, encrypted, sec
   let importer = new AlphaDataImporterFromDict(arg);
   let import_result = await importer.execute();
   assert.equal(import_result.error, null);
+  import_result.notepad = await notepads_list.open(import_result.notepad_id);
   return import_result;
 }
 
@@ -110,7 +111,7 @@ describe("notepad simple tests", function() {
         await notepads_list.init();
         let info = await notepads_list.create(NOTEPAD_NAME, NOTEPAD_OPTIONS);
         notepad_id = info.id;
-        notepad = info.notepad;
+        notepad = await notepads_list.open(notepad_id);
         events = new NotepadTestEvents(notepad);
 
         await notepad._reset_state();
@@ -510,8 +511,8 @@ describe("notepad tags and notes and filters", function() {
     it("create three tags", async function() {
         await notepads_list.init();
         let info = await notepads_list.create(NOTEPAD_NAME, NOTEPAD_OPTIONS)
-        notepad = info.notepad;
         notepad_id = info.id;
+        notepad = await notepads_list.open(notepad_id);
         events = new NotepadTestEvents(notepad);
 
         tag_id1 = await notepad.create_tag("tag text1");
@@ -883,8 +884,8 @@ describe("notepad filtering and sorting", function() {
     it("initial", async function() {
         await notepads_list.init();
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA);
-        notepad = info.notepad;
         notepad_id = info.notepad_id;
+        notepad = await notepads_list.open(notepad_id);
         events = new NotepadTestEvents(notepad);
         maps = info.maps;
         assert.notEqual(maps, false);
@@ -1278,7 +1279,7 @@ describe("notepad pagination", function() {
 
     it("no records initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_ZERO)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
 
         events.reset();
@@ -1299,7 +1300,7 @@ describe("notepad pagination", function() {
 
     it("records less than one page initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_ONE_PAGE)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         let maps = info.maps;
         assert.notEqual(maps, false);
@@ -1332,7 +1333,7 @@ describe("notepad pagination", function() {
 
     it("records less than two pages", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA_TWO_PAGES)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
 
         events.reset();
@@ -1442,7 +1443,7 @@ describe("notepad pagination with filtering", function() {
 
     it("no filter asc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1491,7 +1492,7 @@ describe("notepad pagination with filtering", function() {
 
     it("no filter desc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1542,7 +1543,7 @@ describe("notepad pagination with filtering", function() {
 
     it("text filter asc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1579,7 +1580,7 @@ describe("notepad pagination with filtering", function() {
 
     it("text filter desc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1617,7 +1618,7 @@ describe("notepad pagination with filtering", function() {
 
     it("tag filter asc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1654,7 +1655,7 @@ describe("notepad pagination with filtering", function() {
 
     it("tag filter desc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1692,7 +1693,7 @@ describe("notepad pagination with filtering", function() {
 
     it("tag and text filter asc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1724,7 +1725,7 @@ describe("notepad pagination with filtering", function() {
 
     it("tag and text filter asc initial", async function() {
         let info = await import_beta_data(NOTEPAD_NAME, notepads_list, IMPORT_DATA)
-        let notepad = info.notepad;
+        let notepad = await notepads_list.open(info.notepad_id);
         let events = new NotepadTestEvents(notepad);
         
         events.reset();
@@ -1986,7 +1987,6 @@ describe("multi notepads tests", function() {
         notepad_id1 = info.notepad_id;
         maps1 = info.maps;
 
-        await info.notepad.close();
         await notepads_list.reread_list();
 
         let list = notepads_list.notepads;
@@ -2005,7 +2005,6 @@ describe("multi notepads tests", function() {
         notepad_id2 = info.notepad_id;
         maps2 = info.maps;
 
-        await info.notepad.close();
         await notepads_list.reread_list();
 
         list = notepads_list.notepads;
@@ -2128,6 +2127,7 @@ describe("partial file reader import tests", function() {
         }
         let importer = new MockedBetaDataImporter(arg);
         let import_result = await importer.execute();
+        import_result.notepad = await notepads_list.open(import_result.notepad_id);
 
         assert.equal(import_result.import_error, null);
         notepad_id = import_result.notepad_id;
@@ -2315,7 +2315,7 @@ describe("encryption tests", function() {
         };
         let info = await notepads_list.create(NOTEPAD_NAME, ENCRYPTED_NOTEPAD_OPTIONS);
         notepad_id = info.id;
-        notepad = info.notepad;
+        notepad = await notepads_list.open(notepad_id, ENCRYPTED_NOTEPAD_OPTIONS);
 
         let tag_ids = [
             await notepad.create_tag("один"),
@@ -2452,8 +2452,8 @@ describe("encryption tests", function() {
             true, ENCRYPTED_NOTEPAD_OPTIONS.secret
         );
 
-        notepad = info.notepad;
         notepad_id = info.notepad_id;
+        let notepad = await notepads_list.open(info.notepad_id, ENCRYPTED_NOTEPAD_OPTIONS);
 
         events = new NotepadTestEvents(notepad);
         await notepad._reset_tags();
@@ -2479,7 +2479,6 @@ describe("encryption tests", function() {
             NOTEPAD_NAME, notepads_list, exported_encrypted_data,
             true
         );
-        await info.notepad.close();
         notepad_id = info.notepad_id;
 
         await notepads_list.reread_list();
@@ -2532,7 +2531,7 @@ describe("password tests", function() {
         };
         let info = await notepads_list.create(NOTEPAD_NAME, ENCRYPTED_NOTEPAD_OPTIONS);
         notepad_id = info.id;
-        notepad = info.notepad;
+        let notepad = await notepads_list.open(notepad_id, ENCRYPTED_NOTEPAD_OPTIONS);
 
         let tag_ids = [
             await notepad.create_tag("один"),
@@ -2722,7 +2721,7 @@ describe("pin tests", function() {
         };
         let info = await notepads_list.create(NOTEPAD_NAME, ENCRYPTED_NOTEPAD_OPTIONS);
         notepad_id = info.id;
-        notepad = info.notepad;
+        notepad = await notepads_list.open(notepad_id, ENCRYPTED_NOTEPAD_OPTIONS);
 
         let tag_ids = [
             await notepad.create_tag("один"),
