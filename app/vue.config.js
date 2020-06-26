@@ -1,6 +1,15 @@
 module.exports = {
   devServer: {
-    "proxy": "http://localhost:5000",
+    "proxy": {
+      "^/api": {
+        "target": "http://localhost:5000",
+      },
+      "^/ws/": {
+        "target": "ws://localhost:8765",
+        "secure": false,
+        "ws": true,
+      },
+    }
   },
   chainWebpack: config => {
     if(config.plugins.has('extract-css')) {
