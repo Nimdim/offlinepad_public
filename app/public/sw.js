@@ -1,4 +1,4 @@
-const APP_VERSION = "0.130";
+const APP_VERSION = "0.133";
 
 const RESOURCES = [
   '/',
@@ -158,7 +158,8 @@ let process_download = function(url) {
   });
 
   let fileName = encodeURIComponent(downloads[id].filename).replace(/['()]/g, escape).replace(/\*/g, '%2A')
-  responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
+  // responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
+  responseHeaders.set('Content-Disposition', 'attachment; filename="' + fileName + '"');
   return new Response(downloads[id].data, { headers: responseHeaders });
   // return new Response(downloads[id].stream, { headers: responseHeaders });
 }
