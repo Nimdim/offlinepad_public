@@ -167,15 +167,18 @@ class NotepadsList {
     async reread_list() {
         let databases = await this._databases();
         let promises = [];
-        let notepad_db_names = [];
         this.databases = {};
         _.forEach(
             databases,
             (database) => {
                 this.databases[database.name] = database.version;
                 if(database.name.indexOf(NOTEPAD_DB_PREFIX) == 0) {
-                    notepad_db_names.push(database.name);
-                    let promise = this.read_notepad_info(database);
+                    let promise = this.read_notepad_info(database).then(
+                        (info) => {
+                            info._db_name = database.name;
+                            return info;
+                        }
+                    )
                     promises.push(promise);
                 }
             }
@@ -185,8 +188,9 @@ class NotepadsList {
         notepads = _.orderBy(notepads, "notepad_name");
         _.forEach(
             notepads,
-            (item, index) => {
-                let db_name = notepad_db_names[index];
+            (item) => {
+                let db_name = item._db_name;
+                delete item._db_name;
                 item.id = parseInt(db_name.replace(NOTEPAD_DB_PREFIX, ""));
             }
         );
