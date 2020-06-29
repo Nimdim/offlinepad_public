@@ -5,7 +5,16 @@
   >
     <span>
       <div>
-        <font-awesome-icon icon="lock" v-show="data.encrypted" />
+        <!-- <font-awesome-icon
+          style="position: absolute;
+                 left: 25px;"
+          icon="book"
+        /> -->
+        <font-awesome-icon
+          v-if="data.encrypted"
+          style="margin-right: 5px;"
+          icon="lock"
+        />
         <span class="">{{data.notepad_name}}</span>
       </div>
     </span>

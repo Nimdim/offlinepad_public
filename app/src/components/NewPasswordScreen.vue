@@ -1,65 +1,64 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span>
-      <ul
-        class="collection notepads-selector"
+    <ul
+      class="collection notepads-selector block-center"
+      style="border: unset;"
+    >
+      <li class="collection-item"
       >
-        <li class="collection-item"
-       >
-          <span>
-            <form class="col s12">
-              <div>
-                <span>
-                  Выберите пароль
-                </span>
-                <div
-                  class="row" style="margin-bottom: 0px;"
-                >
-                  <div class="input-field col s12">
-                    <input
-                      ref="add_name_input"
-                      placeholder="Пароль"
-                      type="text"
-                      class="validate"
-                      v-model="password"
-                    >
-                    <span v-if="error_text"
-                      class="left red-text" style=""
-                    >
-                      {{error_text}}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <!-- <div TODO
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  Сложность: <span>{{complexity}}</span><br>
-                  Примерное подбора: <span>{{avg_time}}</span>
-                </div>
-              </div> -->
+        <span>
+          <form class="col s12">
+            <div>
+              <span>
+                Выберите пароль
+              </span>
               <div
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left red"
-                    @click="$emit('cancel')"
+                  <input
+                    ref="add_name_input"
+                    placeholder="Пароль"
+                    type="text"
+                    class="validate"
+                    v-model="password"
                   >
-                    <font-awesome-icon icon="times-circle"/>
-                  </a>
-                  <a class="waves-effect waves-light btn right"
-                    @click="submit"
+                  <span v-if="error_text"
+                    class="left red-text" style=""
                   >
-                    <font-awesome-icon icon="check"/>
-                  </a>
+                    {{error_text}}
+                  </span>
                 </div>
               </div>
-            </form>
-          </span>
-        </li>
-      </ul>
-    </span>
+            </div>
+            <!-- <div TODO
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                Сложность: <span>{{complexity}}</span><br>
+                Примерное подбора: <span>{{avg_time}}</span>
+              </div>
+            </div> -->
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn left red"
+                  @click="$emit('cancel')"
+                >
+                  <font-awesome-icon icon="times-circle"/>
+                </a>
+                <a class="waves-effect waves-light btn right"
+                  @click="submit"
+                >
+                  <font-awesome-icon icon="check"/>
+                </a>
+              </div>
+            </div>
+          </form>
+        </span>
+      </li>
+    </ul>
   </full-screen-box>
 </template>
 <script>

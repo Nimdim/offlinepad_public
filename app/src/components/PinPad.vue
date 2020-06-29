@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 180px;" v-if="entering">
+  <div style="width: 180px; height: 260px;" v-if="entering">
     <div
       class="row" style="margin-bottom: 0px;"
     >
@@ -78,10 +78,13 @@
       </div>
     </div>
   </div>
-  <preloader v-else />
+  <div style="width: 180px; height: 260px;" v-else>
+    <preloader/>
+  </div>
 </template>
 <script>
   import Preloader from "./Preloader.vue"
+  import utils from "./../js/utils.js"
 
   let sleep = function(seconds) {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
@@ -162,6 +165,7 @@
 
       press_pin: async function(number) {
         if(this.current < this.numbers_count) {
+          utils.vibrate("button");
           this.pin.splice(this.current, 1, number);
           this.current += 1;
           if(this.current == this.pin.length) {

@@ -3,7 +3,8 @@
     <span>
       <span v-if="items.length > 0"
         class="notepads-selector"
-        style="display: block; margin: 0 auto;"
+        style="display: block; margin: 0 auto; margin-top: 10px;"
+        @click="$emit('test_remote')"
       >
         Блокноты
       </span>
@@ -11,10 +12,11 @@
         class="notepads-selector"
         style="display: block; margin: 0 auto; margin-bottom: 10px;"
       >
-        У вас пока еще не создано ни одного блокнота. Создайте новый, при помощи формы ниже.
+        У вас пока еще не создано ни одного блокнота. Создайте новый.
       </span>
       <ul
         class="collection notepads-selector"
+        style="margin-top: 10px; margin-bottom: 20px;"
       >
         <notepads-selector-item
           v-for="item in items" :key="item.id"
@@ -26,6 +28,7 @@
         >
           <span>
             <font-awesome-icon icon="plus"/>
+            <!-- создать блокнот -->
           </span>
         </li>
       </ul>

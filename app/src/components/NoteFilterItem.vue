@@ -5,7 +5,10 @@
     <a href="#!"
       style="padding-right: 8px;"
     >
-      <font-awesome-icon class="mobile-menu-icon" icon="tag" />
+      <font-awesome-icon
+        class="mobile-menu-icon"
+        icon="bookmark"
+      />
       <input v-if="data.edit_state"
         ref="name"
         type="text"

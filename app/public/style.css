@@ -3,6 +3,17 @@ p {
   text-align: left;
 }
 
+.block-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: unset;
+}
+
+.sidenav li.active > a {
+  padding-left: 28px;
+}
+
 .records, .tags {
   margin-top: 64px;
 }

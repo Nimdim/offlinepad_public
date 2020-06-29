@@ -1,29 +1,28 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span>
-      <ul
-        class="collection notepads-selector"
+    <ul
+      class="collection notepads-selector block-center"
+      style="border: unset;"
+    >
+      <li class="collection-item"
       >
-        <li class="collection-item"
-       >
-          <span>
-            <form class="col s12">
-              <div>
-                <span>
-                  Выберите pin
-                </span><br>
-                <pin-pad
-                  style="margin: 20px auto;"
-                  :numbers_count="numbers_count"
-                  @submit="$emit('submit', $event)"
-                  @cancel="$emit('cancel')"
-                />
-              </div>
-            </form>
-          </span>
-        </li>
-      </ul>
-    </span>
+        <span>
+          <form class="col s12">
+            <div>
+              <span>
+                Выберите pin
+              </span><br>
+              <pin-pad
+                style="margin: 20px auto;"
+                :numbers_count="numbers_count"
+                @submit="$emit('submit', $event)"
+                @cancel="$emit('cancel')"
+              />
+            </div>
+          </form>
+        </span>
+      </li>
+    </ul>
   </full-screen-box>
 </template>
 <script>

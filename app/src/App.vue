@@ -91,6 +91,7 @@
         @cancel="cancel_tag"
         @delete="remove_tag"
         @edit_state_changed="tag_edit_state_changed($event)"
+        @click="tag_clicked($event)"
       />
     </ul>
 
@@ -113,6 +114,7 @@
 
     <notepad-screen v-if="section == 'notepad' && notepad_working"
       :encrypted="encrypted"
+      :available_methods="available_methods"
       @export_encrypted="export_encrypted"
       @export_unencrypted="export_unencrypted_handler"
       @delete="notepad_delete_handler"
@@ -140,23 +142,47 @@
 
         <ul id="tags_filter">
           <li class="search_li">
-            <div class="input-field">
-              <input id="search" type="search" v-model="fast_search" required>
+            <div class="input-field" v-if="section == 'notes'">
+              <input id="search" type="search" v-model="notes_fast_search" required>
               <label class="label-icon" for="search">
                 <font-awesome-icon class="nav-icon" icon="search" />
               </label>
-              <font-awesome-icon icon="times" @click="fast_search = ''" />
+              <font-awesome-icon icon="times" @click="notes_fast_search = ''" />
+            </div>
+            <div class="input-field" v-if="section == 'tags'">
+              <input id="search" type="search" v-model="tags_fast_search" required>
+              <label class="label-icon" for="search">
+                <font-awesome-icon class="nav-icon" icon="search" />
+              </label>
+              <font-awesome-icon icon="times" @click="tags_fast_search = ''" />
             </div>
           </li>
         </ul>
-        <font-awesome-icon v-if="sorting_order_asc"
-          icon="sort-amount-up"
-          class="nav-icon"
-          @click="sorting_order_asc = !sorting_order_asc" />
-        <font-awesome-icon v-else
-          icon="sort-amount-down-alt"
-          class="nav-icon"
-          @click="sorting_order_asc = !sorting_order_asc" />
+
+        <template v-if="section == 'notes'">
+          <font-awesome-icon v-if="notes_sorting_order_asc"
+            icon="sort-amount-up"
+            class="nav-icon"
+            @click="notes_sorting_order_asc = !notes_sorting_order_asc"
+          />
+          <font-awesome-icon v-else
+            icon="sort-amount-down-alt"
+            class="nav-icon"
+            @click="notes_sorting_order_asc = !notes_sorting_order_asc"
+          />
+        </template>
+        <template v-if="section == 'tags'">
+          <font-awesome-icon v-if="tags_sorting_order_asc"
+            icon="sort-amount-up"
+            class="nav-icon"
+            @click="tags_sorting_order_asc = !tags_sorting_order_asc"
+          />
+          <font-awesome-icon v-else
+            icon="sort-amount-down-alt"
+            class="nav-icon"
+            @click="tags_sorting_order_asc = !tags_sorting_order_asc"
+          />
+        </template>
 
         <ul class="right hide-on-med-and-down desktop_menu">
           <li :class="{active: section == 'notes'}" v-on:click="change_section('notes')">
@@ -206,19 +232,6 @@
         >
           <ul style="height: calc(100% - 70px); overflow-y: auto;"
           >
-            <!-- <li>
-              <div style="height: 48px; margin-left: 28px; margin-right: 28px;">
-                <font-awesome-icon
-                  class="mobile-menu-icon left"
-                  icon="home"
-                  style="margin-top: 10px; width: 24px !important; height: 24px !important;"
-                  @click="notepad_goto_home"
-                />
-                <span class="right" style="margin-right: 30px;">{{info.notepad_name}}</span>
-              </div>
-            </li> -->
-
-
             <li
               @click="section = 'notepad'"
               :class="{'active': section =='notepad'}"
@@ -232,7 +245,7 @@
                 </span>
                 <div style="float: right; height: 48px;">
                   <font-awesome-icon
-                    class="mobile-menu-icon left"
+                    class="right"
                     icon="home"
                     style="margin-top: 10px; width: 24px !important; height: 24px !important;"
                     @click.stop="notepad_goto_home"
@@ -240,7 +253,6 @@
                 </div>
               </a>
             </li>
-            <li class="divider"></li>
             <note-filter-item
               v-for="note_filter in note_filters" :key="note_filter.id"
               :note_filter="note_filter"
@@ -249,11 +261,10 @@
               @delete="delete_note_filter(note_filter.id)"
               @submit="edit_note_filter(note_filter.id, $event)"
             />
-            <li class="divider"></li>
             <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
               <a href="#">
                 <font-awesome-icon class="mobile-menu-icon" icon="tags" />
-                <span>Теги</span>
+                <span>Все теги</span>
               </a>
             </li>
           </ul>
@@ -311,19 +322,6 @@
       </div>
     </nav>
 
-    <develop-console-screen v-show="develop_console"
-      ref="console"
-      @close="develop_console = false"
-    />
-
-    <a v-if="develop_mode"
-      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
-      style="left: 16px;"
-      @click="develop_console = !develop_console"
-    >
-      <font-awesome-icon icon="terminal" />
-    </a>
-
     <a v-if="section == 'tags' && notepad_working && !add_button_hidden"
       class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
       @click="add_tag"
@@ -358,6 +356,14 @@
         :items="notepads"
         @start-creation-wizard="notepad_wizard_show = true"
         @open="notepad_open($event)"
+        @test_remote="test_remote_enable()"
+      />
+    </transition>
+
+    <transition name="fade">
+      <remote-screen v-if="test_remote"
+        :close="test_remote"
+        @close="test_remote = false"
       />
     </transition>
 
@@ -434,12 +440,32 @@
     </transition>
 
     <transition name="fade">
+      <notepad-created-screen v-if="notepad_created"
+        @open="notepad_created_callback(true)"
+        @menu="notepad_created_callback(false)"
+      />
+    </transition>
+
+    <transition name="fade">
       <message-screen v-if="message"
         :title="message"
         style="z-index: 2002"
         @close="message = null"
       />
     </transition>
+
+    <develop-console-screen v-show="develop_console"
+      ref="console"
+      @close="develop_console = false"
+    />
+
+    <a v-if="develop_mode"
+      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
+      style="left: 16px;"
+      @click="develop_console = !develop_console"
+    >
+      <font-awesome-icon icon="terminal" />
+    </a>
 
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
@@ -453,6 +479,8 @@ import platform from 'platform'
 
 import moment from 'moment'
 import _ from 'lodash'
+import pbkdf2 from 'pbkdf2'
+
 moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
@@ -479,6 +507,8 @@ import Popup from './components/Popup.vue'
 import Preloader from './components/Preloader.vue'
 import UpdatePopup from './components/UpdatePopup.vue'
 import UpdateDonePopup from './components/UpdateDonePopup.vue'
+import RemoteScreen from './components/RemoteScreen.vue'
+import NotepadCreatedScreen from './components/NotepadCreatedScreen.vue'
 
 import sanitize_html from 'sanitize-html'
 
@@ -490,6 +520,7 @@ import cookie_api from 'js-cookie'
 import ScrollUpController from './js/scroll_up_controller.js'
 import { BetaDataImporter, AlphaDataImporter } from './js/data_importer.js'
 import cryptobox from './js/cryptobox'
+import utils from './js/utils.js'
 
 let import_error_to_str = function(code) {
   let result;
@@ -548,10 +579,21 @@ export default {
     Preloader,
     UpdatePopup,
     UpdateDonePopup,
+    RemoteScreen,
+    NotepadCreatedScreen,
   },
 
   data: function() {
     var data = {
+      available_methods: {
+        pin: false,
+        password: false,
+      },
+
+      notepad_created: false,
+      notepad_created_callback: null,
+      test_remote: false,
+
       current_auth_method: undefined,
 
       create_pin: false,
@@ -612,8 +654,10 @@ export default {
       import_error: null,
 
       notes_filter_tags: [],
-      fast_search: "",
-      sorting_order_asc: true,
+      notes_fast_search: "",
+      tags_fast_search: "",
+      notes_sorting_order_asc: false,
+      tags_sorting_order_asc: true,
 
       header_hidden: false,
 
@@ -636,23 +680,12 @@ export default {
   },
   watch: {
     "section": function(section) {
-      let filter;
       this.processing = true;
       if(section == "tags") {
-        filter = notepad.get_tags_filter();
-        this.fast_search = filter.name;
-        this.sorting_order_asc = filter.sorting_asc;
-        // TODO костыль для того чтобы при переключении на раздел показывались нужные записи
-        this.notes_filter_tags = ['n'];
         notepad._reset_tags();
       } else if (section == "notes") {
-        filter = notepad.get_notes_filter();
-        this.fast_search = filter.text;
-        this.sorting_order_asc = filter.sorting_asc;
         notepad._reset_notes();
       } else if(section == "notepad") {
-        // TODO костыль для того чтобы при переключении на раздел показывались нужные записи
-        this.notes_filter_tags = ['n'];
         this.close_nav();
         this.processing = false;
       }
@@ -675,38 +708,47 @@ export default {
       }
     },
   
-    "fast_search": function(value) {
+    notes_fast_search: function(value) {
       this._process_developer_commands(value);
       this.process_empty_screen();
-      if(!this.startup) {
-        value = escapeRegExp(value);
-        if(this.section == "tags") {
-          this.processing = true;
-          notepad.set_tags_filter({
-            "name": value,
-          });
-        } else if (this.section == "notes") {
-          this.processing = true;
-          notepad.set_notes_filter({
-            "text": value,
-          })
-        }
+
+      value = escapeRegExp(value);
+      notepad.set_notes_filter({
+        "text": value,
+      });
+      if(this.section == "notes") {
+        this.processing = true;
       }
     },
-  
-    "sorting_order_asc": function(asc) {
-      if(!this.startup) {
-        if(this.section == "tags") {
-          this.processing = true;
-          notepad.set_tags_filter({
-            "sorting_asc": asc,
-          });
-        } else if (this.section == "notes") {
-          this.processing = true;
-          notepad.set_notes_filter({
-            "sorting_asc": asc,
-          })
-        }
+
+    tags_fast_search: function(value) {
+      this._process_developer_commands(value);
+      this.process_empty_screen();
+
+      value = escapeRegExp(value);
+      notepad.set_tags_filter({
+        "name": value,
+      });
+      if(this.section == "tags") {
+        this.processing = true;
+      }
+    },
+
+    notes_sorting_order_asc: function(asc) {
+      notepad.set_notes_filter({
+        "sorting_asc": asc,
+      })
+      if (this.section == "notes") {
+        this.processing = true;
+      }
+    },
+
+    tags_sorting_order_asc: function(asc) {
+      notepad.set_tags_filter({
+        "sorting_asc": asc,
+      });
+      if(this.section == "tags") {
+        this.processing = true;
       }
     },
 
@@ -779,19 +821,53 @@ export default {
     this.startup = false;
     this.loadscreen_visible = false;
     window.addEventListener("beforeunload", this.before_unload_handler);
+    // window.addEventListener("focus", focus_handler);
+    // window.addEventListener("blur", this.window_blur_handler);
   },
 
   beforeDestroy: function() {
     window.removeEventListener("beforeunload", this.before_unload_handler);
+    window.removeEventListener("blur", this.window_blur_handler);
   },
 
   methods: {
+    notepad_created_prompt: function() {
+      let promise = new Promise((resolve) => {
+        this.notepad_created_callback = (open) => {
+          resolve(open);
+        };
+        this.notepad_created = true;
+      });
+      return promise;
+    },
+
+    test_remote_enable: function() {
+      if(this.develop_mode) {
+        this.test_remote = true;
+      }
+    },
+
+    window_blur_handler: function() {
+      if(notepad != null) {
+        if(!this.blockerscreen_visible) {
+          this.notepad_goto_home();
+        }
+      }
+    },
+
+    tag_clicked: async function(tag_id) {
+      this.notes_filter_tags.splice(
+        0, this.notes_filter_tags.length, tag_id
+      );
+      this.section = "notes";
+    },
+
     notepad_delete_handler: async function() {
-      let notepad_id = notepad._state.info.id;      
+      let notepad_id = this.info.id;
       let accept = await this.show_prompt('Вы уверены, что хотите удалить блокнот?');
       if(accept) {
 
-        if(this.encrypted) {
+        if(this.info.encrypted) {
           let secret = this.authenticate(notepad_id);
           await sleep(0.25);
           this.prompt_cancel();
@@ -853,7 +929,7 @@ export default {
     },
 
     set_password_for_notepad: async function() {
-      let notepad_id = notepad._state.info.id;
+      let notepad_id = this.info.id;
       let secret = await this.authenticate(notepad_id);
       if(secret == null) {
         return;
@@ -869,7 +945,7 @@ export default {
       this.create_password_cancel();
 
       let result = await notepads_list.set_password_secret(
-        notepad._state.info.id, new_password, secret
+        notepad_id, new_password, secret
       );
       if(!result) {
         this.message = "Не удалось задать пароль";
@@ -878,10 +954,11 @@ export default {
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
+      this.update_available_methods();
     },
 
     delete_password_for_notepad: async function() {
-      let notepad_id = notepad._state.info.id;
+      let notepad_id = this.info.id;
       await this.authenticate(notepad_id);
 
       this.loadscreen_visible = true;
@@ -892,10 +969,11 @@ export default {
       this.message = this.translate_message("password deleted");
       await sleep(0.25);
       this.loadscreen_visible = false;
+      this.update_available_methods();
     },
 
     set_pin_for_notepad: async function() {
-      let notepad_id = notepad._state.info.id;
+      let notepad_id = this.info.id;
       let secret = await this.authenticate(notepad_id);
       if(secret == null) {
         return;
@@ -911,7 +989,7 @@ export default {
       this.create_pin_cancel();
 
       let result = await notepads_list.set_pin_secret(
-        notepad._state.info.id, pin, notepad._storage._options.secret
+        notepad_id, pin, notepad._storage._options.secret
       );
 
       if(!result) {
@@ -921,10 +999,17 @@ export default {
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
+      this.update_available_methods();
+    },
+
+    update_available_methods: async function() {
+      let notepad_id = this.info.id;
+      this.available_methods.pin = await notepads_list._get_pin_secret(notepad_id) != null;
+      this.available_methods.password = await notepads_list.get_password_secret(notepad_id) != null;
     },
 
     delete_pin_for_notepad: async function() {
-      let notepad_id = notepad._state.info.id;
+      let notepad_id = this.info.id;
       await this.authenticate(notepad_id);
 
       this.loadscreen_visible = true;
@@ -938,6 +1023,7 @@ export default {
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
+      this.update_available_methods();
     },
 
     show_prompt: function(title, callback) {
@@ -960,7 +1046,7 @@ export default {
     },
 
     is_notes_filter_active: function() {
-      return this.fast_search != "" || this.notes_filter_tags.length > 0;
+      return this.notes_fast_search != "" || this.notes_filter_tags.length > 0;
     },
 
     process_empty_screen: function() {
@@ -977,7 +1063,7 @@ export default {
       }
       if(this.section == "tags") {
         if(this.tags.items.length == 0) {
-          if(this.fast_search != "") {
+          if(this.tags_fast_search != "") {
             this.empty_msg = "Для указанного фильтра\nне найдено ни одного тега";
           } else {
             this.empty_msg = "У вас еще нет тегов\nСоздайте новый";
@@ -1014,6 +1100,13 @@ export default {
       }
       if(command == "develop=off") {
         this._disable_develop();
+      }
+      if(command.indexOf("pbkdf=") == 0) {
+        let count = parseInt(command.replace("pbkdf=", ""));
+        window.console.time("pbkdf2");
+        let result = pbkdf2.pbkdf2Sync('догма тапки желвак фреон вериги приор месяц блуза ятка две', 'salt', count, 32, 'sha256')
+        result;
+        window.console.timeEnd("pbkdf2");
       }
     },
 
@@ -1139,19 +1232,17 @@ export default {
     
     notepad_reset_filter: function(filter) {
       this.notes_filter_tags = filter.notes.tags;
-      if(this.section == "notes") {
-        this.sorting_order_asc = filter.notes.sorting_asc;
-        this.fast_search = filter.notes.text;
-      } else if(this.section == "tags") {
-        this.sorting_order_asc = filter.tags.sorting_asc;
-        this.fast_search = filter.tags.name;
-      } else {
-        throw new Error("error");
-      }
+
+      this.notes_sorting_order_asc = filter.notes.sorting_asc;
+      this.notes_fast_search = filter.notes.text;
+
+      this.tags_sorting_order_asc = filter.tags.sorting_asc;
+      this.tags_fast_search = filter.tags.name;
     },
     
     notepad_reset_info: function(info) {
       this.info = info;
+      this.update_available_methods();
     },
 
     notepad_register: function(instance) {
@@ -1237,12 +1328,15 @@ export default {
           if(!_.isArray(secret)) {
             this.message = this.translate_message(secret);
             await sleep(0.25);
+            utils.vibrate("error");
             this.$refs.enter_password_screen.reset();
             return;
           }
 
           if(!await this.check_notepad_secret(secret, notepad_id)) {
             this.message = this.translate_message("wrong secret");
+            await sleep(0.25);
+            utils.vibrate("error");
             return;
           }
 
@@ -1294,9 +1388,9 @@ export default {
       if(_.isString(notepad)) {
         this.message = this.translate_message(notepad);
       } else {
-        this.encrypted = notepad._state.info.encrypted;
         this.notepad_register(notepad);
         notepad._reset_info();
+        this.encrypted = this.info.encrypted;
         this.notepad_working = true;
         await notepad._reset_note_filters();
         this.section = "notes";
@@ -1447,7 +1541,10 @@ export default {
       for(k = 0; k < tags.length; k++) {
         item = tags[k];
         let text = sanitize_html(item.name);
-        item.name_highlighted = text.replace(new RegExp(this.fast_search, "g"), text_highlight(this.fast_search));
+        item.name_highlighted = text.replace(
+          new RegExp(this.tags_fast_search, "g"),
+          text_highlight(this.tags_fast_search)
+        );
       }
       return tags;
     },
@@ -1457,9 +1554,9 @@ export default {
       for(k = 0; k < notes.length; k++) {
         item = notes[k];
         let text = sanitize_html(item.text);
-        if(this.fast_search.length > 0) {
-          text = text.replace(new RegExp(this.fast_search, "g"), 
-          text_highlight(this.fast_search));
+        if(this.notes_fast_search.length > 0) {
+          text = text.replace(new RegExp(this.notes_fast_search, "g"), 
+          text_highlight(this.notes_fast_search));
         }
         item.text_highlighted = text;
       }
@@ -1582,7 +1679,7 @@ export default {
     },
 
     delete_notepad: async function() {
-      let notepad_id = notepad._state.info.id;      
+      let notepad_id = this.info.id;      
       this.section = null;
       await notepad.close();
       this.notepad_unregister(notepad);
@@ -1599,14 +1696,14 @@ export default {
     },
 
     export_unencrypted_handler: async function() {
-      if(this.encrypted) {
+      if(this.info.encrypted) {
         let accept = await this.show_prompt(
           'Вы уверены, что сохранить незашифрованную резерную копию?');
         if(!accept) {
           return;
         }
 
-        let notepad_id = notepad._state.info.id;
+        let notepad_id = this.info.id;
         let secret = this.authenticate(notepad_id);
         await sleep(0.25);
         this.prompt_cancel();
@@ -1633,7 +1730,7 @@ export default {
 
     export_notepad: async function(disable_decryption) {
       let stamp = moment(+ new Date()).format("YYYY-MM-DD HH:mm:ss");
-      let filename = notepad._state.info.notepad_name + " " + stamp + ".txt";
+      let filename = this.info.notepad_name + " " + stamp + ".txt";
       let data = await notepad.export(disable_decryption);
       let data_serialized = "";
       for(let k = 0; k < data.length; k++) {
@@ -1694,7 +1791,6 @@ export default {
         info.name = info.notepad_name;
         this.notepad_import(info);
       }
-      this.notepad_wizard_show = false;
     },
 
     notepad_create: async function(arg) {
@@ -1707,11 +1803,22 @@ export default {
         options.secret = secret;
       }
       this.loadscreen_visible = true;
-      await sleep(0.5);
-      await notepads_list.create(name, options);
+      await sleep(0.25);
+      this.notepad_wizard_show = false;
+      let info = await notepads_list.create(name, options);
       this.notepads = _.cloneDeep(notepads_list.notepads);
-      await sleep(0.5);
+      let created_form = this.notepad_created_prompt();
+      await sleep(0.25);
       this.loadscreen_visible = false;
+
+      let result = await created_form;
+      if(result) {
+        arg.id = info.id;
+        this.notepad_open(arg);
+        this.notepad_created = false;
+      } else {
+        this.notepad_created = false;
+      }
     },
 
     notepad_import: async function(arg) {
@@ -1721,7 +1828,8 @@ export default {
       }
       this.import_error = null;
       this.importing = true;
-      await sleep(0.5);
+      await sleep(0.25);
+      this.notepad_wizard_show = false;
       if(arg.schema == "beta" || arg.schema == "alpha") {
         arg.notepads_list = notepads_list;
         let importer;
@@ -1742,8 +1850,19 @@ export default {
         let import_result = await importer.execute();
         clearTimeout(updater);
         if(import_result.error == null) {
+          let created_form = this.notepad_created_prompt();
           await sleep(0.25);
           this.importing = false;
+
+          let result = await created_form;
+          if(result) {
+            arg.id = import_result.notepad_id;
+            this.notepad_open(arg);
+            this.notepad_created = false;
+          } else {
+            this.notepad_created = false;
+          }
+
         } else {
           this.import_error = import_error_to_str(import_result.error);
         }

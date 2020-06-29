@@ -64,6 +64,8 @@ svg.mobile-menu-icon {
   height: 18px !important;
   margin-right: 8px;
   color: #666;
+  position: relative;
+  top: 2px;
 }
 
 nav ul div {
@@ -241,4 +243,16 @@ textarea.materialize-textarea {
 
 .sidenav .divider {
   margin: 0;
+}
+
+.collection .collection-item {
+  padding: 10px;
+  margin: 10px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+  border: unset;
+  border-radius: 5px;
+}
+
+.collection {
+  border: unset;
 }

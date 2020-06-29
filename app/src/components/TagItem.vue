@@ -1,6 +1,7 @@
 <template>
   <li class="collection-item"
     :class="{'editing': data.edit_state}"
+    style="padding-top: 5px; padding-right: 5px; padding-bottom: 5px; padding-left: 10px;"
     v-on:click="$emit('click', data.id)"
   >
     <p style="margin-block-start: 0; margin-block-end: 0;">
@@ -9,7 +10,7 @@
         placeholder="Название метки"
         type="text"
         class="validate tag_name text-input--standart-style"
-        style="width: calc(100% - 105px);"
+        style="width: calc(100% - 115px);"
         v-model="data.name"
         @keydown.ctrl.enter="submit_edit"
         />
@@ -17,38 +18,41 @@
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           key="edit_submit"
-          @click.prevent="submit_edit"
+          style="margin-right: 10px;"
+          @click.stop.prevent="submit_edit"
         >
           <font-awesome-icon icon="check" />
         </a>
         <a class="waves-effect waves-teal btn-small right tag_delete_btn red button-space"
           key="edit_cancel"
-          @click.prevent="cancel_edit">
+          @click.stop.prevent="cancel_edit">
           <font-awesome-icon icon="times-circle" />
         </a>
       </template>
       <template v-else-if="delete_prompt">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           key="delete_cancel"
-          @click.prevent="delete_prompt = false">
+          style="margin-right: 10px;"
+          @click.stop.prevent="delete_prompt = false">
           <font-awesome-icon icon="times-circle" />
         </a>
         <a class="waves-effect waves-teal btn-small right tag_delete_btn red button-space"
           key="delete_submit"
-          @click.prevent="$emit('delete', data.id)">
+          @click.stop.prevent="$emit('delete', data.id)">
           <font-awesome-icon icon="trash" />
         </a>
       </template>
       <template v-else>
         <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn"
           key="normal_delete"
-          v-on:click.prevent="delete_prompt = true"
+          style="margin-right: 10px;"
+          @click.stop.prevent="delete_prompt = true"
         >
           <font-awesome-icon icon="trash" class="grey_icon" />
         </a>
         <a class="waves-effect waves-teal btn-flat btn-small right tag_delete_btn button-space"
           key="normal_edit"
-          v-on:click.prevent="edit_item"
+          @click.stop.prevent="edit_item"
         >
           <font-awesome-icon icon="pen" class="grey_icon" />
         </a>

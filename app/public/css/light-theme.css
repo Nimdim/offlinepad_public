@@ -32,3 +32,8 @@ input.validate.filter_name {
 .social-button {
   background-color: rgb(38, 166, 154);
 }
+
+.text-selector:hover,
+.text-selector.active {
+  color: blue;
+}

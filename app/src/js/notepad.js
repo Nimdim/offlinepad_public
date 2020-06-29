@@ -583,7 +583,7 @@ class Notepad {
     async _reset_note_filters() {
         let all_items = {
             id: "internal_all",
-            name: "Все",
+            name: "Все записи",
             deletable: false,
             tags: [],
         };

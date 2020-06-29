@@ -705,7 +705,7 @@ describe("notepad tags and notes and filters", function() {
             [
                 {
                     id: "internal_all",
-                    name: "Все",
+                    name: "Все записи",
                     tags: [],
                     deletable: false,
                 },
@@ -728,7 +728,7 @@ describe("notepad tags and notes and filters", function() {
             [
                 {
                     id: "internal_all",
-                    name: "Все",
+                    name: "Все записи",
                     tags: [],
                     deletable: false,
                 },
@@ -757,7 +757,7 @@ describe("notepad tags and notes and filters", function() {
             [
                 {
                     id: "internal_all",
-                    name: "Все",
+                    name: "Все записи",
                     tags: [],
                     deletable: false,
                 },
@@ -786,7 +786,7 @@ describe("notepad tags and notes and filters", function() {
             [
                 {
                     id: "internal_all",
-                    name: "Все",
+                    name: "Все записи",
                     tags: [],
                     deletable: false,
                 },
@@ -2242,7 +2242,7 @@ describe("partial file reader import tests", function() {
                 {
                     "deletable": false,
                     "id": "internal_all",
-                    "name": "Все",
+                    "name": "Все записи",
                     "tags": [],
                 },
                 {
@@ -2403,7 +2403,7 @@ describe("encryption tests", function() {
                 {
                     "deletable": false,
                     "id": "internal_all",
-                    "name": "Все",
+                    "name": "Все записи",
                     "tags": [],
                 },
                 {
@@ -2619,7 +2619,7 @@ describe("password tests", function() {
                 {
                     "deletable": false,
                     "id": "internal_all",
-                    "name": "Все",
+                    "name": "Все записи",
                     "tags": [],
                 },
                 {
@@ -2809,7 +2809,7 @@ describe("pin tests", function() {
                 {
                     "deletable": false,
                     "id": "internal_all",
-                    "name": "Все",
+                    "name": "Все записи",
                     "tags": [],
                 },
                 {

@@ -1,199 +1,192 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
-    <span class="">
-      <ul
-        class="collection notepads-selector"
+    <ul
+      class="collection notepads-selector block-center"
+      style="border: unset;"
+    >
+      <input
+        type="file"
+        ref="import_file"
+        style="display: none;"
+        @change="file_selected"
+      /> 
+      <li class="collection-item"
       >
-        <input
-          type="file"
-          ref="import_file"
-          style="display: none;"
-          @change="file_selected"
-        /> 
-        <li class="collection-item"
-        >
-          <span>
-          <form class="col s12">
-            <div v-if="step == STEPS.NEW_OR_OPEN_FILE">
-              Создание блокнота
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn"
-                    @click="step = STEPS.NOTEPAD_TYPE"
-                  >
-                    <font-awesome-icon icon="plus"/>
-                    Новый
-                  </a>
-                  <span class="wizard-hinttext">
-                    Будет создан пустой блокнот
-                  </span>
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn"
-                    @click="$refs.import_file.click()"
-                  >
-                    <font-awesome-icon icon="file-upload"/>
-                    Открыть файл
-                  </a>
-                  <span v-if="import_file_error"
-                    class="red-text"
-                    style="display: block;"
-                  >
-                    {{import_file_error}}
-                  </span>
-                  <span class="wizard-hinttext">
-                    Создайте блокнот из ранее созданной резервной копии
-                  </span>
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left"
-                    @click="cancel_wizard"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Отмена
-                  </a>
-                </div>
+        <span>
+        <form class="col s12">
+          <div v-if="step == STEPS.NEW_OR_OPEN_FILE">
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn wizard-selector-btn"
+                  @click="step = STEPS.NOTEPAD_TYPE"
+                >
+                  <font-awesome-icon icon="plus"/>
+                  Создать новый блокнот
+                </a>
+                <span class="wizard-hinttext">
+                  Будет создан пустой блокнот
+                </span>
               </div>
             </div>
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn wizard-selector-btn"
+                  @click="$refs.import_file.click()"
+                >
+                  <font-awesome-icon icon="file-upload"/>
+                  Открыть резервную копию
+                </a>
+                <span v-if="import_file_error"
+                  class="red-text"
+                  style="display: block;"
+                >
+                  {{import_file_error}}
+                </span>
+                <span class="wizard-hinttext">
+                  Создайте блокнот из ранее созданной резервной копии
+                </span>
+              </div>
+            </div>
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn"
+                  @click="cancel_wizard"
+                >
+                  Отмена
+                </a>
+              </div>
+            </div>
+          </div>
 
-            <div v-else-if="step == STEPS.NOTEPAD_TYPE">
-              Тип блокнота
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn"
-                    @click="encrypted_notepad_selected"
-                  >
-                    <font-awesome-icon icon="lock"/>
-                    С шифрованием
-                  </a>
-                  <span class="wizard-hinttext">
-                    Записи блокнота будут надежно зашифрованы и будут доступны только после введения пароля
-                  </span>
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn"
-                    @click="plain_notepad_selected"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Без шифрования
-                  </a>
-                  <span class="wizard-hinttext">
-                    Записи блокнота не будут зашифрованы и будут храниться в открытом виде
-                  </span>
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left"
-                    @click="cancel_wizard"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Отмена
-                  </a>
-                </div>
+          <div v-else-if="step == STEPS.NOTEPAD_TYPE">
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn wizard-selector-btn"
+                  @click="encrypted_notepad_selected"
+                >
+                  <font-awesome-icon icon="lock"/>
+                  Зашировать записи
+                </a>
+                <span class="wizard-hinttext">
+                  Записи блокнота будут надежно зашифрованы и будут доступны только после введения пароля
+                </span>
               </div>
             </div>
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn wizard-selector-btn"
+                  @click="plain_notepad_selected"
+                >
+                  Без шифрования
+                </a>
+                <span class="wizard-hinttext">
+                  Записи блокнота не будут зашифрованы и будут храниться в открытом виде
+                </span>
+              </div>
+            </div>
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn"
+                  @click="cancel_wizard"
+                >
+                  Отмена
+                </a>
+              </div>
+            </div>
+          </div>
 
-            <div v-else-if="step == STEPS.NOTEPAD_NAME">
-              Название блокнота
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <input
-                    ref="add_name_input"
-                    placeholder="Название блокнота"
-                    type="text"
-                    class="validate"
-                    v-model="creation_info.notepad_name"
-                  >
-                  <span v-if="error_text"
-                    class="left red-text" style=""
-                  >
-                    {{error_text}}
-                  </span>
-                  <span class="wizard-hinttext">
-                    Данное название будет отображаться в списке блокнотов на главном экране приложения. Имя позднее можно изменить.
-                  </span>
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left"
-                    @click="cancel_wizard"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Отмена
-                  </a>
-                  <a class="waves-effect waves-light btn right"
-                    @click="finish_wizard"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Создать
-                  </a>
-                </div>
+          <div v-else-if="step == STEPS.NOTEPAD_NAME">
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <input
+                  ref="add_name_input"
+                  placeholder="Название блокнота"
+                  type="text"
+                  class="validate"
+                  v-model="creation_info.notepad_name"
+                >
+                <span v-if="error_text"
+                  class="left red-text" style=""
+                >
+                  {{error_text}}
+                </span>
+                <span class="wizard-hinttext">
+                  Данное название будет отображаться в списке блокнотов на главном экране приложения. Имя позднее можно изменить.
+                </span>
               </div>
             </div>
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn left"
+                  @click="cancel_wizard"
+                >
+                  <!-- <font-awesome-icon icon=""/> -->
+                  Отмена
+                </a>
+                <a class="waves-effect waves-light btn right"
+                  @click="finish_wizard"
+                >
+                  <!-- <font-awesome-icon icon=""/> -->
+                  Создать
+                </a>
+              </div>
+            </div>
+          </div>
 
-            <div v-else-if="step == STEPS.SECRET">
-              Секретная фраза
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <span class="wizard-secret">{{creation_info.secret.value}}</span>
-                  <span class="wizard-hinttext">
-                    Надежно сохраните данную секретную фразу, т.к. получить доступ к блокноту при утере пароля можно будет только при помощи нее.
-                  </span>                  
-                </div>
-              </div>
-              <div
-                class="row" style="margin-bottom: 0px;"
-              >
-                <div class="input-field col s12">
-                  <a class="waves-effect waves-light btn left"
-                    @click="cancel_wizard"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Отмена
-                  </a>
-                  <a class="waves-effect waves-light btn right"
-                    @click="goto_enter_name"
-                  >
-                    <!-- <font-awesome-icon icon=""/> -->
-                    Далее
-                  </a>
-                </div>
+          <div v-else-if="step == STEPS.SECRET">
+            Секретная фраза
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <span class="wizard-secret">{{creation_info.secret.value}}</span>
+                <span class="wizard-hinttext">
+                  Надежно сохраните данную секретную фразу, т.к. получить доступ к блокноту при утере пароля можно будет только при помощи нее.
+                </span>                  
               </div>
             </div>
-            <div v-else>
-              Произогла ошибка, перезагрузите страницу
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              <div class="input-field col s12">
+                <a class="waves-effect waves-light btn left"
+                  @click="cancel_wizard"
+                >
+                  <!-- <font-awesome-icon icon=""/> -->
+                  Отмена
+                </a>
+                <a class="waves-effect waves-light btn right"
+                  @click="goto_enter_name"
+                >
+                  <!-- <font-awesome-icon icon=""/> -->
+                  Далее
+                </a>
+              </div>
             </div>
-          </form>
-          </span>
-        </li>
-      </ul>
-    </span>
+          </div>
+          <div v-else>
+            Произогла ошибка, перезагрузите страницу
+          </div>
+        </form>
+        </span>
+      </li>
+    </ul>
   </full-screen-box>
 </template>
 <script>
@@ -432,12 +425,21 @@
 
   .wizard-hinttext {
     display: block;
+    text-align: left;
+    font-size: 12px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    line-height: 1.3em;    
   }
 
   .wizard-secret {
     display: block;
-    border: 1px solid white;
+    border: 1px solid;
     padding: 10px;
+  }
+
+  .wizard-selector-btn {
+    width: 100%;
   }
 
   /* .one-notepad-center {
