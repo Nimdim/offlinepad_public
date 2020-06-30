@@ -38,14 +38,21 @@
                 </div>
               </div>
             </div>
-            <!-- <div TODO
+            <div
               class="row" style="margin-bottom: 0px;"
             >
               <div class="input-field col s12">
-                Сложность: <span>{{complexity}}</span><br>
-                Примерное подбора: <span>{{avg_time}}</span>
+                <div v-for="(i, ix) in new Array(14)"
+                  :key="ix"
+                  class="complexity-line"
+                  :class="password_complexity_style(ix)"
+                />
+                <br>
+                <span style="float: left;">
+                  {{password_complexity_text}}
+                </span>
               </div>
-            </div> -->
+            </div>
             <div
               class="row" style="margin-bottom: 0px;"
             >
@@ -77,46 +84,46 @@
   import cryptobox from "./../js/cryptobox.js";
   import FullScreenBox from "./FullScreenBox.vue";
 
-  let human_time = function(secs) {
-    if(secs < 1) {
-        return {
-            word: "less than a second"
-        };
-    }
-    secs = Math.floor(secs / 60);
-    if(secs < 90) {
-        return {
-            number: secs,
-            word: "m"
-        }
-    }
-    secs = Math.floor(secs / 60);
-    if(secs < 36) {
-        return {
-            number: secs,
-            word: "h",
-        }
-    }
-    secs = Math.floor(secs / 24);
-    if(secs < 45) {
-        return {
-            number: secs,
-            word: "d",
-        }
-    }
-    secs = Math.floor(secs / 30);
-    if(secs < 18) {
-        return {
-            number: secs,
-            word: "month"
-        }
-    }
-    secs = Math.floor(secs / 12);
-    return {
-        number: secs,
-        word: "year",
-    }
-  };
+  // let human_time = function(secs) {
+  //   if(secs < 1) {
+  //       return {
+  //           word: "less than a second"
+  //       };
+  //   }
+  //   secs = Math.floor(secs / 60);
+  //   if(secs < 90) {
+  //       return {
+  //           number: secs,
+  //           word: "m"
+  //       }
+  //   }
+  //   secs = Math.floor(secs / 60);
+  //   if(secs < 36) {
+  //       return {
+  //           number: secs,
+  //           word: "h",
+  //       }
+  //   }
+  //   secs = Math.floor(secs / 24);
+  //   if(secs < 45) {
+  //       return {
+  //           number: secs,
+  //           word: "d",
+  //       }
+  //   }
+  //   secs = Math.floor(secs / 30);
+  //   if(secs < 18) {
+  //       return {
+  //           number: secs,
+  //           word: "month"
+  //       }
+  //   }
+  //   secs = Math.floor(secs / 12);
+  //   return {
+  //       number: secs,
+  //       word: "year",
+  //   }
+  // };
 
   export default {
     props: {
@@ -133,6 +140,26 @@
         }
         return null;
       },
+
+      password_complexity_text: function() {
+        switch(this.password_complexity) {
+          case "weak": return "Слабый пароль";
+          case "good": return "Хороший пароль";
+          case "secure": return "Надежный пароль";
+        }
+        return "";
+      },
+
+      password_complexity: function() {
+        console.log("bits", this.password_bits);
+        if(this.password_bits < 58) {
+          return "weak";
+        }
+        if(this.password_bits < 68) {
+          return "good";
+        }
+        return "secure";
+      }
     },
 
     data: function() {
@@ -142,6 +169,7 @@
         complexity: null,
         avg_time: null,
         input_type: "password",
+        password_bits: 0,
       };
       return data;
     },
@@ -153,18 +181,27 @@
 
     watch: {
       "password": function(password) {
-        let alphabet_size = cryptobox.calc_alphabet_size(password);
-        let combinations = Math.pow(alphabet_size, password.length);
-        let ht = human_time(combinations / 1000000000000);
-        if(ht.number == null) {
-            this.avg_time = ht.word;
-        } else {
-            this.avg_time = ht.number + " " + ht.word;
-        }
+        // let alphabet_size = cryptobox.calc_alphabet_size(password);
+        this.password_bits = cryptobox.calc_password_bits(password);
+        // let combinations = Math.pow(alphabet_size, password.length);
+        // let ht = human_time(combinations / 1000000000000);
+        // if(ht.number == null) {
+        //     this.avg_time = ht.word;
+        // } else {
+        //     this.avg_time = ht.number + " " + ht.word;
+        // }
       },
     },
 
     methods: {
+      password_complexity_style: function(ix) {
+        let result = [this.password_complexity];
+        if((ix + 1) * 5 < this.password_bits) {
+          result.push("filled");
+        }
+        return result;
+      },
+
       toggle_password: function() {
         if(this.input_type == "password") {
           this.input_type = "text";
@@ -185,4 +222,36 @@
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+  .complexity-line {
+    width: 13px;
+    height: 4px;
+    display: inline-block;
+    margin-left: 1px;
+    margin-right: 1px;
+    float: left;
+  }
+
+  .complexity-line.weak {
+    outline: red 1px solid;
+  }
+
+  .complexity-line.good {
+    outline: yellow 1px solid;
+  }
+
+  .complexity-line.secure {
+    outline: green 1px solid;
+  }
+
+  .complexity-line.weak.filled {
+    background-color: red;
+  }
+
+  .complexity-line.good.filled {
+    background-color: yellow;
+  }
+
+  .complexity-line.secure.filled {
+    background-color: green;
+  }
 </style>

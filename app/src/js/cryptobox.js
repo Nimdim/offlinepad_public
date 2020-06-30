@@ -117,10 +117,20 @@ let hash_hex = function(data) {
     return aesjs.utils.hex.toBytes(password_hash);
 };
 
+let calc_password_bits = function(password) {
+    if(password.length == 0) {
+        return 0;
+    }
+    let alphabet_size = calc_alphabet_size(password);
+    let bits_per_symbol = Math.log2(alphabet_size);
+    return bits_per_symbol * password.length;
+}
+
 export default {
     random_numbers_list,
     encrypt,
     decrypt,
     calc_alphabet_size,
     hash_hex,
+    calc_password_bits,
 };
