@@ -13,6 +13,11 @@
           <span class="left">
             <font-awesome-icon icon="th" />
             Пин-код
+            <span v-if="available_methods.pin"
+              class="highlight"
+            >
+              подключен
+            </span>
           </span><br>
           <span class="left wizard-hinttext"
           >
@@ -23,7 +28,7 @@
           <form class="col s12">
             <div class="row" style="margin: 0px;">
               <a
-                class="waves-effect waves-teal btn left"
+                class="waves-effect waves-teal btn left action-button"
                 style="width: 100%"
                 @click.prevent="$emit('set_pin')"
               >
@@ -32,7 +37,7 @@
               </a>
               <a
                 v-if="available_methods.pin"
-                class="waves-effect waves-teal btn right red"
+                class="waves-effect waves-teal btn right action-button"
                 style="width: 100%; margin-top: 10px;"
                 @click.prevent="$emit('delete_pin')"
               >
@@ -50,15 +55,20 @@
           <span class="left">
             <font-awesome-icon icon="key" />
             Пароль
+            <span v-if="available_methods.password"
+              class="highlight"
+            >
+              подключен
+            </span>
           </span><br>
           <span class="left wizard-hinttext">
             Открывайте блокнот удобным для вас паролем.
-            Открытие через пароль не зависит от наличия сети.
+            Хранится на устройстве и работает вне зависимости от наличия сети.
           </span>
           <form class="col s12">
             <div class="row" style="margin: 0px;">
               <a
-                class="waves-effect waves-teal btn left"
+                class="waves-effect waves-teal btn left action-button"
                 style="width: 100%"
                 @click.prevent="$emit('set_password')"
               >
@@ -67,7 +77,7 @@
               </a>
               <a
                 v-if="available_methods.password"
-                class="waves-effect waves-teal btn right red"
+                class="waves-effect waves-teal btn right action-button"
                 style="width: 100%; margin-top: 10px;"
                 @click.prevent="$emit('delete_password')"
               >
@@ -92,18 +102,18 @@
           <form class="col s12">
             <div class="row" style="margin: 0px;">
               <a v-if="encrypted"
-                class="waves-effect waves-teal btn"
+                class="waves-effect waves-teal btn action-button"
                 style="width: 100%;"
                 @click.prevent="$emit('export_encrypted')"
               >
                 Зашифрованная
               </a>
-              <span class="left wizard-hinttext">
+              <span v-if="encrypted" class="left wizard-hinttext">
                 Записи будут сохранены в зашифрованном виде.
                 Доступ к ним возможен только при наличии ключевой фразы.
               </span>
               <a
-                class="waves-effect waves-teal btn"
+                class="waves-effect waves-teal btn action-button"
                 style="width: 100%;"
                 @click.prevent="$emit('export_unencrypted')"
               >

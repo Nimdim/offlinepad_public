@@ -8,7 +8,11 @@
       >
         <span v-if="i == '_'">{{i}}</span>
         <!-- <span v-else>*</span> -->
-        <font-awesome-icon v-else icon="asterisk" />
+        <font-awesome-icon
+          v-else
+          icon="asterisk"
+          style="font-size: 9px;"
+        />
       </span>
     </div>
     <div

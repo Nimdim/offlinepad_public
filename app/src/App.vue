@@ -413,7 +413,6 @@
     <transition name="fade">
       <enter-password-screen v-if="enter_password"
         ref="enter_password_screen"
-        :title="enter_password"
         :available_methods="enter_password_available"
         :auth_method="current_auth_method"
         style="z-index: 2002"
@@ -1324,8 +1323,6 @@ export default {
     },
 
     authenticate: async function(notepad_id) {
-      let title = "Введите пароль";
-      
       let password_secret = await notepads_list.get_password_secret(notepad_id);
       let pin_secret = await notepads_list._get_pin_secret(notepad_id);
       this.current_auth_method = await notepads_list.get_current_auth_method(notepad_id);
@@ -1336,7 +1333,7 @@ export default {
       };
       this.enter_password_available = available_items;
 
-      this.enter_password = title;
+      this.enter_password = true;
       let promise = new Promise((resolve) => {
         this.enter_password_callback = async (info) => {
 

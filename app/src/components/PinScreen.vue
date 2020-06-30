@@ -10,7 +10,7 @@
           <form class="col s12">
             <div>
               <span>
-                Выберите pin
+                Введите новый ПИН
               </span><br>
               <pin-pad
                 style="margin: 20px auto;"

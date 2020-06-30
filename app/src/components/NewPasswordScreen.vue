@@ -10,7 +10,7 @@
           <form class="col s12">
             <div>
               <span>
-                Выберите пароль
+                Введите новый пароль
               </span>
               <div
                 class="row" style="margin-bottom: 0px;"
@@ -18,8 +18,8 @@
                 <div class="input-field col s12">
                   <input
                     ref="add_name_input"
-                    placeholder="Пароль"
-                    type="text"
+                    placeholder=""
+                    :type="input_type"
                     class="validate"
                     v-model="password"
                   >
@@ -28,6 +28,13 @@
                   >
                     {{error_text}}
                   </span>
+                  <a class="waves-effect waves-light btn left action-button"
+                    style="width: 100%;"
+                    @click="toggle_password"
+                  >
+                    <font-awesome-icon icon="eye"
+                    />
+                  </a>
                 </div>
               </div>
             </div>
@@ -42,13 +49,17 @@
             <div
               class="row" style="margin-bottom: 0px;"
             >
-              <div class="input-field col s12">
-                <a class="waves-effect waves-light btn left red"
+              <div class="input-field col s6">
+                <a class="waves-effect waves-light btn left action-button"
+                  style="width: 100%;"
                   @click="$emit('cancel')"
                 >
                   <font-awesome-icon icon="times-circle"/>
                 </a>
-                <a class="waves-effect waves-light btn right"
+              </div>
+              <div class="input-field col s6">
+                <a class="waves-effect waves-light btn right action-button"
+                  style="width: 100%;"
                   @click="submit"
                 >
                   <font-awesome-icon icon="check"/>
@@ -130,6 +141,7 @@
         error: null,
         complexity: null,
         avg_time: null,
+        input_type: "password",
       };
       return data;
     },
@@ -153,6 +165,14 @@
     },
 
     methods: {
+      toggle_password: function() {
+        if(this.input_type == "password") {
+          this.input_type = "text";
+        } else {
+          this.input_type = "password";
+        }
+      },
+
       submit: function() {
         if(this.password == "") {
           this.error = "empty";

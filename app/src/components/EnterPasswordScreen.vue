@@ -12,9 +12,12 @@
       >
         <span>
           <form class="col s12">
-            <div class="row" style="margin-bottom: 0px;">
+            <div
+              class="row"
+              style="margin-bottom: 0px;"
+            >
               <div class="input-field col s12">
-                <span>{{title}}</span>
+                <span>Для продолжения авторизуйтесь</span>
               </div>
             </div>
             <div class="row" style="margin-bottom: 0px;">
@@ -38,7 +41,7 @@
                   :class="{'active': current_method=='pin', 'disabled': !available_methods['pin']}"
                   @click="set_current_method('pin')"
                 >
-                  Онлайн-ПИН
+                  ПИН
                 </span>
               </div>
             </div>
@@ -56,8 +59,8 @@
                   v-model="password"
                   show-password
                 >
-                <a class="waves-effect waves-light btn left"
-                  style="width: 100%"
+                <a class="waves-effect waves-light btn left action-button"
+                  style="width: 100%;"
                   @click="toggle_password"
                 >
                   <font-awesome-icon icon="eye"
@@ -76,15 +79,17 @@
               v-if="current_method != 'pin'"
               class="row" style="margin-bottom: 0px;"
             >
-              <div class="input-field col s12">
-                <a class="waves-effect waves-light btn left red"
-                  style="width: 80px;"
+              <div class="input-field col s6">
+                <a class="waves-effect waves-light btn left action-button"
+                  style="width: 100%;"
                   @click="$emit('cancel')"
                 >
                   <font-awesome-icon icon="times-circle"/>
                 </a>
-                <a class="waves-effect waves-light btn right"
-                  style="width: 80px;"
+              </div>
+              <div class="input-field col s6">
+                <a class="waves-effect waves-light btn right action-button"
+                  style="width: 100%;"
                   @click="$emit('submit', {'method': current_method, 'value': password})"
                 >
                   <font-awesome-icon icon="check"/>
@@ -111,7 +116,6 @@
 
   export default {
     props: {
-      "title": String,
       "items": Array,
       "available_methods": Object,
       "auth_method": {
@@ -158,8 +162,8 @@
         current_method: current_method,
         show_password: false,
         secret_placeholder: {
-          "passphrase": "Защитная фраза",
-          "password": "Пароль",
+          "passphrase": "",
+          "password": "",
           "pin": "Пин",
         },
         password: "",
@@ -211,7 +215,7 @@
   .text-selector {
     cursor: pointer;
     display: inline-block;
-    width: 90px;
+    width: 60px;
   }
 
   .text-selector.active {
