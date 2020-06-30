@@ -1,17 +1,18 @@
 <template>
   <div style="width: 180px; height: 260px;" v-if="entering">
     <div
-      class="row" style="margin-bottom: 0px;"
+      class="row"
     >
       <span v-for="(i, ix) in pin" :key="ix"
         class="pin-number"
       >
         <span v-if="i == '_'">{{i}}</span>
-        <span v-else>*</span>
+        <!-- <span v-else>*</span> -->
+        <font-awesome-icon v-else icon="asterisk" />
       </span>
     </div>
     <div
-      class="row" style="margin-bottom: 0px;"
+      class="row"
       ref="pin_pad"
     >
       <div>
@@ -63,7 +64,7 @@
         <span class="pin-button"
           @click="cancel"
         >
-          #
+          <font-awesome-icon icon="times-circle" />
         </span>
         <span class="pin-button"
           @click="press_pin('0')"
@@ -73,7 +74,7 @@
         <span class="pin-button"
           @click="clear"
         >
-          &lt;
+          <font-awesome-icon icon="backspace" />
         </span>
       </div>
     </div>
@@ -199,6 +200,7 @@
     height: 40px;
     margin: 10px;
     padding: 9px;
+    font-size: 18px;
   }
 
   /* .pin-button:hover {
@@ -209,5 +211,6 @@
   .pin-number {
     /* display: inline-block; */
     margin: 0 10px;
+    font-size: 16px;
   }
 </style>

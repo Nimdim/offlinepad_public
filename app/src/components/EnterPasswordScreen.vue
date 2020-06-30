@@ -1,5 +1,9 @@
 <template>
-  <full-screen-box :top="true" :fullscreen="true">
+  <full-screen-box
+    :top="true"
+    :fullscreen="true"
+    style="background-color: rgba(0, 0, 0, 0.5);"
+  >
     <ul
       class="collection notepads-selector block-center"
       style="border: unset;"
@@ -74,11 +78,13 @@
             >
               <div class="input-field col s12">
                 <a class="waves-effect waves-light btn left red"
+                  style="width: 80px;"
                   @click="$emit('cancel')"
                 >
                   <font-awesome-icon icon="times-circle"/>
                 </a>
                 <a class="waves-effect waves-light btn right"
+                  style="width: 80px;"
                   @click="$emit('submit', {'method': current_method, 'value': password})"
                 >
                   <font-awesome-icon icon="check"/>

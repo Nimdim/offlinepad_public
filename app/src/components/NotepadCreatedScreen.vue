@@ -7,7 +7,7 @@
       <div class="row">
         <font-awesome-icon
           icon="check"
-          style="width: 100px; height: 100px;"
+          class="message-icon"
         /><br>
         <span>
             Блокнот успешно создан

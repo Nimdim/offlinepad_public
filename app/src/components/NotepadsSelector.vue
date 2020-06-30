@@ -18,7 +18,30 @@
         class="collection notepads-selector"
         style="margin-top: 10px; margin-bottom: 20px;"
       >
-        <notepads-selector-item
+        <li class="collection-item"
+        >
+          <a v-for="item in items"
+            :key="item.id"
+            class="waves-effect waves-teal btn"
+            style="width: 100%; margin-bottom: 10px; background-color: #2b3c46;"
+            @click.prevent="open_handler(item)"
+          >
+            <font-awesome-icon
+              v-if="item.encrypted"
+              style="margin-right: 5px;"
+              icon="lock"
+            />
+            <span class="">{{item.notepad_name}}</span>
+          </a>
+          <a
+            class="waves-effect waves-teal btn"
+            style="width: 100%; background-color: #2b3c46;"
+            @click="$emit('start-creation-wizard')"
+          >
+            <font-awesome-icon icon="plus"/>
+          </a>
+        </li>
+        <!-- <notepads-selector-item
           v-for="item in items" :key="item.id"
           :item="item"
           @click="open_handler(item)"
@@ -28,16 +51,15 @@
         >
           <span>
             <font-awesome-icon icon="plus"/>
-            <!-- создать блокнот -->
           </span>
-        </li>
+        </li> -->
       </ul>
     </span>
   </full-screen-box>
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
-  import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
+  // import NotepadsSelectorItem from "./NotepadsSelectorItem.vue";
 
   export default {
     props: {
@@ -46,7 +68,7 @@
     
     components: {
       FullScreenBox,
-      NotepadsSelectorItem,
+      // NotepadsSelectorItem,
     },
 
     computed: {

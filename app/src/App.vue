@@ -448,6 +448,8 @@
 
     <transition name="fade">
       <message-screen v-if="message"
+        :icon="message_icon"
+        :icon_class="message_icon_class"
         :title="message"
         style="z-index: 2002"
         @close="message = null"
@@ -607,6 +609,9 @@ export default {
       enter_password_callback: null,
 
       message: null,
+      message_icon: null,
+      message_icon_class: null,
+
       prompt: null,
       prompt_callback: null,
 
@@ -948,9 +953,9 @@ export default {
         notepad_id, new_password, secret
       );
       if(!result) {
-        this.message = "Не удалось задать пароль";
+        this.show_message("Не удалось задать пароль", false);
       } else {
-        this.message = "Пароль установлен";
+        this.show_message("Пароль установлен", true);
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
@@ -966,7 +971,7 @@ export default {
       this.enter_password_cancel();
       await notepads_list.delete_password_secret(notepad_id);
 
-      this.message = this.translate_message("password deleted");
+      this.show_message(this.translate_message("password deleted"), true);
       await sleep(0.25);
       this.loadscreen_visible = false;
       this.update_available_methods();
@@ -993,13 +998,24 @@ export default {
       );
 
       if(!result) {
-        this.message = "Не удалось задать пин";
+        this.show_message("Не удалось задать пин", false);
       } else {
-        this.message = "Пин установлен";
+        this.show_message("Пин установлен", true);
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
       this.update_available_methods();
+    },
+
+    show_message: function(message, ok) {
+      if(ok) {
+        this.message_icon = "check";
+        this.message_icon_class = "green-text";
+      } else {
+        this.message_icon = "exclamation-triangle";
+        this.message_icon_class = "deep-orange-text darken-4-text";
+      }
+      this.message = message;
     },
 
     update_available_methods: async function() {
@@ -1017,9 +1033,9 @@ export default {
       this.enter_password_cancel();
       let result = await notepads_list.delete_pin_secret(notepad_id);
       if(result.error == "ok") {
-        this.message = this.translate_message("pin deleted");
+        this.show_message(this.translate_message("pin deleted"), true);
       } else {
-        this.message = this.translate_message(result.error);
+        this.show_message(this.translate_message(result.error), false);
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
@@ -1326,7 +1342,7 @@ export default {
 
           let secret = await notepads_list.process_secret(info, notepad_id);
           if(!_.isArray(secret)) {
-            this.message = this.translate_message(secret);
+            this.show_message(this.translate_message(secret), false);
             await sleep(0.25);
             utils.vibrate("error");
             this.$refs.enter_password_screen.reset();
@@ -1334,7 +1350,7 @@ export default {
           }
 
           if(!await this.check_notepad_secret(secret, notepad_id)) {
-            this.message = this.translate_message("wrong secret");
+            this.show_message(this.translate_message("wrong secret"), false);
             await sleep(0.25);
             utils.vibrate("error");
             return;
@@ -1386,7 +1402,7 @@ export default {
 
       notepad = await notepads_list.open(id, options);
       if(_.isString(notepad)) {
-        this.message = this.translate_message(notepad);
+        this.show_message(this.translate_message(notepad), false);
       } else {
         this.notepad_register(notepad);
         notepad._reset_info();

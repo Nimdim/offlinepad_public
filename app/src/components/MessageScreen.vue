@@ -1,5 +1,11 @@
 <template>
   <full-screen-box :top="true">
+    <font-awesome-icon
+      v-if="icon"
+      :icon="icon"
+      :class="icon_class"
+      class="message-icon"
+    /><br>
     <span v-for="line in title.split('\n')" :key="line">
         {{line}}<br>
     </span>
@@ -21,11 +27,19 @@
         type: String,
         default: "Вы уверены",
       },
+      icon: {
+        type: String,
+        default: null,
+      },
+      icon_class: {
+        type: String,
+        default: null,
+      },
     },
 
     components: {
       FullScreenBox,
-    }
+    },
   }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

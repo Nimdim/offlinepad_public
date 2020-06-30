@@ -10,6 +10,11 @@ p {
   margin: unset;
 }
 
+.message-icon {
+  width: 100px !important;
+  height: 100px !important;
+}
+
 .sidenav li.active > a {
   padding-left: 28px;
 }
