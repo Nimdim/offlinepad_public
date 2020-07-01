@@ -8,16 +8,20 @@
     <div class="row">
       <a
         class="waves-effect waves-teal btn button-space"
+        :class="submit_class"
         @click.prevent="$emit('submit')"
       >
-        <font-awesome-icon icon="check" />
+        <span v-if="submit_text">{{submit_text}}</span>
+        <font-awesome-icon v-else icon="check" />
       </a>
 
       <a
-        class="waves-effect waves-teal btn red"
+        class="waves-effect waves-teal btn"
+        :class="cancel_class"
         @click.prevent="$emit('cancel')"
       >
-        <font-awesome-icon icon="times-circle" />
+        <span v-if="cancel_text">{{cancel_text}}</span>
+        <font-awesome-icon v-else icon="times-circle" />
       </a>
     </div>
   </full-screen-box>
@@ -31,6 +35,45 @@
         type: String,
         default: "Вы уверены",
       },
+      options: {},
+    },
+
+    computed: {
+      submit_class: function() {
+        let result = [];
+        if(this.swap_colors) {
+          result.push("red");
+        }
+        return result;
+      },
+
+      cancel_class: function() {
+        let result = [];
+        if(!this.swap_colors) {
+          result.push("red");
+        }
+        return result;
+      },
+    },
+
+    data: function() {
+      let data = {
+        swap_colors: false,
+        submit_text: null,
+        cancel_text: null,
+      };
+      if(this.options != null) {
+        if(this.options.swap_colors) {
+          data.swap_colors = this.options.swap_colors;
+        }
+        if(this.options.submit_text) {
+          data.submit_text = this.options.submit_text;
+        }
+        if(this.options.cancel_text) {
+          data.cancel_text = this.options.cancel_text;
+        }
+      }
+      return data;
     },
 
     components: {

@@ -41,18 +41,38 @@
             <div
               class="row" style="margin-bottom: 0px;"
             >
-              <div class="input-field col s12">
-                <div v-for="(i, ix) in new Array(14)"
-                  :key="ix"
-                  class="complexity-line"
-                  :class="password_complexity_style(ix)"
-                />
-                <br>
-                <span style="float: left;">
+              <div
+                class="input-field col s12"
+                style="margin: 0px;"
+              >
+                <div>
+                  <div v-for="(i, ix) in new Array(14)"
+                    :key="ix"
+                    class="complexity-line"
+                    :class="password_complexity_style(ix)"
+                  />
+                </div>
+                <span style="float: left;" class="wizard-hinttext">
                   {{password_complexity_text}}
                 </span>
               </div>
             </div>
+
+            <div
+              class="row" style="margin-bottom: 0px;"
+            >
+              Введите пароль еще раз
+              <div class="input-field col s12">
+                <input
+                  ref="add_name_input_repeat"
+                  placeholder=""
+                  :type="input_type"
+                  class="validate"
+                  v-model="password_repeat"
+                >
+              </div>
+            </div>
+
             <div
               class="row" style="margin-bottom: 0px;"
             >
@@ -138,6 +158,9 @@
         if(this.error == "empty") {
           return "Пароль не может быть пустым";
         }
+        if(this.error == "not equal") {
+          return "Пароли не совпадают";
+        }
         return null;
       },
 
@@ -151,7 +174,6 @@
       },
 
       password_complexity: function() {
-        console.log("bits", this.password_bits);
         if(this.password_bits < 58) {
           return "weak";
         }
@@ -165,6 +187,7 @@
     data: function() {
       let data = {
         password: "",
+        password_repeat: "",
         error: null,
         complexity: null,
         avg_time: null,
@@ -213,6 +236,8 @@
       submit: function() {
         if(this.password == "") {
           this.error = "empty";
+        } else if (this.password != this.password_repeat) {
+          this.error = "not equal";
         } else {
           this.$emit("submit", this.password);
         }
@@ -226,32 +251,36 @@
     width: 13px;
     height: 4px;
     display: inline-block;
-    margin-left: 1px;
-    margin-right: 1px;
+    margin-left: 0px;
+    margin-right: 3px;
     float: left;
+    border: 1px solid;
   }
 
   .complexity-line.weak {
-    outline: red 1px solid;
+    border-color: gray;
   }
 
   .complexity-line.good {
-    outline: yellow 1px solid;
+    border-color: gray;
   }
 
   .complexity-line.secure {
-    outline: green 1px solid;
+    border-color: gray;
   }
 
   .complexity-line.weak.filled {
     background-color: red;
+    border-color: red;
   }
 
   .complexity-line.good.filled {
     background-color: yellow;
+    border-color: yellow;
   }
 
   .complexity-line.secure.filled {
     background-color: green;
+    border-color: green;
   }
 </style>

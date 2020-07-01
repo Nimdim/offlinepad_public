@@ -25,11 +25,8 @@
     >
       <li>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
-          <span v-if="notes_filter_tags.length != 0">
+          <span>
             Фильтр по тегам:<br>
-          </span>
-          <span v-else>
-            Для добавления тега в фильтр нажмите на кнопку
           </span>
           <tags-list
             :initial_tags="notes_filter_tags"
@@ -37,9 +34,11 @@
             @change="notes_filter_tags = $event"
           />
         </p>
-        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px; color: white;">
+        <p
+          style="max-width: 800px; margin: 15px auto; padding: 0px 20px; color: white;"
+        >
           Записей: {{notes.count}}
-          <a v-if="!add_note_filter_show"
+          <a v-if="!add_note_filter_show && notes_filter_tags.length > 0"
             class="waves-effect waves-teal btn-small right tag_delete_btn"
             @click.prevent="note_filter_add_gui_show">
             Создать раздел
@@ -404,6 +403,7 @@
     <transition name="fade">
       <prompt-screen v-if="prompt"
         :title="prompt"
+        :options="prompt_options"
         style="z-index: 2002"
         @submit="prompt_callback"
         @cancel="prompt_cancel"
@@ -591,6 +591,8 @@ export default {
         password: false,
       },
 
+      notifications: [],
+
       notepad_created: false,
       notepad_created_callback: null,
       test_remote: false,
@@ -612,6 +614,7 @@ export default {
       message_icon_class: null,
 
       prompt: null,
+      propmpt_options: null,
       prompt_callback: null,
 
       startup: true,
@@ -868,7 +871,12 @@ export default {
 
     notepad_delete_handler: async function() {
       let notepad_id = this.info.id;
-      let accept = await this.show_prompt('Вы уверены, что хотите удалить блокнот?');
+      let options = {
+        swap_colors: true,
+        submit_text: "Удалить",
+        cancel_text: "Отмена",
+      };
+      let accept = await this.show_prompt('Вы уверены, что хотите удалить блокнот?', options);
       if(accept) {
 
         if(this.info.encrypted) {
@@ -1041,19 +1049,15 @@ export default {
       this.update_available_methods();
     },
 
-    show_prompt: function(title, callback) {
-      if(callback != null) {
-        this.prompt_callback = callback;
+    show_prompt: function(title, options) {
+      let promise = new Promise((resolve) => {
+        this.prompt_callback = () => {
+          resolve(true);
+        };
+        this.prompt_options = options;
         this.prompt = title;
-      } else {
-        let promise = new Promise((resolve) => {
-          this.prompt_callback = () => {
-            resolve(true);
-          };
-          this.prompt = title;
-        });
-        return promise;
-      }
+      });
+      return promise;
     },
 
     prompt_cancel: function() {
@@ -1710,8 +1714,13 @@ export default {
 
     export_unencrypted_handler: async function() {
       if(this.info.encrypted) {
+        let options = {
+          swap_colors: true,
+          submit_text: "Сохранить",
+          cancel_text: "Отмена",
+        };
         let accept = await this.show_prompt(
-          'Вы уверены, что сохранить незашифрованную резерную копию?');
+          'Вы уверены, что сохранить незашифрованную резерную копию?', options);
         if(!accept) {
           return;
         }
