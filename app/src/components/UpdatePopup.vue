@@ -1,6 +1,6 @@
 <template>
   <div
-    class="col s12 m7 message_popup"
+    class="col s12 m7"
     :class="{'editing': update_step != 'initial'}"
   >
     <div class="card horizontal">

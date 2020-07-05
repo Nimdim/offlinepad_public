@@ -212,6 +212,12 @@ class Notepad {
         this.trigger("reset_info", this._state.info);
     }
 
+    save_info(info) {
+        let copy = _.cloneDeep(info);
+        delete copy.id;
+        this._storage.edit_item_in_store_using_index("settings", "name_idx", "info", copy);
+    }
+
     _clear() {
         this.trigger("reset_tags", []);
         this.trigger("reset_notes", []);

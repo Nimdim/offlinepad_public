@@ -1,29 +1,30 @@
 <template>
   <full-screen-box :top="true" :fullscreen="true">
     <span>
-      <span v-if="items.length > 0"
-        class="notepads-selector"
-        style="display: block; margin: 0 auto; margin-top: 10px;"
-        @click="$emit('test_remote')"
-      >
-        Блокноты
-      </span>
-      <span v-else
-        class="notepads-selector"
-        style="display: block; margin: 0 auto; margin-bottom: 10px;"
-      >
-        У вас пока еще не создано ни одного блокнота. Создайте новый.
-      </span>
       <ul
         class="collection notepads-selector"
         style="margin-top: 10px; margin-bottom: 20px;"
       >
         <li class="collection-item"
         >
+          <span v-if="items.length > 0"
+            class="unselectable"
+            style="display: block; margin: 0 auto; margin-top: 5px; margin-bottom: 10px;"
+            @click="$emit('test_remote')"
+          >
+            Блокноты
+          </span>
+          <span v-else
+            class="unselectable"
+            style="display: block; margin: 0 auto; margin-top: 5px; margin-bottom: 10px;"
+          >
+            У вас пока еще не создано ни одного блокнота. Создайте новый.
+          </span>
+
           <a v-for="item in items"
             :key="item.id"
-            class="waves-effect waves-teal btn"
-            style="width: 100%; margin-bottom: 10px; background-color: #2b3c46;"
+            class="waves-effect waves-teal btn notepads-selector-item"
+            style="width: 100%; margin-bottom: 10px;"
             @click.prevent="open_handler(item)"
           >
             <font-awesome-icon
@@ -34,8 +35,8 @@
             <span class="">{{item.notepad_name}}</span>
           </a>
           <a
-            class="waves-effect waves-teal btn"
-            style="width: 100%; background-color: #2b3c46;"
+            class="waves-effect waves-teal btn notepads-selector-item"
+            style="width: 100%;"
             @click="$emit('start-creation-wizard')"
           >
             <font-awesome-icon icon="plus"/>

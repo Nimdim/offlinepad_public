@@ -110,6 +110,11 @@ class IndexedDBStorage {
                                 result.secret_check, this._options.secret
                             );
                         }
+                        if(result.settings != null) {
+                            result.settings = cryptobox.encrypt_json(
+                                result.settings, this._options.secret
+                            );
+                        }
                     }
                     break;
             }
@@ -135,6 +140,11 @@ class IndexedDBStorage {
                     if(result.name == "info") {
                         if(result.secret_check != null) {
                             result.secret_check = cryptobox.decrypt(result.secret_check, this._options.secret);
+                        }
+                        if(result.settings != null) {
+                            result.settings = cryptobox.decrypt_json(
+                                result.settings, this._options.secret
+                            );
                         }
                     }
                     break;
@@ -327,6 +337,29 @@ class IndexedDBStorage {
             let request = store.get(id);
             request.onsuccess = () => {
                 item = request.result;
+                item = this.decrypt_item(item, store_name);
+                _.extend(item, new_values);
+                item = this.encrypt_item(item, store_name);
+                store.put(item);
+            };
+            transaction.oncomplete = () => {
+                resolve();
+            };
+            transaction.onerror = () => {
+                reject();
+            }
+        });
+        return promise;
+    }
+
+    edit_item_in_store_using_index(store_name, index_name, id, new_values) {
+        let promise = new Promise((resolve, reject) => {
+            let transaction = this.db.transaction(store_name, "readwrite");
+            let store = transaction.objectStore(store_name);
+            let index = store.index(index_name);
+            let request = index.get(id);
+            request.onsuccess = () => {
+                let item = request.result;
                 item = this.decrypt_item(item, store_name);
                 _.extend(item, new_values);
                 item = this.encrypt_item(item, store_name);

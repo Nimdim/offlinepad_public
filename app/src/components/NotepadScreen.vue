@@ -6,6 +6,36 @@
       class="collection"
       style="margin-top: 70px;"
     >
+
+      <li
+        class="collection-item"
+      >
+        <span>
+          <span class="left">
+            <font-awesome-icon icon="th" />
+            Название блокнота
+          </span><br>
+          <form class="col s12">
+            <div class="row" style="margin: 0px;">
+              <input
+                ref="add_name_input"
+                placeholder=""
+                type="text"
+                class="validate"
+                v-model="notepad_name_local"
+              >
+              <a
+                class="waves-effect waves-teal btn left action-button"
+                style="width: 100%"
+                @click.prevent="$emit('change_notepad_name', notepad_name_local)"
+              >
+                <span>Изменить</span>
+              </a>
+            </div>
+          </form>
+        </span>
+      </li>
+
       <li v-if="encrypted"
         class="collection-item"
       >
@@ -96,7 +126,8 @@
             Резервная копия
           </span>
           <span class="left wizard-hinttext">
-            Резервные копии позволят вам защитить ваши данные от потери,
+            Резервные копии позволят вам не потерять ваши данные при
+            утере или поломке устройства,
             а также при переносе записей на другое устройство.
           </span>
           <form class="col s12">
@@ -117,9 +148,10 @@
                 style="width: 100%;"
                 @click.prevent="$emit('export_unencrypted')"
               >
-                Незашифрованная
+                <span v-if="encrypted">Незашифрованная</span>
+                <span v-else>Создать</span>
               </a>
-              <span class="left wizard-hinttext">
+              <span class="left wizard-hinttext" v-if="encrypted">
                 Записи блокнота будут сохранены в файл в исходном виде.
               </span>
             </div>
@@ -151,6 +183,10 @@
 
   export default {
     props: {
+      notepad_name: {
+        type: String,
+        required: true,
+      },
       encrypted: {
         type: Boolean,
         default: false,
@@ -159,6 +195,13 @@
         type: Object,
         default: () => { return {}; },
       },
+    },
+
+    data: function() {
+      let data = {
+        notepad_name_local: this.notepad_name,
+      };
+      return data;
     },
 
     components: {

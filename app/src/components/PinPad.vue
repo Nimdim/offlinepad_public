@@ -6,7 +6,12 @@
       <span v-for="(i, ix) in pin" :key="ix"
         class="pin-number"
       >
-        <span v-if="i == '_'">{{i}}</span>
+        <span
+          class="unselectable"
+          v-if="i == '_'"
+        >
+          {{i}}
+        </span>
         <!-- <span v-else>*</span> -->
         <font-awesome-icon
           v-else
@@ -20,62 +25,62 @@
       ref="pin_pad"
     >
       <div>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('1')"
         >
           1
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('2')"
         >
           2
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('3')"
         >
           3
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('4')"
         >
           4
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('5')"
         >
           5
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('6')"
         >
           6
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('7')"
         >
           7
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('8')"
         >
           8
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('9')"
         >
           9
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="cancel"
         >
           <font-awesome-icon icon="times-circle" />
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="press_pin('0')"
         >
           0
         </span>
-        <span class="pin-button"
+        <span class="pin-button unselectable"
           @click="clear"
         >
           <font-awesome-icon icon="backspace" />

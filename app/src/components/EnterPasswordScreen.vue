@@ -17,27 +17,31 @@
               style="margin-bottom: 0px;"
             >
               <div class="input-field col s12">
-                <span>Для продолжения авторизуйтесь</span>
+                <span
+                  class="unselectable"
+                >
+                  Для продолжения авторизуйтесь
+                </span>
               </div>
             </div>
             <div class="row" style="margin-bottom: 0px;">
               <div class="input-field col s12">
                 <span
-                  class="left text-selector"
+                  class="left text-selector unselectable"
                   :class="{'active': current_method=='passphrase'}"
                   @click="set_current_method('passphrase')"
                 >
                   Фраза
                 </span>
                 <span
-                  class="text-selector"
+                  class="text-selector unselectable"
                   :class="{'active': current_method=='password', 'disabled': !available_methods['password']}"
                   @click="set_current_method('password')"
                 >
                   Пароль
                 </span>
                 <span
-                  class="right text-selector"
+                  class="right text-selector unselectable"
                   :class="{'active': current_method=='pin', 'disabled': !available_methods['pin']}"
                   @click="set_current_method('pin')"
                 >

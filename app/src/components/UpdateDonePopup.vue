@@ -1,12 +1,12 @@
 <template>
-  <div class="col s12 m7 message_popup">
+  <div class="col s12 m7">
     <div class="card attention horizontal">
       <div class="card-stacked">
         <div class="card-content">
           <p>
             Обновление выполнено
             <font-awesome-icon
-              class="grey_icon"
+              class="grey_icon popup-close"
               icon="times"
               style="margin-left: 10px;"
               @click.prevent="$emit('close')" />

@@ -63,20 +63,20 @@ nav,
   color: darkorange;
 }
 
-.chip {
-  background-color: #2b3c46;
-}
-
 .theme--text-color {
   color:white;
 }
 
+.chip,
+.notepads-selector-item,
 .toggle-extended-filter-btn,
 .toggle-extended-filter-btn:focus,
 .toggle-extended-filter-btn:hover {
   background-color: #2b3c46;
 }
 
+.countdown,
+.time-pointer,
 .toggle-extended-filter-btn.active,
 .toggle-extended-filter-btn.active:focus,
 .toggle-extended-filter-btn.active:hover {

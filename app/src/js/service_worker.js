@@ -51,12 +51,12 @@ class ServiceWorkerAPI {
 
   start_updates_checking() {
     this.check_updates();
-    setInterval(
-      () => {
-        this.check_updates()
-      },
-      5 * 1000
-    );
+    // setInterval(
+    //   () => {
+    //     this.check_updates()
+    //   },
+    //   5 * 1000
+    // );
   }
 
   check_updates() {
@@ -71,7 +71,10 @@ class ServiceWorkerAPI {
         }
       );
     } else {
-        this._registration.update();
+      this._registration.update();
+      setTimeout(
+        () => { this.check_updates(); }, 5000
+      );
     }
   }
 

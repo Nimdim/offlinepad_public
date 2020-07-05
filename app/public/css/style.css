@@ -210,6 +210,16 @@ input[type=password]:not(.browser-default) {
   margin-bottom: 4px;
 }
 
+.popup-close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.popup {
+  width: 215px;
+}
+
 textarea.materialize-textarea {
   margin: 0;
 }
@@ -226,12 +236,6 @@ textarea.materialize-textarea {
 
 .width-eq-parent {
   width: 100%;
-}
-
-.message_popup {
-  position: fixed;
-  left: 10px;
-  bottom: -5px;
 }
 
 .social-button {

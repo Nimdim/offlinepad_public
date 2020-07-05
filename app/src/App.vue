@@ -113,6 +113,7 @@
 
     <notepad-screen v-if="section == 'notepad' && notepad_working"
       :encrypted="encrypted"
+      :notepad_name="info.notepad_name"
       :available_methods="available_methods"
       @export_encrypted="export_encrypted"
       @export_unencrypted="export_unencrypted_handler"
@@ -121,6 +122,7 @@
       @delete_password="delete_password_for_notepad"
       @set_pin="set_pin_for_notepad"
       @delete_pin="delete_pin_for_notepad"
+      @change_notepad_name="change_notepad_name"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -383,22 +385,55 @@
       />
     </transition>
 
-    <transition name="fade">
+    <div style="position: absolute; left: 30px; bottom: 30px; z-index: 2002;">
+      <div v-for="(notification, i) in notifications" :key="i"
+      >
+        <transition v-if="notification.type == 'update available'" name="fade">
+          <update-popup
+            style="z-index: 2002"
+            :version="notification.available"
+            @focus="blockerscreen_visible = $event"
+            @update="update_service_worker"
+          />
+        </transition>
+        <transition v-else-if="notification.type == 'update done'" name="fade">
+          <update-done-popup
+            style="z-index: 2002"
+            :version="app_version"
+            @close="notifications.splice(i, 1)"
+          />
+        </transition>
+        <transition v-else-if="notification.type == 'helper'" name="fade">
+          <helper-popup
+            style="z-index: 2002"
+            :text="notification.text"
+            :actions="notification.actions"
+            :hide_delay="notification.hide_delay"
+            @close="notifications.splice(i, 1)"
+          />
+        </transition>
+        <div v-else>
+          Неизвестный тип уведомления
+        </div>
+      </div>
+    </div>
+
+    <!-- <transition name="fade">
       <update-popup v-if="update_available"
         style="z-index: 2002"
         :version="update_available"
         @focus="blockerscreen_visible = $event"
         @update="update_service_worker"
       />
-    </transition>
+    </transition> -->
 
-    <transition name="fade">
+    <!-- <transition name="fade">
       <update-done-popup v-if="update_done"
         style="z-index: 2002"
         :version="app_version"
         @close="update_done = false"
       />
-    </transition>
+    </transition> -->
 
     <transition name="fade">
       <prompt-screen v-if="prompt"
@@ -510,6 +545,7 @@ import UpdatePopup from './components/UpdatePopup.vue'
 import UpdateDonePopup from './components/UpdateDonePopup.vue'
 import RemoteScreen from './components/RemoteScreen.vue'
 import NotepadCreatedScreen from './components/NotepadCreatedScreen.vue'
+import HelperPopup from './components/HelperPopup.vue'
 
 import sanitize_html from 'sanitize-html'
 
@@ -582,6 +618,7 @@ export default {
     UpdateDonePopup,
     RemoteScreen,
     NotepadCreatedScreen,
+    HelperPopup,
   },
 
   data: function() {
@@ -636,8 +673,8 @@ export default {
       tag_index_add: null,
       tag_being_edited: null,
 
-      update_available: false,
-      update_done: null,
+      // update_available: false,
+      // update_done: null,
       app_version: "",
       note_filters: [],
       info: {},
@@ -816,7 +853,10 @@ export default {
       let init_data = await this.service_worker_init();
       this.app_version = init_data.version;
       if(init_data.updated) {
-        this.update_done = true;
+        // this.update_done = true;
+        this.notifications.push({
+          type: "update done",
+        });
       }
       this.scroll_init();
       window.M.AutoInit();
@@ -838,6 +878,18 @@ export default {
   },
 
   methods: {
+    change_notepad_name: async function(new_name) {
+      this.info.notepad_name = new_name;
+      await notepad.save_info(this.info);
+      await notepads_list.reread_list();
+      this.notepads = _.cloneDeep(notepads_list.notepads);
+      this.notifications.push({
+        type: "helper",
+        text: "Название изменено",
+        hide_delay: 3,
+      });
+    },
+
     notepad_created_prompt: function() {
       let promise = new Promise((resolve) => {
         this.notepad_created_callback = (open) => {
@@ -1212,7 +1264,10 @@ export default {
       sw_api.on(
         "update_available",
         (id) => {
-          this.update_available = id;
+          this.notifications.push({
+            type: "update available",
+            available: id,
+          })
         }
       );
       return sw_api.init();
@@ -1259,8 +1314,59 @@ export default {
       this.tags_fast_search = filter.tags.name;
     },
     
-    notepad_reset_info: function(info) {
+    is_notification_enabled: function(name) {
+      if(this.info.settings != null) {
+        if(this.info.settings.notifications != null) {
+          if(this.info.settings.notifications[name] === false) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
+
+    disable_notification: async function(name) {
+      if(this.info.settings == null) {
+        this.info.settings = {};
+      }
+      if(this.info.settings.notifications == null) {
+        this.info.settings.notifications = {};
+      }
+      this.info.settings.notifications[name] = false;
+      await notepad.save_info(this.info);
+    },
+
+    notepad_reset_info: async function(info) {
       this.info = info;
+
+      if(this.info.encrypted) {
+        if(this.is_notification_enabled("password_can_be_set")) {
+          this.notifications.push({
+            type: "helper",
+            text: "Для упрощения выхода в блокнот вы можете задать пароль в настройках",
+            actions: [
+              {
+                text: "открыть раздел",
+                handler: () => {this.section = 'notepad';},
+              },
+            ],
+          });
+          await this.disable_notification("password_can_be_set");
+        }
+        if(this.is_notification_enabled("pin_can_be_set")) {
+          this.notifications.push({
+            type: "helper",
+            text: "Для упрощения выхода в блокнот вы можете задать пин в настройках",
+            actions: [
+              {
+                text: "открыть раздел",
+                handler: () => {this.section = 'notepad';},
+              },
+            ],
+          });
+          await this.disable_notification("pin_can_be_set");
+        }
+      }
       this.update_available_methods();
     },
 
@@ -1373,6 +1479,8 @@ export default {
     },
 
     notepad_open: async function(arg) {
+      this.selected_note_filter = null;
+      // this.section = "notes";
       if(arg.encrypted) {
         let secret  = await this.authenticate(arg.id);
         if(secret == null) {
@@ -1406,6 +1514,7 @@ export default {
         this.show_message(this.translate_message(notepad), false);
       } else {
         this.notepad_register(notepad);
+        this.selected_note_filter = "internal_all";
         notepad._reset_info();
         this.encrypted = this.info.encrypted;
         this.notepad_working = true;
@@ -1686,7 +1795,10 @@ export default {
           await notepad._storage.create_items_in_store(
             "tag_notes", note_tags
           );
-          window.console.log("created " + (k + 1));
+          this.notifications.push({
+            type: "helper",
+            text: "created " + (k + 1),
+          });
         }
       }
       this.notepad_working = true;
@@ -1960,6 +2072,11 @@ export default {
       } else {
         await notepad.create_note_filter(name, this.notes_filter_tags);
         this.cancel_note_filter();
+        this.notifications.push({
+          type: "helper",
+          text: "Раздел создан",
+          hide_delay: 3,
+        });
       }
     },
 

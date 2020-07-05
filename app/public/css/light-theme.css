@@ -37,3 +37,9 @@ input.validate.filter_name {
 .text-selector.active {
   color: blue;
 }
+
+.countdown,
+.time-pointer {
+  background-color: red;
+  box-shadow: 0 0 5px darkorange;
+}

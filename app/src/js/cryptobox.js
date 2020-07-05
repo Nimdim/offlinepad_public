@@ -63,6 +63,11 @@ let encrypt = function(open_text, key) {
     return encrypted_text;
 };
 
+let encrypt_json = function(data, key) {
+    let text = JSON.stringify(data);
+    return encrypt(text, key);
+}
+
 let decrypt = function(encrypted_text, key) {
     let encrypted_bytes = aesjs.utils.hex.toBytes(encrypted_text);
 
@@ -75,6 +80,11 @@ let decrypt = function(encrypted_text, key) {
     let open_text = aesjs.utils.utf8.fromBytes(open_bytes);
     return open_text;
 };
+
+let decrypt_json = function(encrypted_text, key) {
+    let text = decrypt(encrypted_text, key);
+    return JSON.parse(text);
+}
 
 let LOWER_CASE_LETTERS_ENG = "abcdefghijklmnopqrstuvwxyz";
 let UPPER_CASE_LETTERS_ENG = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -127,9 +137,12 @@ let calc_password_bits = function(password) {
 }
 
 export default {
-    random_numbers_list,
     encrypt,
     decrypt,
+    encrypt_json,
+    decrypt_json,
+
+    random_numbers_list,
     calc_alphabet_size,
     hash_hex,
     calc_password_bits,
