@@ -4,12 +4,12 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, \
 from sqlalchemy.orm import scoped_session, sessionmaker, backref, relation
 from sqlalchemy.ext.declarative import declarative_base
 
+from settings import db_url
+
 # from werkzeug import cached_property, http_date
 
 # from flask import url_for, Markup
 # from flask_website import app, search
-
-db_url = "postgresql+psycopg2://postgres:12345678@localhost:5432/offlinepad"
 
 # # db_url = postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]
 # create_engine(db_url, client_encoding='utf8')

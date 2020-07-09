@@ -1,29 +1,38 @@
 <template>
-  <full-screen-box :top="true">
-    <div class="row">
-      <span>
-          {{title}}
-      </span>
-    </div>
-    <div class="row">
-      <a
-        class="waves-effect waves-teal btn button-space"
-        :class="submit_class"
-        @click.prevent="$emit('submit')"
+  <full-screen-box :top="true" :fullscreen="true">
+    <ul
+      class="collection notepads-selector block-center"
+      style="border: unset;"
+    >
+      <li class="collection-item"
+        style="box-shadow: unset;"
       >
-        <span v-if="submit_text">{{submit_text}}</span>
-        <font-awesome-icon v-else icon="check" />
-      </a>
+        <div class="row">
+          <span>
+              {{title}}
+          </span>
+        </div>
+        <div class="row">
+          <a
+            class="waves-effect waves-teal btn button-space"
+            :class="submit_class"
+            @click.prevent="$emit('submit')"
+          >
+            <span v-if="submit_text">{{submit_text}}</span>
+            <font-awesome-icon v-else icon="check" />
+          </a>
 
-      <a
-        class="waves-effect waves-teal btn"
-        :class="cancel_class"
-        @click.prevent="$emit('cancel')"
-      >
-        <span v-if="cancel_text">{{cancel_text}}</span>
-        <font-awesome-icon v-else icon="times-circle" />
-      </a>
-    </div>
+          <a
+            class="waves-effect waves-teal btn"
+            :class="cancel_class"
+            @click.prevent="$emit('cancel')"
+          >
+            <span v-if="cancel_text">{{cancel_text}}</span>
+            <font-awesome-icon v-else icon="times-circle" />
+          </a>
+        </div>
+      </li>
+    </ul>
   </full-screen-box>
 </template>
 <script>

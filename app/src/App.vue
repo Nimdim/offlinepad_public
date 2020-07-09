@@ -1426,6 +1426,9 @@ export default {
         case "pin not set up":
           result = "Пин не настроен";
           break;
+        case "timeout":
+          result = "Сервер не ответил на запрос. Попробуйте позже";
+          break;
         default:
           throw new Error("not implemented '" + text + "'");
       }

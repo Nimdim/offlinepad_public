@@ -29,15 +29,19 @@ class NotepadsListStorage extends IndexedDBStorage {
     }
 }
 
-let POST = async function(url, data) {
+let POST = async function(url, data, options) {
     if(typeof window == "undefined") {
         url = "http://127.0.0.1:5000" + url;
     }
     let response;
     try {
-        response = await axios.post(url, data);
+        response = await axios.post(url, data, options);
     } catch (e) {
-        response = e.response;
+        if(e.code == "ECONNABORTED") {
+            return {"error": "timeout"};
+        } else {
+            response = e.response;
+        }
     }
 
     if(response.status == 200) {
@@ -268,7 +272,11 @@ class NotepadsList {
         let pin_secret_info = await this._get_pin_secret(notepad_id);
         if(pin_secret_info != null) {
             let part2 = pin_secret_info.secret;
-            let result = await POST("/api/pin/" + pin_secret_info.pin_storage, {pin});
+            let ping_result = await POST("/api/ping", {}, {timeout: 15000});
+            if(ping_result.error == "timeout") {
+                return ping_result.error;
+            }
+            let result = await POST("/api/pin/" + pin_secret_info.pin_storage, {pin}, {timeout: 15000});
             if(result.error == "ok") {
                 let part1 = result.result;
                 let secret = [];

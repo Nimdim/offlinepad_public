@@ -25,7 +25,7 @@
         <!-- Main Css -->
         <link href="css/style.css" rel="stylesheet" type="text/css" id="theme-opt" />
         <link href="css/colors/default.css" rel="stylesheet" id="color-opt">
-
+        <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     </head>
 
     <body>
@@ -121,14 +121,14 @@
         <!-- / hit.ua -->
 
         <!-- Loader -->
-        <!-- <div id="preloader">
+        <div id="preloader">
             <div id="status">
                 <div class="spinner">
                     <div class="double-bounce1"></div>
                     <div class="double-bounce2"></div>
                 </div>
             </div>
-        </div> -->
+        </div>
         <!-- Loader -->
 
         <!-- Navbar STart -->
@@ -165,7 +165,7 @@
                         <li><a href="#app-features">Возможности</a></li>
                     </ul><!--end navigation menu-->
                     <div class="buy-menu-btn d-none">
-                        <a href="https://1.envato.market/4n73n" target="_blank" class="btn btn-primary">Открыть блокнот</a>
+                        <a href="https://notesbeta.offlinepad.com" target="_blank" class="btn btn-primary">Открыть блокнот</a>
                     </div><!--end login button-->
                 </div><!--end navigation-->
             </div><!--end container-->
@@ -174,6 +174,7 @@
         
         <!-- Hero Start -->
         <section class="bg-half-170 d-table w-100" id="app-home" style="background-image: url('images/app/square.png');">
+            <div id="particles-container" style="width: 100%; height: 100%; overflow: hidden; position: absolute;"></div>
             <div class="container">
                 <div class="row align-items-center">
                     <div class="col-lg-6 col-md-7">
@@ -251,7 +252,7 @@
                                     </div>
                                     <div class="media-body">
                                         <h4 class="title">Работает без интернета</h4>
-                                        <p class="text-muted para mb-0">Разработан на основе современных оффлайн технологий и сохраняет работоспособность даже отстутствии интернета.</p>
+                                        <p class="text-muted para mb-0">Разработан на основе современных оффлайн технологий и сохраняет работоспособность даже при отстутствии интернета.</p>
                                     </div>
                                 </div>
                             </div><!--end col-->
@@ -352,12 +353,12 @@
                     <div class="col-lg-7 col-md-6 mt-4 pt-2">
                         <div class="section-title ml-lg-5">
                             <h4 class="title mb-4">Развивайтесь с <span class="text-primary font-weight-bold">OfflinePad</span></h4>
-                            <p class="text-muted">Оффлайн Блокнот <span class="text-primary font-weight-bold">OfflinePad</span> предоставляет надежное хранилище заметок, а благодаря тегам и поиску вы найдете то, что позволит вам в вашем развитии:</p>
+                            <p class="text-muted">Оффлайн Блокнот <span class="text-primary font-weight-bold">OfflinePad</span> предоставляет надежное хранилище заметок, а, благодаря тегам и поиску, вы найдете то, что позволит вам в вашем развитии:</p>
                             <ul class="list-unstyled feature-list text-muted">
                                 <li><i data-feather="check-circle" class="fea icon-sm text-success mr-2"></i>Анализируйте события, происходящие в вашей жизни</li>
                                 <li><i data-feather="check-circle" class="fea icon-sm text-success mr-2"></i>Ваши удачи создадут позитивную мотивацию для новых достижений</li>
                                 <li><i data-feather="check-circle" class="fea icon-sm text-success mr-2"></i>Анализ слабых сторон позволит найти новые векторы для развития</li>
-                                <li><i data-feather="check-circle" class="fea icon-sm text-success mr-2"></i>Ведение записей это долгосрочная инвестиция: чем дольше вы в теме, тем больше ваши дивиденды</li>
+                                <li><i data-feather="check-circle" class="fea icon-sm text-success mr-2"></i>Ведение записей - это долгосрочная инвестиция: чем дольше вы в теме, тем больше ваши дивиденды</li>
                             </ul>
                             <!-- <a href="javascript:void(0)" class="mt-3 text-primary">Find Out More <i class="mdi mdi-chevron-right"></i></a> -->
                         </div>
@@ -757,5 +758,131 @@
         <script src="https://unicons.iconscout.com/release/v2.1.9/script/monochrome/bundle.js"></script>
         <!-- Main Js -->
         <script src="js/app.js"></script>
+        <script>
+            // particlesJS("particles-container", {
+            //     "particles": {
+            //         "number": {
+            //             "value": Math.floor(window.screen.availWidth / 20),
+            //             "density": {
+            //                 "enable": true,
+            //                 "value_area": 800
+            //             }
+            //         },
+            //         "color": {
+            //             "value": "#2f55d4",
+            //         },
+            //         "shape": {
+            //             "type": "circle",
+            //             "stroke": {
+            //                 "width": 0,
+            //                 "color": "#ffffff"
+            //             },
+            //             "polygon": {
+            //                 "nb_sides": 5
+            //             },
+            //             "image": {
+            //                 "src": "img/github.svg",
+            //                 "width": 100,
+            //                 "height": 100
+            //             }
+            //         },
+            //         "opacity": {
+            //             "value": 0.5,
+            //             "random": false,
+            //             "anim": {
+            //                 "enable": false,
+            //                 "speed": 1,
+            //                 "opacity_min": 0.1,
+            //                 "sync": false
+            //             }
+            //         },
+            //         "size": {
+            //             "value": 3,
+            //             "random": true,
+            //             "anim": {
+            //                 "enable": false,
+            //                 "speed": 40,
+            //                 "size_min": 0.1,
+            //                 "sync": false
+            //             }
+            //         },
+            //         "line_linked": {
+            //             "enable": true,
+            //             "distance": 150,
+            //             "color": "#2f55d4",
+            //             "opacity": 0.4,
+            //             "width": 1
+            //         },
+            //         "move": {
+            //             "enable": true,
+            //             "speed": 6,
+            //             "direction": "none",
+            //             "random": false,
+            //             "straight": false,
+            //             "out_mode": "out",
+            //             "bounce": false,
+            //             "attract": {
+            //                 "enable": false,
+            //                 "rotateX": 600,
+            //                 "rotateY": 1200
+            //             }
+            //         }
+            //     },
+            //     "interactivity": {
+            //         "detect_on": "canvas",
+            //         "events": {
+            //             "onhover": {
+            //                 "enable": false,
+            //                 "mode": "repulse"
+            //             },
+            //             "onclick": {
+            //                 "enable": true,
+            //                 "mode": "push"
+            //             },
+            //             "resize": true
+            //         },
+            //         "modes": {
+            //             "grab": {
+            //                 "distance": 400,
+            //                 "line_linked": {
+            //                     "opacity": 1
+            //                 }
+            //             },
+            //             "bubble": {
+            //                 "distance": 400,
+            //                 "size": 40,
+            //                 "duration": 2,
+            //                 "opacity": 8,
+            //                 "speed": 3
+            //             },
+            //             "repulse": {
+            //                 "distance": 200,
+            //                 "duration": 0.4
+            //             },
+            //             "push": {
+            //                 "particles_nb": 4
+            //             },
+            //             "remove": {
+            //                 "particles_nb": 2
+            //             }
+            //         }
+            //     },
+            //     "retina_detect": true
+            // });
+        </script>
+        <style>
+            #particles-container > canvas {
+                width: unset !important;
+                height: unset !important;
+            }
+            /* #app-home > canvas {
+                position: absolute;
+                top: 0px;
+                z-index: 0;
+            }
+            #app-home > .container {
+                z-index: 1;
+            } */
+        </style>
     </body>
 </html>
