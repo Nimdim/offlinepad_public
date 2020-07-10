@@ -141,6 +141,7 @@ export default {
     decrypt,
     encrypt_json,
     decrypt_json,
+    create_aes,
 
     random_numbers_list,
     calc_alphabet_size,
