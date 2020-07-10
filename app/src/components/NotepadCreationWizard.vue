@@ -155,7 +155,19 @@
               class="row" style="margin-bottom: 0px;"
             >
               <div class="input-field col s12">
-                <span class="wizard-secret">{{creation_info.secret.value}}</span>
+                <span
+                  class="wizard-secret"
+                  style="margin-bottom: 10px;"
+                >
+                  {{creation_info.secret.value}}
+                </span>
+                <a class="waves-effect waves-light btn"
+                  style="width: 100%;"
+                  @click="copy_secret_value"
+                >
+                  <font-awesome-icon icon="copy"/>
+                  Копировать
+                </a>
                 <span class="wizard-hinttext">
                   Надежно сохраните данную секретную фразу, т.к. получить доступ к блокноту при утере пароля можно будет только при помощи нее.
                 </span>                  
@@ -320,6 +332,54 @@
     },
 
     methods: {
+      fallbackCopyTextToClipboard: function(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Avoid scrolling to bottom
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        let result;
+        try {
+          var successful = document.execCommand('copy');
+          result = successful;
+        } catch (err) {
+          err;
+          result = false;
+        }
+
+        document.body.removeChild(textArea);
+        return result;
+      },
+
+      copyTextToClipboard: function(text) {
+        if (!navigator.clipboard) {
+          return Promise.resolve(this.fallbackCopyTextToClipboard(text));
+        }
+        let promise = new Promise((resolve) => {
+          navigator.clipboard.writeText(text).then(function() {
+            // console.log('Async: Copying to clipboard was successful!');
+            resolve(true);
+          }, function(err) {
+            err;
+            // console.error('Async: Could not copy text: ', err);
+            resolve(false);
+          });
+        });
+        return promise;
+      },
+
+      copy_secret_value: async function() {
+        let success = await this.copyTextToClipboard(this.creation_info.secret.value);
+        this.$emit("secret_copied", success);
+      },
+
       goto_enter_name: async function() {
         this.step = STEPS.NOTEPAD_NAME;
         await this.$nextTick();

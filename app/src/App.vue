@@ -324,32 +324,29 @@
     </nav>
 
     <a v-if="section == 'tags' && notepad_working && !add_button_hidden"
-      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
+      class="btn-floating btn-large waves-effect waves-light add_btn social-button"
       @click="add_tag"
       id="add_tag">
       <font-awesome-icon icon="edit" />
     </a>
     <a v-if="section == 'notes' && notepad_working && !add_button_hidden"
-      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
+      class="btn-floating btn-large waves-effect waves-light add_btn social-button"
       @click="add_note"
       >
       <font-awesome-icon icon="edit" />
     </a>
     <a v-if="section == 'notes' && notes_scroll_up_show"
-      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
+      class="btn-floating btn-large waves-effect waves-light add_btn social-button"
       style="right: 80px;"
       @click="scroll_to_top"
       >
       <font-awesome-icon icon="arrow-up" />
     </a>
-    <transition name="fade">
-      <warning-screen
-        v-if="warningscreen_visible"
-        @accept="warning_accept" />
-    </transition>
+
     <transition name="fade">
       <blocker-screen v-if="blockerscreen_visible"/>
     </transition>
+
     <features-not-available-screen v-if="features_unawailable" />
 
     <transition name="fade">
@@ -373,6 +370,7 @@
         :items="notepads"
         @finish="wizard_finished"
         @cancel="notepad_wizard_show = false"
+        @secret_copied="secret_copied_notification($event)"
       />
     </transition>
 
@@ -418,22 +416,11 @@
       </div>
     </div>
 
-    <!-- <transition name="fade">
-      <update-popup v-if="update_available"
-        style="z-index: 2002"
-        :version="update_available"
-        @focus="blockerscreen_visible = $event"
-        @update="update_service_worker"
-      />
-    </transition> -->
-
-    <!-- <transition name="fade">
-      <update-done-popup v-if="update_done"
-        style="z-index: 2002"
-        :version="app_version"
-        @close="update_done = false"
-      />
-    </transition> -->
+    <transition name="fade">
+      <warning-screen
+        v-if="warningscreen_visible"
+        @accept="warning_accept" />
+    </transition>
 
     <transition name="fade">
       <prompt-screen v-if="prompt"
@@ -496,7 +483,7 @@
     />
 
     <a v-if="develop_mode"
-      class="btn-floating btn-large waves-effect waves-light red add_btn social-button"
+      class="btn-floating btn-large waves-effect waves-light add_btn social-button"
       style="left: 16px;"
       @click="develop_console = !develop_console"
     >
@@ -878,6 +865,18 @@ export default {
   },
 
   methods: {
+    secret_copied_notification: function(success) {
+      let notification = {
+        type: "helper",
+        text: "Фраза скопирована",
+        hide_delay: 3,
+      };
+      if(!success) {
+        notification.text = "Не удалось копировать фразу";
+      }
+      this.notifications.push(notification);
+    },
+
     change_notepad_name: async function(new_name) {
       this.info.notepad_name = new_name;
       await notepad.save_info(this.info);

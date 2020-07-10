@@ -193,6 +193,7 @@ footer.page-footer {
   bottom: 15px;
   right: 15px;
   position: fixed;
+  background-color: rgb(41, 182, 246) !important;
 }
 
 .add_btn.hidden {
