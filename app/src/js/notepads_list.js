@@ -5,6 +5,7 @@ import IndexedDBStorage from "./indexeddb_storage.js";
 import Notepad from './notepad.js';
 import cryptobox from './cryptobox.js';
 import axios from 'axios';
+import pbkdf2 from 'pbkdf2';
 
 // if(global != null) {
 //     var window = global;
@@ -296,10 +297,32 @@ class NotepadsList {
         return await this._storage.get_item_from_store("pin_codes", notepad_id);
     }
 
-    async get_password_secret(notepad_id) {
+    async _get_password_secret(notepad_id) {
         let item = await this._storage.get_item_from_store("passwords", notepad_id);
+        return item;
+    }
+
+    async get_password_secret(notepad_id, password) {
+        let item = await this._get_password_secret(notepad_id);
         if(item != null) {
-            item = item.password_secret;
+            switch(item.schema) {
+                case "upd1": {
+                    let secret = pbkdf2.pbkdf2Sync(password, Uint8Array.from(item.password_salt), 10000, 32, 'sha256');
+                    item = item.password_secret;
+                    for(let k = 0; k < secret.length; k++) {
+                        item[k] = item[k] ^ secret[k];
+                    }
+                }
+                    break;
+                default: {
+                    let secret = cryptobox.hash_hex(password);
+                    item = item.password_secret;
+                    for(let k = 0; k < secret.length; k++) {
+                        item[k] = item[k] ^ secret[k];
+                    }
+                }
+                    break;
+            }
         }
         return item;
     }
@@ -346,11 +369,7 @@ class NotepadsList {
           if(notepad_id == null) {
             throw new Error("notepad_id is null");
           }
-          let secret = cryptobox.hash_hex(auth_info.value);
-          let password_secret = await this.get_password_secret(notepad_id);
-          for(let k = 0; k < secret.length; k++) {
-            secret[k] = secret[k] ^ password_secret[k];
-          }
+          let secret = await this.get_password_secret(notepad_id, auth_info.value);
           return secret;
         }
         case "pin": {
@@ -365,11 +384,15 @@ class NotepadsList {
       }
     }
   
-    async set_password_secret(notepad_id, password, secret) {
-        let item = await this.get_password_secret(notepad_id);
+    async remove_password_secret_if_exists(notepad_id) {
+        let item = await this._get_password_secret(notepad_id);
         if(item) {
             await this.delete_password_secret(notepad_id);
         }
+    }
+
+    async set_password_secret(notepad_id, password, secret) {
+        await this.remove_password_secret_if_exists(notepad_id);
 
         let password_hash = cryptobox.hash_hex(password);
         let password_secret = [];
@@ -379,6 +402,25 @@ class NotepadsList {
         await this._storage.create_item_in_store("passwords", {
             id: notepad_id,
             password_secret: password_secret,
+        });
+        return true;
+    }
+
+    async set_password_secret_upd1(notepad_id, password, secret) {
+        // with pbkdf2
+        await this.remove_password_secret_if_exists(notepad_id);
+
+        let password_salt = cryptobox.random_numbers_list(16);
+        let password_hash = pbkdf2.pbkdf2Sync(password, Uint8Array.from(password_salt), 10000, 32, "sha256");
+        let password_secret = [];
+        for(let k = 0; k < password_hash.length; k++) {
+          password_secret.push(password_hash[k] ^ secret[k]);
+        }
+        await this._storage.create_item_in_store("passwords", {
+            id: notepad_id,
+            password_secret: password_secret,
+            password_salt: password_salt,
+            schema: "upd1",
         });
         return true;
     }

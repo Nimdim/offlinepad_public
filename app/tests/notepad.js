@@ -2685,6 +2685,38 @@ describe("password tests", function() {
         await notepad.close();
     });
 
+    it("password test upd1", async function() {
+        let result = await notepads_list.set_password_secret_upd1(
+            notepad_id, "password123", ENCRYPTED_NOTEPAD_OPTIONS.secret
+        );
+        assert.equal(result, true);
+
+        let secret_info = {
+            method: "password",
+            value: "password123",
+        }
+        let secret = await notepads_list.process_secret(secret_info, notepad_id);
+
+        let options = {
+            encrypted: true,
+            secret: secret,
+        }
+        let info = await notepads_list.open(notepad_id, options);
+        assert.notEqual(_.isString(info), true)
+        notepad = info;
+
+        events = new NotepadTestEvents(notepad);
+        await notepad._reset_tags();
+        await notepad._reset_notes();
+        await notepad._reset_note_filters();
+
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        events.assert_note_filters(EXPECTED_NOTE_FILTERS);
+
+        await notepad.close();
+    });
+
     it("delete notepad", async function() {
         await notepads_list.delete(notepad_id);
         notepad = null;

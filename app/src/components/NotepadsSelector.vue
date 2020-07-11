@@ -26,9 +26,22 @@
           </span>
           <span v-else
             class="unselectable"
-            style="display: block; margin: 0 auto; margin-top: 5px; margin-bottom: 10px;"
+            style="display: block;
+                   margin: 0 auto;
+                   margin-top: 5px;
+                   margin-bottom: 10px;
+                   padding: 0 40px;"
           >
             У вас пока еще не создано ни одного блокнота. Создайте новый.
+            <a class="btn-flat btn-floating"
+              style="position: absolute;
+                    top: 23px;
+                    right: 20px"
+              @click="$emit('toggle_theme')"
+            >
+              <font-awesome-icon icon="sun" v-if="current_theme == 'light'" key="light_theme" />
+              <font-awesome-icon icon="moon" v-else key="dark_theme" />
+            </a>
           </span>
 
           <a v-for="item in items"

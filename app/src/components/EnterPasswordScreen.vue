@@ -50,56 +50,58 @@
               </div>
             </div>
 
-            <div
-              v-if="current_method != 'pin'"
-              class="row" style="margin-bottom: 0px;"
-            >
-              <div class="input-field col s12">
-                <input
-                  ref="add_name_input"
-                  :placeholder="secret_placeholder[current_method]"
-                  :type="input_type"
-                  class="validate"
-                  v-model="password"
-                  show-password
+            <template v-if="current_method != 'pin'">
+              <template v-if="!password_processing">
+                <div  
+                  class="row" style="margin-bottom: 0px;"
                 >
-                <a class="waves-effect waves-light btn left action-button"
-                  style="width: 100%;"
-                  @click="toggle_password"
-                >
-                  <font-awesome-icon icon="eye"
-                  />
-                </a>
+                  <div class="input-field col s12">
+                    <input
+                      ref="add_name_input"
+                      :placeholder="secret_placeholder[current_method]"
+                      :type="input_type"
+                      class="validate"
+                      v-model="password"
+                      show-password
+                    >
+                    <a class="waves-effect waves-light btn left action-button"
+                      style="width: 100%;"
+                      @click="toggle_password"
+                    >
+                      <font-awesome-icon icon="eye"
+                      />
+                    </a>
 
-                <span v-if="error_text"
-                  class="left red-text" style=""
+                    <span v-if="error_text"
+                      class="left red-text" style=""
+                    >
+                      {{error_text}}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  class="row" style="margin-bottom: 0px;"
                 >
-                  {{error_text}}
-                </span>
-              </div>
-            </div>
-
-            <div
-              v-if="current_method != 'pin'"
-              class="row" style="margin-bottom: 0px;"
-            >
-              <div class="input-field col s6">
-                <a class="waves-effect waves-light btn left action-button"
-                  style="width: 100%;"
-                  @click="$emit('cancel')"
-                >
-                  <font-awesome-icon icon="times-circle"/>
-                </a>
-              </div>
-              <div class="input-field col s6">
-                <a class="waves-effect waves-light btn right action-button"
-                  style="width: 100%;"
-                  @click="$emit('submit', {'method': current_method, 'value': password})"
-                >
-                  <font-awesome-icon icon="check"/>
-                </a>
-              </div>
-            </div>
+                  <div class="input-field col s6">
+                    <a class="waves-effect waves-light btn left action-button"
+                      style="width: 100%;"
+                      @click="$emit('cancel')"
+                    >
+                      <font-awesome-icon icon="times-circle"/>
+                    </a>
+                  </div>
+                  <div class="input-field col s6">
+                    <a class="waves-effect waves-light btn right action-button"
+                      style="width: 100%;"
+                      @click="submit_password"
+                    >
+                      <font-awesome-icon icon="check"/>
+                    </a>
+                  </div>
+                </div>
+              </template>
+              <preloader v-else />
+            </template>
             <pin-pad
               v-else
               ref="pin_pad"
@@ -117,6 +119,7 @@
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
   import PinPad from "./PinPad.vue";
+  import Preloader from './Preloader.vue'
 
   export default {
     props: {
@@ -131,6 +134,7 @@
     components: {
       FullScreenBox,
       PinPad,
+      Preloader,
     },
 
     computed: {
@@ -164,6 +168,7 @@
       }
       let data = {
         current_method: current_method,
+        password_processing: false,
         show_password: false,
         secret_placeholder: {
           "passphrase": "",
@@ -194,6 +199,16 @@
     },
 
     methods: {
+      submit_password: async function() {
+        this.password_processing = true;
+        await this.$nextTick();
+        let data = {
+          'method': this.current_method,
+          'value': this.password,
+        };
+        this.$emit('submit', data);
+      },
+
       set_current_method: function(method) {
         if(this.available_methods[method]) {
           this.current_method = method;
@@ -201,7 +216,10 @@
       },
 
       reset: function() {
-        this.$refs.pin_pad.clear();
+        this.password_processing = false;
+        if(this.$refs.pin_pad != null) {
+          this.$refs.pin_pad.clear();
+        }
       },
 
       toggle_password: function() {

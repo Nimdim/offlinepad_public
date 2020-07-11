@@ -990,7 +990,7 @@ export default {
       await sleep(0.25);
       this.create_password_cancel();
 
-      let result = await notepads_list.set_password_secret(
+      let result = await notepads_list.set_password_secret_upd1(
         notepad_id, new_password, secret
       );
       if(!result) {
@@ -1062,7 +1062,7 @@ export default {
     update_available_methods: async function() {
       let notepad_id = this.info.id;
       this.available_methods.pin = await notepads_list._get_pin_secret(notepad_id) != null;
-      this.available_methods.password = await notepads_list.get_password_secret(notepad_id) != null;
+      this.available_methods.password = await notepads_list._get_password_secret(notepad_id) != null;
     },
 
     delete_pin_for_notepad: async function() {
@@ -1320,28 +1320,47 @@ export default {
 
     notepad_reset_info: async function(info) {
       this.info = info;
+      let notepad_id = info.id;
 
       if(this.info.encrypted) {
+        notepads_list._get_password_secret(notepad_id).then(
+          (info) => {
+            if(info.schema != "upd1") {
+              this.notifications.push({
+                type: "helper",
+                text: "Мы обновили способ хранения пароля и сделали его более защищенным. Рекомендуем задать пароль заново для лучше защиты",
+                actions: [
+                  {
+                    text: "открыть настройки",
+                    handler: () => {this.change_section('notepad');},
+                  },
+                ],
+              });
+            }
+          }
+        )
+
         if(this.is_notification_enabled("password_can_be_set")) {
           this.notifications.push({
             type: "helper",
             text: "Для упрощения выхода в блокнот вы можете задать пароль в настройках",
             actions: [
               {
-                text: "открыть раздел",
+                text: "открыть настройки",
                 handler: () => {this.change_section('notepad');},
               },
             ],
           });
           await this.disable_notification("password_can_be_set");
         }
+
         if(this.is_notification_enabled("pin_can_be_set")) {
           this.notifications.push({
             type: "helper",
             text: "Для упрощения выхода в блокнот вы можете задать пин в настройках",
             actions: [
               {
-                text: "открыть раздел",
+                text: "открыть настройки",
                 handler: () => {this.change_section('notepad');},
               },
             ],
@@ -1418,7 +1437,7 @@ export default {
     },
 
     authenticate: async function(notepad_id) {
-      let password_secret = await notepads_list.get_password_secret(notepad_id);
+      let password_secret = await notepads_list._get_password_secret(notepad_id);
       let pin_secret = await notepads_list._get_pin_secret(notepad_id);
       this.current_auth_method = await notepads_list.get_current_auth_method(notepad_id);
       let available_items = {
@@ -1445,6 +1464,7 @@ export default {
             this.show_message(this.translate_message("wrong secret"), false);
             await sleep(0.25);
             utils.vibrate("error");
+            this.$refs.enter_password_screen.reset();
             return;
           }
 
