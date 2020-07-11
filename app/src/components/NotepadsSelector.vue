@@ -9,10 +9,20 @@
         >
           <span v-if="items.length > 0"
             class="unselectable"
-            style="display: block; margin: 0 auto; margin-top: 5px; margin-bottom: 10px;"
+            style="display: block; margin: 0 auto; margin-top: 15px; margin-bottom: 15px;"
             @click="$emit('test_remote')"
           >
             Блокноты
+            <a class="btn-flat btn-floating"
+              style="position: absolute;
+                    top: 23px;
+                    right: 20px"
+              @click="$emit('toggle_theme')"
+            >
+              <font-awesome-icon icon="sun" v-if="current_theme == 'light'" key="light_theme" />
+              <font-awesome-icon icon="moon" v-else key="dark_theme" />
+            </a>
+
           </span>
           <span v-else
             class="unselectable"
@@ -42,18 +52,6 @@
             <font-awesome-icon icon="plus"/>
           </a>
         </li>
-        <!-- <notepads-selector-item
-          v-for="item in items" :key="item.id"
-          :item="item"
-          @click="open_handler(item)"
-        />
-        <li class="collection-item"
-          @click="$emit('start-creation-wizard')"
-        >
-          <span>
-            <font-awesome-icon icon="plus"/>
-          </span>
-        </li> -->
       </ul>
     </span>
   </full-screen-box>
@@ -65,6 +63,7 @@
   export default {
     props: {
       "items": Array,
+      "current_theme": {},
     },
     
     components: {
