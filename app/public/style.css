@@ -13,6 +13,13 @@ p {
                                   not supported by any browser */
 }
 
+.collection-item,
+.fullscreenbox,
+#nav-mobile,
+.header {
+  transition: .3s ease-out;
+}
+
 .block-center {
   top: 50%;
   left: 50%;
