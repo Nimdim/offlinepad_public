@@ -17,7 +17,7 @@ p {
 .fullscreenbox,
 #nav-mobile,
 .header {
-  transition: .3s ease-out;
+  transition: .3s ease-out background-color;
 }
 
 .block-center {
