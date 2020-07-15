@@ -395,11 +395,11 @@
       },
 
       generate_secret: function() {
-        let indexes = diceware.generate_indexes_list(10);
+        let indexes = diceware.generate_indexes_list(6);
         let words = diceware.indexes_list_to_passphrase(indexes, "ru");
         let result = {
           method: "passphrase",
-          value: words.join(" ")
+          value: words.join(" "),
         };
         return result;
       },

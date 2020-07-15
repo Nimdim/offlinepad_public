@@ -50,6 +50,22 @@ class BetaDataImporterBase {
     this.accumulator = [];
   }
 
+  async process_info_object(object) {
+    // сохраняем состояния импортированных данных
+    this.already_encrypted = object.encrypted;
+    // подменяем имя, введенное пользователем
+    object.notepad_name = this.name;
+    // такой ситуация не бывает
+    if(object.encrypted && !this.options.encrypted) {
+      throw new Error("encrypted -> unencrypted import");
+    }
+    // если был незашифрованных блокнот, а стал зашифрованный - выставляем данные для шифрованного блокнота
+    if(!object.encrypted && this.options.encrypted) {
+      object.encrypted = this.options.encrypted;
+      object.secret_check = "secret check";
+    }
+  }
+
   async execute() {
     let info = await this.notepads_list.create_empty(this.options);
     let notepad = info.notepad;
@@ -71,12 +87,7 @@ class BetaDataImporterBase {
         if((type == "setting") &&
            (object.name == "info") &&
            (object.schema_type == "beta")) {
-          this.already_encrypted = object.encrypted;
-          object.notepad_name = this.name;
-          object.encrypted = this.options.encrypted;
-          if(object.encrypted && object.secret_check == null) {
-            object.secret_check = "secret check";
-          }
+          this.process_info_object(object);
           info_object_recved = true;
         }
         // Не пришел объект с настройками блокнота, или не там схема
@@ -131,6 +142,39 @@ export class BetaDataImporter extends BetaDataImporterBase {
     return new PartialFileReader(file, callback);
   }
 }
+
+export class BetaDataImporter_upd1 extends BetaDataImporter {
+  constructor(data) {
+    super(data)
+    this.options.secret_salt = data.secret_salt;
+
+  }
+  
+  async process_info_object(object) {
+    // сохраняем состояния импортированных данных
+    this.already_encrypted = object.encrypted;
+    // подменяем имя, введенное пользователем
+    object.notepad_name = this.name;
+    // такой ситуация не бывает
+    if(object.encrypted && !this.options.encrypted) {
+      throw new Error("encrypted -> unencrypted import");
+    }
+    // если был незашифрованных блокнот, а стал зашифрованный - выставляем данные для шифрованного блокнота
+    if(!object.encrypted && this.options.encrypted) {
+      object.encrypted = this.options.encrypted;
+      object.secret_check = "secret check";
+      object.secret_salt = this.options.secret_salt;
+      object.secret_schema = "upd1";
+    }
+  }
+}
+
+export class MockedBetaDataImporter_upd1 extends BetaDataImporter_upd1 {
+  _create_file_reader(file, callback) {
+    return new BetaDataArrayReader(file, callback);
+  }
+}
+
 
 class PartialAlphaDataReader {
   constructor(file, callback) {
@@ -232,6 +276,19 @@ export class AlphaDataImporter extends BetaDataImporterBase {
     return new PartialAlphaDataReader(file, callback);
   }
 }
+
+export class AlphaDataImporter_upd1 extends BetaDataImporter_upd1 {
+  _create_file_reader(file, callback) {
+    return new PartialAlphaDataReader(file, callback);
+  }
+}
+
+export class MockedAlphaDataImporter_upd1 extends AlphaDataImporter_upd1 {
+  _create_file_reader(file, callback) {
+    return new PartialAlphaDataReaderFromDict(file, callback);
+  }
+}
+
 
 class PartialAlphaDataReaderFromDict {
   constructor(dict, callback) {
