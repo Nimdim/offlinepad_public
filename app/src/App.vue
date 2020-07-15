@@ -545,7 +545,7 @@ import NotepadsList from './js/notepads_list.js'
 import sw_api from './js/service_worker.js'
 import cookie_api from 'js-cookie'
 import ScrollUpController from './js/scroll_up_controller.js'
-import { BetaDataImporter, AlphaDataImporter } from './js/data_importer.js'
+import { BetaDataImporter_upd1, AlphaDataImporter_upd1 } from './js/data_importer.js'
 import cryptobox from './js/cryptobox'
 import utils from './js/utils.js'
 
@@ -1325,17 +1325,19 @@ export default {
       if(this.info.encrypted) {
         notepads_list._get_password_secret(notepad_id).then(
           (info) => {
-            if(info.schema != "upd1") {
-              this.notifications.push({
-                type: "helper",
-                text: "Мы обновили способ хранения пароля и сделали его более защищенным. Рекомендуем задать пароль заново для лучше защиты",
-                actions: [
-                  {
-                    text: "открыть настройки",
-                    handler: () => {this.change_section('notepad');},
-                  },
-                ],
-              });
+            if(info != null) {
+              if(info.schema != "upd1") {
+                this.notifications.push({
+                  type: "helper",
+                  text: "Мы обновили способ хранения пароля и сделали его более защищенным. Рекомендуем задать пароль заново для лучше защиты",
+                  actions: [
+                    {
+                      text: "открыть настройки",
+                      handler: () => {this.change_section('notepad');},
+                    },
+                  ],
+                });
+              }
             }
           }
         )
@@ -1944,14 +1946,19 @@ export default {
       let options = {
         encrypted: arg.encrypted,
       };
+      let salt = cryptobox.random_numbers_list(16);
       if(arg.encrypted) {
-        let secret = await notepads_list.process_secret(arg.secret);
+        let data = {
+          salt,
+        };
+        let secret = await notepads_list.process_secret(arg.secret, data);
         options.secret = secret;
+        options.salt = salt;
       }
       this.loadscreen_visible = true;
       await sleep(0.25);
       this.notepad_wizard_show = false;
-      let info = await notepads_list.create(name, options);
+      let info = await notepads_list.create_upd1(name, options);
       this.notepads = _.cloneDeep(notepads_list.notepads);
       let created_form = this.notepad_created_prompt();
       await sleep(0.25);
@@ -1969,8 +1976,11 @@ export default {
 
     notepad_import: async function(arg) {
       if(arg.secret) {
-        let secret = await notepads_list.process_secret(arg.secret);
+        let salt = cryptobox.random_numbers_list(16);
+        let data = { salt };
+        let secret = await notepads_list.process_secret(arg.secret, data);
         arg.secret = secret;
+        arg.secret_salt = salt;
       }
       this.import_error = null;
       this.importing = true;
@@ -1980,10 +1990,10 @@ export default {
         arg.notepads_list = notepads_list;
         let importer;
         if(arg.schema == "beta") {
-          importer = new BetaDataImporter(arg);
+          importer = new BetaDataImporter_upd1(arg);
         }
         if(arg.schema == "alpha") {
-          importer = new AlphaDataImporter(arg);
+          importer = new AlphaDataImporter_upd1(arg);
         }
         this.importer = importer;
 

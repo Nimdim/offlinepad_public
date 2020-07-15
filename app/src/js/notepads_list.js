@@ -362,7 +362,35 @@ class NotepadsList {
       switch(auth_info.method) {
         case "passphrase": {
           let cleaned_value = remove_multiple_spaces(auth_info.value)
-          let secret = cryptobox.hash_hex(cleaned_value);
+          let secret;
+          let secret_schema;
+          let secret_salt;
+          if(notepad_id != null) {
+            if(_.isNumber(notepad_id)) {
+              let info;
+              info = await this.read_notepad_info_by_id(notepad_id);
+              secret_schema = info.secret_schema;
+              secret_salt = info.secret_salt;
+            } else if (_.isObject(notepad_id)) {
+              secret_schema = "upd1";
+              secret_salt = notepad_id.salt;
+            } else {
+              throw new Error("not processed");
+            }
+          }
+          switch(secret_schema) {
+            case "upd1": {
+              secret = pbkdf2.pbkdf2Sync(
+                cleaned_value,
+                Uint8Array.from(secret_salt),
+                10000, 32, 'sha256'
+              );
+              secret = Array.from(secret);
+            } break;
+            default: {
+              secret = cryptobox.hash_hex(cleaned_value);
+            } break;
+          }
           return secret;
         }
         case "password": {
@@ -456,6 +484,15 @@ class NotepadsList {
         let notepad_id = await this._new_notepad_record();
         let notepad = new Notepad();
         await notepad.create(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
+        await notepad.close();
+        await this.reread_list();
+        return {"id": notepad_id, "notepad": notepad};
+    }
+
+    async create_upd1(notepad_name, options) {
+        let notepad_id = await this._new_notepad_record();
+        let notepad = new Notepad();
+        await notepad.create_upd1(NOTEPAD_DB_PREFIX + notepad_id, notepad_name, options);
         await notepad.close();
         await this.reread_list();
         return {"id": notepad_id, "notepad": notepad};

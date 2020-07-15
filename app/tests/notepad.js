@@ -4,6 +4,7 @@ import { assert } from "chai";
 import _ from "lodash";
 import NotepadsList from "../src/js/notepads_list.js";
 import { MockedBetaDataImporter, AlphaDataImporterFromDict,
+         MockedBetaDataImporter_upd1, MockedAlphaDataImporter_upd1,
          BetaDataImporterFromArray } from '../src/js/data_importer.js'
 
 let import_alpha_data = async function(name, notepads_list, data, encrypted, secret) {
@@ -39,12 +40,66 @@ let import_beta_data = async function(name, notepads_list, data, encrypted, secr
     let import_result = await importer.execute();
     assert.equal(import_result.error, null);
     return import_result;
-  }
+}
   
 let NOTEPAD_NAME = "test_notepad";
 let NOTEPAD_OPTIONS = {
     "encrypted": false,
 };
+
+let import_alpha_data_upd1 = async function(name, notepads_list, data, encrypted, secret_phrase, salt) {
+    let info = {
+        method: "passphrase",
+        value: secret_phrase,
+    };
+    let secret = await notepads_list.process_secret(info, {"salt": salt});
+    let arg = {
+      "name": name,
+      "file": data,
+      "notepads_list": notepads_list,
+      "encrypted": encrypted,
+      "secret": secret,
+      "secret_salt": salt,
+    };
+    let importer = new MockedAlphaDataImporter_upd1(arg);
+    let import_result = await importer.execute();
+    assert.equal(import_result.error, null);
+
+    let options = {
+        encrypted: true,
+        secret: secret,
+    };
+    import_result.notepad = await notepads_list.open(import_result.notepad_id, options);
+    return import_result;
+}
+  
+let import_beta_data_upd1 = async function(name, notepads_list, data, encrypted, secret_phrase, salt) {
+     let info = {
+        method: "passphrase",
+        value: secret_phrase,
+    };
+    let secret = await notepads_list.process_secret(info, {"salt": salt});
+    let arg = {
+        "name": name,
+        "file": data,
+        "notepads_list": notepads_list,
+        "encrypted": encrypted,
+        "secret": secret,
+        "secret_salt": salt,
+    };
+    let importer = new MockedBetaDataImporter_upd1(arg);
+    let import_result = await importer.execute();
+    assert.equal(import_result.error, null);
+
+    let options = {
+        encrypted: true,
+        secret: secret,
+    };
+    import_result.notepad = await notepads_list.open(import_result.notepad_id, options);
+    return import_result;
+}
+    
+  
 
 class NotepadTestEvents {
     constructor(notepad) {
@@ -402,6 +457,71 @@ describe("notepad alpha import export", function() {
         }
         return sorted;
     };
+
+    it("import notepad", async function() {
+        await notepads_list.init();
+        let phrase = "qwertyasdfgh";
+        let salt = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+        let info = await import_alpha_data_upd1(NOTEPAD_NAME, notepads_list, IMPORT_DATA, true, phrase, salt);
+        notepad = info.notepad;
+        notepad_id = info.notepad_id;
+        events = new NotepadTestEvents(notepad);
+        maps = info.maps;
+
+        assert.notEqual(maps, false);
+        await notepad._reset_state();
+       
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 1,
+                    "id": 3,
+                    "name": "два",
+                },
+                {
+                    "count": 2,
+                    "id": 2,
+                    "name": "один",
+                },
+            ],
+        ];
+
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": 19,
+                    "tags": [
+                        2,
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372651,
+                    "id": 13,
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        await notepad.close();
+        await notepads_list.delete(notepad_id);
+    });
 
     it("import notepad", async function() {
         await notepads_list.init();
@@ -1218,6 +1338,152 @@ describe("notepad filtering and sorting", function() {
         assert.equal(result, true);
     });
 });
+
+
+describe("notepad test import beta upd1", function() {
+    let IMPORT_DATA = [
+        {
+            "id": 1,
+            "type": "setting",
+            "name": "info",
+            "notepad_name": NOTEPAD_NAME,
+            "encypted": false,
+            "schema_type": "beta",
+        },
+        {
+            "id": 2,
+            "type":"tag",
+            "name":"один"
+        },
+        {
+            "id": 3,
+            "type":"tag",
+            "name":"два"
+        },
+        {
+            "id": 21,
+            "type":"tag",
+            "name":"одинцово"
+        },
+        {
+            "id": 13,
+            "type":"note",
+            "text":"Запись без меток",
+            "created_at":1586634372651
+        },
+        {
+            "id": 19,
+            "type":"note",
+            "text":"Запись с меткой \"один\"",
+            "created_at":1586634372660
+        },
+        {
+            "id": 16,
+            "type":"note",
+            "text":"Запись с метками \"один\" и \"два\"",
+            "created_at":1586634372656
+        },
+        {
+            "id": 17,
+            "type":"tag_note",
+            "tag_id":2,
+            "note_id":16
+        },
+        {
+            "id": 18,
+            "type":"tag_note",
+            "tag_id":3,
+            "note_id":16
+        },
+        {
+            "id": 20,
+            "type":"tag_note",
+            "tag_id":2,
+            "note_id":19
+        },
+    ];
+
+    let notepads_list = new NotepadsList();
+    let notepad_id;
+    let notepad;
+    let maps;
+    let events;
+
+    it("initial", async function() {
+        await notepads_list.init();
+        let passphrase = "qwertyasdfgh";
+        let salt = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+        let info = await import_beta_data_upd1(NOTEPAD_NAME, notepads_list, IMPORT_DATA, true, passphrase, salt);
+        notepad_id = info.notepad_id;
+        notepad = info.notepad;
+        events = new NotepadTestEvents(notepad);
+        maps = info.maps;
+        assert.notEqual(maps, false);
+    });
+
+    it("sort notes desc", async function() {
+        events.reset();
+
+        await notepad._reset_notes();
+        await notepad._reset_tags();
+
+        let EXPECTED_TAGS = [
+            [
+                {
+                    "count": 1,
+                    "id": 3,
+                    "name": "два",
+                },
+                {
+                    "count": 2,
+                    "id": 2,
+                    "name": "один",
+                },
+                {
+                    "id": 21,
+                    "count": 0,
+                    "name":"одинцово"
+                },
+            ],
+        ];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": 19,
+                    "tags": [
+                        2,
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372651,
+                    "id": 13,
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+
+        await notepad.close();
+        await notepads_list.delete(notepad_id);
+    });
+});
+
 
 describe("notepad pagination", function() {
     let IMPORT_DATA_ZERO = [
