@@ -422,7 +422,9 @@
     <transition name="fade">
       <warning-screen
         v-if="warningscreen_visible"
-        @accept="warning_accept" />
+        @accept="warning_accept"
+        @reject="warning_reject"
+      />
     </transition>
 
     <transition name="fade">
@@ -897,10 +899,10 @@ export default {
     },
 
     tag_clicked: async function(tag_id) {
+      this.change_section("notes", {skip_reset: true});
       this.notes_filter_tags.splice(
         0, this.notes_filter_tags.length, tag_id
       );
-      this.chnage_section("notes");
     },
 
     notepad_delete_handler: async function() {
@@ -1172,12 +1174,12 @@ export default {
 
     _enable_develop: function() {
       this.develop_mode = true;
-      cookie_api.set("develop_mode", "1");
+      cookie_api.set("develop_mode", "1", {expires: 10 * 365});
     },
 
     _disable_develop: function() {
       this.develop_mode = false;
-      cookie_api.set("develop_mode", "0");
+      cookie_api.set("develop_mode", "0", {expires: 10 * 365});
     },
 
     note_edit_state_changed: function(event) {
@@ -1231,7 +1233,7 @@ export default {
     },
 
     warning_init: function() {
-      let accept = cookie_api.get("alpha_warn_accept");
+      let accept = cookie_api.get("terms_v1_accept");
       if(accept == "1") {
         this.warningscreen_visible = false;
       }
@@ -1239,7 +1241,11 @@ export default {
 
     warning_accept: function() {
       this.warningscreen_visible = false;
-      cookie_api.set("alpha_warn_accept", "1");
+      cookie_api.set("terms_v1_accept", "1", {expires: 10 * 365});
+    },
+
+    warning_reject: function() {
+      location.href = "https://offlinepad.com";
     },
 
     service_worker_init: function() {

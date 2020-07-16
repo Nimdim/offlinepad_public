@@ -14,7 +14,10 @@
         v-model="data.name"
         @keydown.ctrl.enter="submit_edit"
         />
-      <span class="tag_name" v-else v-html="'(' + data.count + ') ' + tag.name_highlighted"></span>
+      <template v-else>
+        <span class="chip" style="position: relative; top: -9px; margin-right: 15px; margin-bottom: 0px;">{{data.count}}</span>
+        <span class="tag_name" v-html="tag.name_highlighted"></span>
+      </template>
       <template v-if="data.edit_state">
         <a class="waves-effect waves-teal btn-small right tag_delete_btn"
           key="edit_submit"
