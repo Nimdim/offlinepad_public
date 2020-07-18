@@ -1,5 +1,3 @@
-import Notepad  from "./../src/js/notepad.js";
-
 import { assert } from "chai";
 import _ from "lodash";
 import NotepadsList from "../src/js/notepads_list.js";
