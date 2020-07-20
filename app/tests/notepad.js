@@ -70,7 +70,7 @@ let import_alpha_data_upd1 = async function(name, notepads_list, data, encrypted
     import_result.notepad = await notepads_list.open(import_result.notepad_id, options);
     return import_result;
 }
-  
+
 let import_beta_data_upd1 = async function(name, notepads_list, data, encrypted, secret_phrase, salt) {
      let info = {
         method: "passphrase",

@@ -94,33 +94,73 @@ class PartialFileReader {
     async _detect_dict() {
         let index;
         let parenteese = 0;
+        let in_string = false;
         let start_detected = false;
         let start;
         for(index = 0; index < this.buffer.length; index++) {
-            if(this.buffer[index] == 123 /* { */) {
-                if(!start_detected) {
-                    start_detected = true;
-                    start = index;
+            if(!in_string) {
+                if(this.is_string_enter(this.buffer, index)) {
+                    in_string = true;
+                    continue;
                 }
-                parenteese += 1;
-            }
-            if(this.buffer[index] == 125 /* } */) {
-                parenteese -= 1;
-            }
-            if(start_detected) {
-                if(parenteese == 0) {
-                    let end = index + 1;
-                    let json_bytes = this.buffer.subarray(start, end);
-                    let json_data = new TextDecoder("utf-8").decode(json_bytes);
-                    this.processed += end;
-                    this.buffer = this.buffer.slice(end);
-                    let progress = this.processed / this.file_size;
-                    await this.callback(JSON.parse(json_data), progress);
-                    return !this._abort;
+                if(this.buffer[index] == 123 /* { */) {
+                    if(!start_detected) {
+                        start_detected = true;
+                        start = index;
+                    }
+                    parenteese += 1;
+                }
+                if(this.buffer[index] == 125 /* } */) {
+                    parenteese -= 1;
+                }
+                if(start_detected) {
+                    if(parenteese == 0) {
+                        let end = index + 1;
+                        let json_bytes = this.buffer.subarray(start, end);
+                        let json_data = new TextDecoder("utf-8").decode(json_bytes);
+                        this.processed += end;
+                        this.buffer = this.buffer.slice(end);
+                        let progress = this.processed / this.file_size;
+                        await this.callback(JSON.parse(json_data), progress);
+                        return !this._abort;
+                    }
+                }
+            } else {
+                if(this.is_string_exit(this.buffer, index)) {
+                    in_string = false;
                 }
             }
         }
         return false;
+    }
+
+    is_string_enter(buffer, index) {
+        if(buffer[index] == 34 /* " */) {
+            let count_escapers = 0;
+            while(index > 0) {
+                index--;
+                if(buffer[index] == 92 /* \ */) {
+                    count_escapers++;
+                } else {
+                    break;
+                }
+            }
+            return (count_escapers % 2) == 0;
+        }
+
+        return false;
+    }
+
+    is_string_exit(buffer, index) {
+        return this.is_string_enter(buffer, index);
+    }
+
+    get_buffer_value_at_pos(buffer, index) {
+        if(index >= 0) {
+            return buffer[index];
+        } else {
+            return 0;
+        }
     }
 }
 
