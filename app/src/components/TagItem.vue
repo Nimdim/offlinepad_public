@@ -158,7 +158,7 @@
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
   span.tag_name {
-    width: calc(100% - 160px);
+    width: calc(100% - 180px);
     display: inline-block;
     white-space: nowrap;
     overflow: hidden;
