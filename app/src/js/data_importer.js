@@ -1,5 +1,5 @@
 import _ from "lodash";
-import PartialFileReader from './partial_file_reader.js'
+import { PartialFileReader } from './partial_file_reader.js'
 
 let TYPES = [
   ["settings", "setting"],

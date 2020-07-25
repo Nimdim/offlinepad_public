@@ -36,13 +36,17 @@ let read_file = function(file) {
     return promise;
 }
 
-class PartialFileReader {
+export class PartialFileReader {
     constructor(file, callback) {
         this.file = file;
-        this.file_size = file.size;
+        this.file_size = this._get_file_size(file);
         this.processed = 0;
         this.callback = callback;
         this._abort = false;
+    }
+
+    _get_file_size(file) {
+        return file.size;
     }
 
     async start() {
@@ -164,4 +168,12 @@ class PartialFileReader {
     }
 }
 
-export default PartialFileReader
+export class MockedPartialFileReader extends PartialFileReader {
+    _get_file_size(file) {
+        return file.length;
+    }
+
+    async _read_file_frame() {
+        return this.file.slice(this.frame_start, this.frame_end);
+    }
+}
