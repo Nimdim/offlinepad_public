@@ -51,9 +51,6 @@ nav,
 
 .sidenav li.active {
   background-color: rgb(43, 60, 70);
-  border-left: 4px solid #53a6fa;
-
-  background-color: rgb(43, 60, 70);
   border-left: 4px solid darkorange;
 }
 

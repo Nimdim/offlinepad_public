@@ -6,9 +6,6 @@
     @delete="$emit('delete', item.id)"
     @submit="$emit('submit', {id: item.id, data: $event})"
   />
-  <!-- <li class="divider"></li>
-  <li><a href="#!">Разбор</a></li>
-  <li><a href="#!">Задачи</a></li> -->
 </ul>
 </template>
 

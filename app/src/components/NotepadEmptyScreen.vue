@@ -11,16 +11,16 @@
     </template>
     <template v-if="develop_mode">
       <p>
-        <a href="#!" @click="$emit('test_create', 10)">Создать 10</a>
+        <a @click="$emit('test_create', 10)">Создать 10</a>
       </p>
       <p>
-        <a href="#!" @click="$emit('test_create', 100)">Создать 100</a>
+        <a @click="$emit('test_create', 100)">Создать 100</a>
       </p>
       <p>
-        <a href="#!" @click="$emit('test_create', 1000)">Создать 1000</a>
+        <a @click="$emit('test_create', 1000)">Создать 1000</a>
       </p>
       <p>
-        <a href="#!" @click="$emit('test_create', 10000)">Создать 10000</a>
+        <a @click="$emit('test_create', 10000)">Создать 10000</a>
       </p>
     </template>
   </full-screen-box>

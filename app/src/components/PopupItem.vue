@@ -1,6 +1,6 @@
 <template>
   <li>
-    <a href="#!" @click="on_item_click(data.id)">
+    <a @click="on_item_click(data.id)">
       <input v-if="data.edit_state"
         ref="name"
         type="text"

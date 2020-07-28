@@ -131,12 +131,12 @@
     <!-- <div class="tags_footer" v-if="section == 'tags'">
       <p>
         Найдено {{tags.footer.found}} записей
-        <a href="#!" class="modal-close waves-effect waves-green btn" v-on:click="filter_tags">Показать</a>
+        <a class="modal-close waves-effect waves-green btn" v-on:click="filter_tags">Показать</a>
       </p>
     </div> -->
 
     <nav class="header" role="navigation" ref="header">
-      <div class="nav-wrapper container"><!-- <a href="#!" class="brand-logo">Органайзер</a> -->
+      <div class="nav-wrapper container">
 
         <a href="#" data-target="nav-mobile" class="sidenav-trigger">
           <font-awesome-icon class="nav-icon" icon="bars" />
@@ -238,9 +238,7 @@
               @click="change_section('notepad')"
               :class="{'active': section =='notepad'}"
             >
-              <a href="#!"
-                style="padding-right: 8px;"
-              >
+              <a style="padding-right: 8px;">
                 <font-awesome-icon class="mobile-menu-icon" icon="book" />
                 <span>
                   {{info.notepad_name}}
@@ -264,7 +262,7 @@
               @submit="edit_note_filter(note_filter.id, $event)"
             />
             <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
-              <a href="#">
+              <a>
                 <font-awesome-icon class="mobile-menu-icon" icon="tags" />
                 <span>Все теги</span>
               </a>

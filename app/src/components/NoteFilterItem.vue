@@ -2,9 +2,7 @@
   <li
     :class="{'editing': data.edit_state}"
     @click="$emit('click')">
-    <a href="#!"
-      style="padding-right: 8px;"
-    >
+    <a style="padding-right: 8px;">
       <font-awesome-icon
         class="mobile-menu-icon"
         icon="bookmark"
