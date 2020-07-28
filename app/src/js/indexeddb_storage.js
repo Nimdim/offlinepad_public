@@ -394,6 +394,8 @@ class IndexedDBStorage {
                         } else {
                             cursor.continue();
                         }
+                    } else {
+                        cursor.continue();
                     }
                 }
             };

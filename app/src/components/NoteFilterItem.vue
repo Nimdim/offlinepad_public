@@ -64,7 +64,8 @@
                 left: 10px;
                 font-size: 10px;
                 line-height: 10px;
-                color: red;"
+                color: red;
+                margin-top: 5px;"
         >{{error_text}}</span>
       </template>
     </a>
@@ -83,9 +84,9 @@ export default {
   computed: {
     error_text: function() {
       if(this.data.error == "existing") {
-        return "раздел с таким названием существует";
+        return "Закладка с таким названием существует";
       } else if (this.data.error == "empty") {
-        return "название не может быть пустым";
+        return "Название не может быть пустым";
       } else {
         return null;
       }

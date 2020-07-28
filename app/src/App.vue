@@ -42,13 +42,13 @@
           <a v-if="!add_note_filter_show && notes_filter_tags.length > 0"
             class="waves-effect waves-teal btn-small right tag_delete_btn"
             @click.prevent="note_filter_add_gui_show">
-            Создать раздел
+            Новая закладка
           </a>
         </p>
         <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;" v-if="add_note_filter_show">
           <input
             ref="new_note_filter_name"
-            placeholder="Название раздела"
+            placeholder="Название новой закладки"
             type="text"
             class="validate filter_name text-input--standart-style"
             :class="{'error': new_note_filter.error}"
@@ -852,7 +852,7 @@ export default {
       let notification = {
         type: "helper",
         text: "Фраза скопирована",
-        hide_delay: 3,
+        hide_delay: 2,
       };
       if(!success) {
         notification.text = "Не удалось копировать фразу";
@@ -868,7 +868,7 @@ export default {
       this.notifications.push({
         type: "helper",
         text: "Название изменено",
-        hide_delay: 3,
+        hide_delay: 2,
       });
     },
 
@@ -1708,6 +1708,7 @@ export default {
     },
 
     submit_tag: async function(data) {
+      let is_exists;
       if(data.name == "") {
         data.error = "empty"
         data.edit_state = true;
@@ -1715,7 +1716,7 @@ export default {
         return;
       }
       if(data.id == "__new_item__") {
-        let is_exists = await notepad.is_tag_with_name_exists(data.name);
+        is_exists = await notepad.is_tag_with_name_exists(data.name);
         if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
@@ -1724,7 +1725,7 @@ export default {
           await notepad.create_tag(data.name);
         }
       } else {
-        let is_exists = await notepad.is_tag_with_name_exists(data.name, data.id);
+        is_exists = await notepad.is_tag_with_name_exists(data.name, data.id);
         if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
@@ -2103,19 +2104,19 @@ export default {
       let is_exists = await notepad.is_note_filter_with_name_exists(name);
       if(is_exists) {
         this.new_note_filter.error = true;
-        this.new_note_filter.error_text = "Раздел с таким названием уже существует";
+        this.new_note_filter.error_text = "Закладка с таким названием уже существует";
         this.$refs.new_note_filter_name.focus();
       } else if(name == "") {
         this.new_note_filter.error = true;
-        this.new_note_filter.error_text = "Название раздела не может быть пустым";
+        this.new_note_filter.error_text = "Название не может быть пустым";
         this.$refs.new_note_filter_name.focus();
       } else {
         await notepad.create_note_filter(name, this.notes_filter_tags);
         this.cancel_note_filter();
         this.notifications.push({
           type: "helper",
-          text: "Раздел создан",
-          hide_delay: 3,
+          text: "Новая закладка доступна в меню",
+          hide_delay: 2,
         });
       }
     },

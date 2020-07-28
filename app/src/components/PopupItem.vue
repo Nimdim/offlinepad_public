@@ -77,9 +77,9 @@ export default {
   computed: {
     error_text: function() {
       if(this.data.error == "existing") {
-        return "раздел с таким названием существует";
+        return "Закладка с таким названием существует";
       } else if (this.data.error == "empty") {
-        return "название не может быть пустым";
+        return "Название не может быть пустым";
       } else {
         return null;
       }

@@ -13,6 +13,7 @@
         style="width: calc(100% - 115px);"
         v-model="data.name"
         @keydown.ctrl.enter="submit_edit"
+        @click.stop=""
         />
       <template v-else>
         <span class="chip" style="position: relative; top: -9px; margin-right: 15px; margin-bottom: 0px;">{{data.count}}</span>
@@ -98,7 +99,7 @@
     computed: {
       error_text: function() {
         if(this.data.error == "existing") {
-          return "раздел с таким названием существует";
+          return "Тег с таким названием существует";
         } else if (this.data.error == "empty") {
           return "название не может быть пустым";
         } else {
