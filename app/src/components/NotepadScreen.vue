@@ -15,7 +15,7 @@
             <font-awesome-icon icon="th" />
             Название блокнота
           </span><br>
-          <form class="col s12">
+          <div class="col s12">
             <div class="row" style="margin: 0px;">
               <input
                 ref="add_name_input"
@@ -32,7 +32,40 @@
                 <span>Изменить</span>
               </a>
             </div>
-          </form>
+          </div>
+        </span>
+      </li>
+
+      <li
+        class="collection-item"
+      >
+        <span>
+          <span class="left">
+            <font-awesome-icon icon="th" />
+            Блокировка при неактивности
+          </span><br>
+          <span class="left wizard-hinttext"
+          >
+            Если не будете пользоваться блокнотом в течение указанного времени, будет выполнен автоматический выход на главный экран. Задайте время до блокировки в секундах от 20 до 180 (пусто - блокировка отключена).
+          </span>
+          <div class="col s12">
+            <div class="row" style="margin: 0px;">
+              <input
+                ref="add_name_input"
+                placeholder=""
+                type="text"
+                class="validate"
+                v-model="notepad_lock_interval_local"
+              >
+              <a
+                class="waves-effect waves-teal btn left action-button"
+                style="width: 100%"
+                @click.prevent="$emit('change_notepad_lock_interval', notepad_lock_interval_local)"
+              >
+                <span>Изменить</span>
+              </a>
+            </div>
+          </div>
         </span>
       </li>
 
@@ -55,7 +88,7 @@
             ввод всего нескольких цифр.
             Работает только при наличии доступа к серверу OfflinePad
           </span>
-          <form class="col s12">
+          <div class="col s12">
             <div class="row" style="margin: 0px;">
               <a
                 class="waves-effect waves-teal btn left action-button"
@@ -74,7 +107,7 @@
                 Удалить
               </a>
             </div>
-          </form>
+          </div>
         </span>
       </li>
 
@@ -95,7 +128,7 @@
             Открывайте блокнот удобным для вас паролем.
             Хранится на устройстве и работает вне зависимости от наличия сети.
           </span>
-          <form class="col s12">
+          <div class="col s12">
             <div class="row" style="margin: 0px;">
               <a
                 class="waves-effect waves-teal btn left action-button"
@@ -114,7 +147,7 @@
                 Удалить
               </a>
             </div>
-          </form>
+          </div>
         </span>
       </li>
 
@@ -130,7 +163,7 @@
             утере или поломке устройства,
             а также при переносе записей на другое устройство.
           </span>
-          <form class="col s12">
+          <div class="col s12">
             <div class="row" style="margin: 0px;">
               <a v-if="encrypted"
                 class="waves-effect waves-teal btn action-button"
@@ -155,14 +188,14 @@
                 Записи блокнота будут сохранены в файл в исходном виде.
               </span>
             </div>
-          </form>
+          </div>
         </span>
       </li>
 
       <li class="collection-item"
       >
         <span>
-          <form class="col s12">
+          <div class="col s12">
             <div class="row" style="margin: 0px;">
               <a
                 class="waves-effect waves-teal btn red"
@@ -172,7 +205,7 @@
                 Удалить блокнот
               </a>
             </div>
-          </form>
+          </div>
         </span>
       </li>
     </ul>
@@ -187,6 +220,10 @@
         type: String,
         required: true,
       },
+      notepad_lock_interval: {
+        type: String,
+        default: "",
+      },
       encrypted: {
         type: Boolean,
         default: false,
@@ -200,6 +237,7 @@
     data: function() {
       let data = {
         notepad_name_local: this.notepad_name,
+        notepad_lock_interval_local: this.notepad_lock_interval,
       };
       return data;
     },
