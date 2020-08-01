@@ -203,7 +203,7 @@
 </template>
 <script>
   import FullScreenBox from "./FullScreenBox.vue";
-  import PartialFileReader from './../js/partial_file_reader.js';
+  import { PartialFileReader } from './../js/partial_file_reader.js';
   import _ from "lodash";
   import diceware from "./../js/diceware/diceware.js";
 
