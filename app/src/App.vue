@@ -386,7 +386,7 @@
       />
     </transition>
 
-    <div style="position: absolute; left: 30px; bottom: 30px; z-index: 2002;">
+    <div style="position: fixed; left: 30px; bottom: 30px; z-index: 2002;">
       <div v-for="(notification, i) in notifications" :key="i"
       >
         <transition v-if="notification.type == 'update available'" name="fade">
@@ -853,6 +853,7 @@ export default {
     window.addEventListener("mousemove", this.reset_lock_interval);
     window.addEventListener("mousedown", this.reset_lock_interval);
     window.addEventListener("keypress", this.reset_lock_interval);
+    window.addEventListener("scroll", this.reset_lock_interval);
   },
 
   beforeDestroy: function() {
@@ -862,6 +863,7 @@ export default {
     window.removeEventListener("mousemove", this.reset_lock_interval);
     window.removeEventListener("mousedown", this.reset_lock_interval);
     window.removeEventListener("keypress", this.reset_lock_interval);
+    window.removeEventListener("scroll", this.reset_lock_interval);
   },
 
   methods: {
@@ -900,7 +902,11 @@ export default {
       if(interval != null) {
         if(interval > 0) {
           this._lock_timeout = setTimeout(
-            () => {this.notepad_goto_home()},
+            () => {
+              if(notepad != null) {
+                this.notepad_goto_home();
+              }
+            },
             parseInt(interval) * 1000
           );
         }
@@ -1204,6 +1210,7 @@ export default {
     },
 
     notepad_goto_home: async function() {
+      this.disable_lock_interval();
       this.loadscreen_visible = true;
       await sleep(0.5);
       // TODO костыль
