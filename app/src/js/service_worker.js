@@ -5,6 +5,8 @@ class ServiceWorkerAPI {
 
   constructor() {
     _.extend(this, Backbone.Events);    
+    this.update_interval = null;
+    this.update_found = false;
   }
 
   is_available() {
@@ -50,17 +52,31 @@ class ServiceWorkerAPI {
   }
 
   start_updates_checking() {
-    this.check_updates();
-    // setInterval(
-    //   () => {
-    //     this.check_updates()
-    //   },
-    //   5 * 1000
-    // );
+    if(this.update_interval != null) {
+      return;
+    }
+    if(this.update_found) {
+      return;
+    }
+    // this.check_updates();
+    this.update_interval = setInterval(
+      () => {
+        this.check_updates()
+      },
+      5 * 1000
+    );
+  }
+
+  stop_updates_checking() {
+    clearInterval(this.update_interval);
+    this.update_interval = null;
   }
 
   check_updates() {
     if(this._registration.waiting != null) {
+      this.stop_updates_checking();
+      this.update_found = true;
+
       this._new_worker = this._registration.waiting;
       this.communicate(
         {"command": "get_version"},
@@ -72,9 +88,9 @@ class ServiceWorkerAPI {
       );
     } else {
       this._registration.update();
-      setTimeout(
-        () => { this.check_updates(); }, 5000
-      );
+      // setTimeout(
+      //   () => { this.check_updates(); }, 5000
+      // );
     }
   }
 

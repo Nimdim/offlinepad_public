@@ -115,6 +115,7 @@
     <notepad-screen v-if="section == 'notepad' && notepad_working"
       :encrypted="encrypted"
       :notepad_name="info.notepad_name"
+      :notepad_lock_interval="info.settings.notepad_lock_interval"
       :available_methods="available_methods"
       @export_encrypted="export_encrypted"
       @export_unencrypted="export_unencrypted_handler"
@@ -124,6 +125,7 @@
       @set_pin="set_pin_for_notepad"
       @delete_pin="delete_pin_for_notepad"
       @change_notepad_name="change_notepad_name"
+      @change_notepad_lock_interval="change_notepad_lock_interval"
     />
 
     <processing-screen v-if="processing" style="z-index: 1;" />
@@ -772,6 +774,14 @@ export default {
     "tags.items": function() {
       this.process_empty_screen();
     },
+
+    blockerscreen_visible: function(shown) {
+      if(shown) {
+        this.disable_lock_interval();
+      } else {
+        this.reset_lock_interval();
+      }
+    },
   },
 
   computed: {
@@ -838,13 +848,20 @@ export default {
     this.startup = false;
     this.loadscreen_visible = false;
     window.addEventListener("beforeunload", this.before_unload_handler);
-    // window.addEventListener("focus", focus_handler);
-    // window.addEventListener("blur", this.window_blur_handler);
+    window.addEventListener("focus", this.window_focus_handler);
+    window.addEventListener("blur", this.window_blur_handler);
+    window.addEventListener("mousemove", this.reset_lock_interval);
+    window.addEventListener("mousedown", this.reset_lock_interval);
+    window.addEventListener("keypress", this.reset_lock_interval);
   },
 
   beforeDestroy: function() {
     window.removeEventListener("beforeunload", this.before_unload_handler);
+    window.removeEventListener("focus", this.window_focus_handler);
     window.removeEventListener("blur", this.window_blur_handler);
+    window.removeEventListener("mousemove", this.reset_lock_interval);
+    window.removeEventListener("mousedown", this.reset_lock_interval);
+    window.removeEventListener("keypress", this.reset_lock_interval);
   },
 
   methods: {
@@ -858,6 +875,60 @@ export default {
         notification.text = "Не удалось копировать фразу";
       }
       this.notifications.push(notification);
+    },
+
+    set_notepad_setting: function(key, value) {
+      if(this.info.settings == null) {
+        this.info.settings = {};
+      }
+      this.info.settings[key] = value;
+    },
+
+    disable_lock_interval: function() {
+      if(this._lock_timeout != null) {
+        clearTimeout(this._lock_timeout)
+        this._lock_timeout = null;
+      }
+    },
+
+    reset_lock_interval: function() {
+      if(this.blockerscreen_visible) {
+        return;
+      }
+      this.disable_lock_interval();
+      let interval = this.info.settings?.notepad_lock_interval;
+      if(interval != null) {
+        if(interval > 0) {
+          this._lock_timeout = setTimeout(
+            () => {this.notepad_goto_home()},
+            parseInt(interval) * 1000
+          );
+        }
+      }
+    },
+
+    change_notepad_lock_interval: async function(new_interval) {
+      if(new_interval != "") {
+        let interval_int = parseInt(new_interval);
+        if(interval_int < 20 || interval_int > 180) {
+          let notification = {
+            type: "helper",
+            text: "Интервал должен иметь пусто значение или в пределах от 20 до 180",
+            hide_delay: 2,
+          };
+          this.notifications.push(notification);
+          return;
+        }
+      }
+
+      this.set_notepad_setting("notepad_lock_interval", new_interval);
+      this.reset_lock_interval();
+      await notepad.save_info(this.info);
+      this.notifications.push({
+        type: "helper",
+        text: "Интервал изменен",
+        hide_delay: 2,
+      });
     },
 
     change_notepad_name: async function(new_name) {
@@ -888,12 +959,17 @@ export default {
       }
     },
 
+    window_focus_handler: function() {
+      sw_api.start_updates_checking();
+    },
+
     window_blur_handler: function() {
-      if(notepad != null) {
-        if(!this.blockerscreen_visible) {
-          this.notepad_goto_home();
-        }
-      }
+      sw_api.stop_updates_checking();
+      // if(notepad != null) {
+      //   if(!this.blockerscreen_visible) {
+      //     this.notepad_goto_home();
+      //   }
+      // }
     },
 
     tag_clicked: async function(tag_id) {
@@ -1323,8 +1399,16 @@ export default {
     },
 
     notepad_reset_info: async function(info) {
+      if(info.settings == null) {
+        info.settings = {};
+      }
+      if(info.settings.notepad_lock_interval != null) {
+        info.settings.notepad_lock_interval = info.settings.notepad_lock_interval.toString();
+      }
       this.info = info;
       let notepad_id = info.id;
+
+      this.reset_lock_interval();
 
       if(this.info.encrypted) {
         notepads_list._get_password_secret(notepad_id).then(
