@@ -50,7 +50,7 @@
             <div class="container">
                 <!-- Logo container-->
                 <div>
-                    <a class="logo" href="/">
+                    <a class="logo" href="{% url 'index' %}">
                         OfflinePad
                     </a>
                 </div>                 
@@ -102,9 +102,13 @@
                             <div class="page-next">
                                 <nav aria-label="breadcrumb" class="d-inline-block">
                                     <ul class="breadcrumb bg-white rounded shadow mb-0">
-                                        <li class="breadcrumb-item"><a href="/">OfflinePad</a></li>
-                                        <!-- <li class="breadcrumb-item"><a href="helpcenter-overview.html">Help Center</a></li> -->
-                                        <li class="breadcrumb-item active" aria-current="page">Прошлые версии</li>
+                                        {% for breadcrumb in breadcrumbs %}
+                                            {% if forloop.last %}
+                                                <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.name }}</li>
+                                            {% else %}
+                                                <li class="breadcrumb-item"><a href="{% url breadcrumb.url %}">{{ breadcrumb.name }}</a></li>
+                                            {% endif %}
+                                        {% endfor  %}
                                     </ul>
                                 </nav>
                             </div>

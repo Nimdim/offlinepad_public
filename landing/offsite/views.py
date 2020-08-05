@@ -13,7 +13,12 @@ def index(request):
 
 def oldapps(request):
     # latest_question_list = Question.objects.order_by('-pub_date')[:5]
-    context = {}
+    context = {
+        "breadcrumbs": [
+            {"name": "OfflinePad", "url": "index"},
+            {"name": "Прошлые версии"},
+        ]
+    }
     return render(request, 'offsite/oldapps.html', context)
 
 
