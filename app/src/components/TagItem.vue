@@ -7,7 +7,7 @@
     <p style="margin-block-start: 0; margin-block-end: 0;">
       <input v-if="data.edit_state"
         ref="name"
-        placeholder="Название метки"
+        placeholder="Название тега"
         type="text"
         class="validate tag_name text-input--standart-style"
         style="width: calc(100% - 115px);"

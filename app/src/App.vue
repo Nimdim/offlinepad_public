@@ -207,7 +207,7 @@
             </a>
           </li>
           <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
-            <a href="#">Метки</a>
+            <a href="#">Теги</a>
           </li>
           <li :class="{active: section == 'notepad'}" v-on:click="change_section('notepad')">
             <a>
@@ -1870,7 +1870,7 @@ export default {
       let tags = [];
       for(let k = 0; k < 10; k++) {
         tags.push({
-          "name": "метка " + (k + 1),
+          "name": "тег " + (k + 1),
         });
       }
       let tag_ids = await notepad._storage.create_items_in_store(
