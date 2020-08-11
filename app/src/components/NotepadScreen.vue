@@ -195,6 +195,13 @@
       <li class="collection-item"
       >
         <span>
+          <span class="left">
+            <font-awesome-icon icon="trash" />
+            Удаление блокнота
+          </span>
+          <span class="left wizard-hinttext">
+            Будет безвозвратно удален блокнот вместе со всеми содержащимися в нем записями и тегами. Отменить данное действите будет невозможно.
+          </span>
           <div class="col s12">
             <div class="row" style="margin: 0px;">
               <a

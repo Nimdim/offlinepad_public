@@ -241,9 +241,9 @@
               :class="{'active': section =='notepad'}"
             >
               <a style="padding-right: 8px;">
-                <font-awesome-icon class="mobile-menu-icon" icon="book" />
+                <font-awesome-icon class="mobile-menu-icon" icon="cog" />
                 <span>
-                  {{info.notepad_name}}
+                  Настройки блокнота
                 </span>
                 <div style="float: right; height: 48px;">
                   <font-awesome-icon
@@ -255,6 +255,12 @@
                 </div>
               </a>
             </li>
+            <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
+              <a>
+                <font-awesome-icon class="mobile-menu-icon" icon="tags" />
+                <span>Все теги</span>
+              </a>
+            </li>
             <note-filter-item
               v-for="note_filter in note_filters" :key="note_filter.id"
               :note_filter="note_filter"
@@ -263,12 +269,6 @@
               @delete="delete_note_filter(note_filter.id)"
               @submit="edit_note_filter(note_filter.id, $event)"
             />
-            <li :class="{active: section == 'tags'}" v-on:click="change_section('tags')">
-              <a>
-                <font-awesome-icon class="mobile-menu-icon" icon="tags" />
-                <span>Все теги</span>
-              </a>
-            </li>
           </ul>
 
           <div style="position: absolute;
@@ -2056,11 +2056,12 @@ export default {
       this.notepad_wizard_show = false;
       let info = await notepads_list.create_upd1(name, options);
       this.notepads = _.cloneDeep(notepads_list.notepads);
-      let created_form = this.notepad_created_prompt();
-      await sleep(0.25);
+      // let created_form = this.notepad_created_prompt();
+      // await sleep(0.25);
       this.loadscreen_visible = false;
 
-      let result = await created_form;
+      // let result = await created_form;
+      let result = true;
       if(result) {
         arg.id = info.id;
         this.notepad_open(arg);
@@ -2102,11 +2103,12 @@ export default {
         let import_result = await importer.execute();
         clearTimeout(updater);
         if(import_result.error == null) {
-          let created_form = this.notepad_created_prompt();
+          // let created_form = this.notepad_created_prompt();
           await sleep(0.25);
           this.importing = false;
 
-          let result = await created_form;
+          // let result = await created_form;
+          let result = true;
           if(result) {
             arg.id = import_result.notepad_id;
             this.notepad_open(arg);
@@ -2202,13 +2204,20 @@ export default {
         this.new_note_filter.error_text = "Название не может быть пустым";
         this.$refs.new_note_filter_name.focus();
       } else {
-        await notepad.create_note_filter(name, this.notes_filter_tags);
-        this.cancel_note_filter();
-        this.notifications.push({
-          type: "helper",
-          text: "Новая закладка доступна в меню",
-          hide_delay: 2,
-        });
+        let tags = _.clone(this.notes_filter_tags);
+        tags = _.filter(tags, (tag) => {return tag != 0});
+        if(tags.length == 0) {
+          this.new_note_filter.error = true;
+          this.new_note_filter.error_text = "Список тегов закладки не может быть пустым";
+        } else {
+          await notepad.create_note_filter(name, tags);
+          this.cancel_note_filter();
+          this.notifications.push({
+            type: "helper",
+            text: "Новая закладка доступна в меню",
+            hide_delay: 2,
+          });
+        }
       }
     },
 

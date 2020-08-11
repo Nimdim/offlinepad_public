@@ -3,9 +3,13 @@
     :class="{'editing': data.edit_state}"
     @click="$emit('click')">
     <a style="padding-right: 8px;">
-      <font-awesome-icon
+      <font-awesome-icon v-if="typeof(data.id) == 'number'"
         class="mobile-menu-icon"
         icon="bookmark"
+      />
+      <font-awesome-icon v-else
+        class="mobile-menu-icon"
+        icon="book"
       />
       <input v-if="data.edit_state"
         ref="name"
