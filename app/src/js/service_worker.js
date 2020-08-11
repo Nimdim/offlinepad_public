@@ -75,14 +75,14 @@ class ServiceWorkerAPI {
   check_updates() {
     if(this._registration.waiting != null) {
       this.stop_updates_checking();
-      this.update_found = true;
 
       this._new_worker = this._registration.waiting;
       this.communicate(
         {"command": "get_version"},
         this._registration.waiting
       ).then((info) => {
-          let id = info[0];
+        this.update_found = true;
+        let id = info[0];
           this.trigger("update_available", id)
         }
       );
