@@ -1,6 +1,7 @@
 .DS_Store
 app/node_modules
 app/dist
+foo.db
 
 __pycache__
 
