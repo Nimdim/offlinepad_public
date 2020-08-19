@@ -4,33 +4,17 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, \
 from sqlalchemy.orm import scoped_session, sessionmaker, backref, relation
 from sqlalchemy.ext.declarative import declarative_base
 
-from settings import db_url
+db_session = None
 
-# from werkzeug import cached_property, http_date
-
-# from flask import url_for, Markup
-# from flask_website import app, search
-
-# # db_url = postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]
-# create_engine(db_url, client_encoding='utf8')
-
-# class User(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     username = db.Column(db.String(80), unique=True, nullable=False)
-#     email = db.Column(db.String(120), unique=True, nullable=False)
-
-#     def __repr__(self):
-#         return '<User %r>' % self.username
-
-
-engine = create_engine(db_url, client_encoding='utf8')
-
-
-db_session = sessionmaker(autocommit=False,
+def create_db_session(db_url):
+    global db_session
+    engine = create_engine(db_url)
+    db_session = sessionmaker(autocommit=False,
                           autoflush=False,
                           bind=engine)()
 
-def init_db():
+def init_db(db_url):
+    engine = create_engine(db_url)
     Model.metadata.create_all(bind=engine)
 
 
@@ -46,4 +30,5 @@ class PinCode(Model):
     type = Column('type', String)
 
 if __name__ == "__main__":
-    init_db()
+    from settings import db_url
+    init_db(db_url)

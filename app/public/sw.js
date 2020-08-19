@@ -145,6 +145,20 @@ let process_download = function(url) {
   if(id == null) {
     return new Response("ok");
   }
+  if(downloads[id] == null) {
+    let redirect_html = '<html><head><meta http-equiv="refresh" content="0;URL=/" /></head></html>';
+    let headers = new Headers({
+      'Content-Type': 'text/html; charset=utf-8',
+  
+      // To be on the safe side, The link can be opened in a iframe.
+      // but octet-stream should stop it.
+      // 'Content-Security-Policy': "default-src 'none'",
+      // 'X-Content-Security-Policy': "default-src 'none'",
+      // 'X-WebKit-CSP': "default-src 'none'",
+      // 'X-XSS-Protection': '1; mode=block'
+    });
+    return new Response(redirect_html, { headers: headers });
+  }
 
   const responseHeaders = new Headers({
     'Content-Type': 'application/octet-stream; charset=utf-8',

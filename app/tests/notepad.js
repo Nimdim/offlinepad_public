@@ -3141,6 +3141,13 @@ describe("pin tests", function() {
 
     it("pin test", async function() {
         this.timeout(60000);
+        const { execFile } = require('child_process');
+        const path = require("path");
+
+        const backend_cwd = path.join(process.cwd(), "..", "backend");
+        const backend_py_file = path.join(backend_cwd, "run_test.py");
+        const pin_server = execFile('python', [backend_py_file], {cwd: backend_cwd});
+
         let result = await notepads_list.set_pin_secret(
             notepad_id, "1234", ENCRYPTED_NOTEPAD_OPTIONS.secret
         );
@@ -3170,6 +3177,8 @@ describe("pin tests", function() {
         events.assert_note_filters(EXPECTED_NOTE_FILTERS);
 
         await notepad.close();
+
+        pin_server.kill("SIGINT");
     });
 
     it("delete notepad", async function() {

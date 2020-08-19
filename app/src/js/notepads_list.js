@@ -30,15 +30,17 @@ class NotepadsListStorage extends IndexedDBStorage {
     }
 }
 
+const LOCAL_TEST_SERVER = "http://127.0.0.1:4999";
+
 let POST = async function(url, data, options) {
     if(typeof window == "undefined") {
-        url = "http://127.0.0.1:5000" + url;
+        url = LOCAL_TEST_SERVER + url;
     }
     let response;
     try {
         response = await axios.post(url, data, options);
     } catch (e) {
-        if(e.code == "ECONNABORTED") {
+        if(e.code == "ECONNABORTED" || e.code == "ECONNREFUSED") {
             return {"error": "timeout"};
         } else {
             response = e.response;
@@ -55,7 +57,7 @@ let POST = async function(url, data, options) {
 
 let DELETE = async function(url, data) {
     if(typeof window == "undefined") {
-        url = "http://127.0.0.1:5000" + url;
+        url = LOCAL_TEST_SERVER + url;
     }
     let response;
     try {
