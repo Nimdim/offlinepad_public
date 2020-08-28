@@ -2,7 +2,7 @@
   <full-screen-box :top="true" :fullscreen="true">
     <span>
       <ul
-        class="collection notepads-selector"
+        class="collection"
         style="margin-top: 10px; margin-bottom: 20px;"
       >
         <li class="collection-item"
