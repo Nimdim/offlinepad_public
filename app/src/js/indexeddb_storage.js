@@ -213,9 +213,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(count);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -233,9 +233,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(count);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -258,9 +258,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(result);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -278,9 +278,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(item);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -299,9 +299,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(item);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -322,9 +322,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(result);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -345,9 +345,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve();
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -368,9 +368,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve();
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -403,9 +403,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve(exists);
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }
@@ -418,9 +418,9 @@ class IndexedDBStorage {
             transaction.oncomplete = () => {
                 resolve();
             };
-            transaction.onerror = () => {
-                reject();
-            }
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
         });
         return promise;
     }

@@ -6,9 +6,9 @@ from sqlalchemy.ext.declarative import declarative_base
 
 db_session = None
 
-def create_db_session(db_url):
+def create_db_session(db_url, **kwargs):
     global db_session
-    engine = create_engine(db_url)
+    engine = create_engine(db_url, **kwargs)
     db_session = sessionmaker(autocommit=False,
                           autoflush=False,
                           bind=engine)()

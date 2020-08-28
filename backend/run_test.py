@@ -4,7 +4,7 @@ from settings import db_sqlite_url
 
 os.remove("foo.db")
 init_db(db_sqlite_url)
-create_db_session(db_sqlite_url)
+create_db_session(db_sqlite_url, connect_args={'check_same_thread': False})
 
 
 from app import app

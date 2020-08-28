@@ -3176,6 +3176,9 @@ describe("pin tests", function() {
         events.assert_notes(EXPECTED_NOTES);
         events.assert_note_filters(EXPECTED_NOTE_FILTERS);
 
+        result = await notepads_list.delete_pin_secret(notepad_id);
+        assert.equal(result.error, "ok");
+
         await notepad.close();
 
         pin_server.kill("SIGINT");
