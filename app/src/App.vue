@@ -348,8 +348,6 @@
       <blocker-screen v-if="blockerscreen_visible"/>
     </transition>
 
-    <features-not-available-screen v-if="features_unawailable" />
-
     <transition name="fade">
       <notepads-selector v-if="!notepad_working"
         :current_theme="current_theme"
@@ -494,6 +492,8 @@
     >
       <font-awesome-icon icon="terminal" />
     </a>
+
+    <features-not-available-screen v-if="features_unawailable" />
 
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
