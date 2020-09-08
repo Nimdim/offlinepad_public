@@ -1,4 +1,4 @@
-const APP_VERSION = "1.12";
+const APP_VERSION = "1.23";
 
 const RESOURCES = [
   '/',
@@ -10,6 +10,7 @@ const RESOURCES = [
   '/js/app.js',
   '/js/chunk-vendors.js',
   '/js/jquery-2.1.1.min.js',
+  '/js/Blob.js',
   '/js/materialize.js',
   '/js/materialize.min.js',
   '/favicon.ico',
@@ -161,19 +162,21 @@ let process_download = function(url) {
   }
 
   const responseHeaders = new Headers({
-    'Content-Type': 'application/octet-stream; charset=utf-8',
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': downloads[id].data.length,
 
     // To be on the safe side, The link can be opened in a iframe.
     // but octet-stream should stop it.
-    'Content-Security-Policy': "default-src 'none'",
-    'X-Content-Security-Policy': "default-src 'none'",
-    'X-WebKit-CSP': "default-src 'none'",
-    'X-XSS-Protection': '1; mode=block'
+    // 'Content-Security-Policy': "default-src 'none'",
+    // 'X-Content-Security-Policy': "default-src 'none'",
+    // 'X-WebKit-CSP': "default-src 'none'",
+    // 'X-XSS-Protection': '1; mode=block'
   });
 
   let fileName = encodeURIComponent(downloads[id].filename).replace(/['()]/g, escape).replace(/\*/g, '%2A')
   // responseHeaders.set('Content-Disposition', "attachment; filename*=UTF-8''" + fileName)
   responseHeaders.set('Content-Disposition', 'attachment; filename="' + fileName + '"');
+  // responseHeaders.set('Content-Disposition', 'attachment; filename="backup.data"');
   return new Response(downloads[id].data, { headers: responseHeaders });
   // return new Response(downloads[id].stream, { headers: responseHeaders });
 }

@@ -1,5 +1,6 @@
 <template>
   <div id="app" class="theme--background-color">
+    <a href="" download ref="download_href"></a>
     <popup
       ref="notes_popup"
       :items="note_filters"
@@ -550,6 +551,37 @@ import ScrollUpController from './js/scroll_up_controller.js'
 import { BetaDataImporter_upd1, AlphaDataImporter_upd1 } from './js/data_importer.js'
 import cryptobox from './js/cryptobox'
 import utils from './js/utils.js'
+
+const USE_BLOBS = /constructor/i.test(window.HTMLElement) || !!window.safari || !!window.WebKitPoint;
+
+let download_in_safari = function(data, filename) {
+  const blob = new Blob([data], { type: 'application/octet-stream; charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  // window.open(URL.createObjectURL(blob), "_blank");
+  // filename;
+  // const readableStream = blob.stream();
+  // let chunks = [];
+  // const reader = readableStream.getReader();
+  // const pump = () => reader.read()
+  //   .then(res => {
+  //     if(res.done) {
+  //       const blob = new Blob(chunks, { type: 'application/octet-stream; charset=utf-8' });
+  //       const link = document.createElement('a');
+  //       link.href = URL.createObjectURL(blob);
+  //       link.download = filename;
+  //       link.click();
+  //     } else {
+  //       chunks.push(res.value);
+  //       pump();
+  //     }
+  //   }
+  // )
+  // pump();
+};
+
 
 let import_error_to_str = function(code) {
   let result;
@@ -1234,6 +1266,9 @@ export default {
       if(command == "develop=on") {
         this._enable_develop();
       }
+      if(command == "persist") {
+        this._enable_persist();
+      }
       if(command == "develop=off") {
         this._disable_develop();
       }
@@ -1244,6 +1279,18 @@ export default {
         result;
         window.console.timeEnd("pbkdf2");
       }
+    },
+
+    _enable_persist: function() {
+      window.navigator.storage.persist().then(
+        (persist) => {
+          let item = {
+            type: "helper",
+            text: "persist: " + persist,
+          };
+          this.notifications.push(item);
+        }
+      );
     },
 
     _init_develop_mode: function() {
@@ -1984,27 +2031,36 @@ export default {
       
       // this.download(filename, data);
 
-      let promise = sw_api.new_download(
-        filename, data_serialized
-      ).then(function(info) {
-        let download_id = info[0];
-        // let port = info[1];
-        // console.log(download_id);
-        // console.log(port);
-        location.href="/download?id=" + download_id;
-        // setTimeout(
-        //   function() {
-        //     // port.postMessage("123");
-        //     // port.postMessage("123");
-        //     // port.postMessage("123");
-        //     // port.postMessage("123");
-        //     // port.postMessage("123");
-        //     // port.postMessage("end");
-        //   },
-        //   1000
-        // )
-      });
-      await promise;
+      if(USE_BLOBS) {
+        download_in_safari(data_serialized, filename);
+      } else {
+        let promise = sw_api.new_download(
+          filename, data_serialized
+        ).then((info) => {
+          let download_id = info[0];
+          // let port = info[1];
+          // console.log(download_id);
+          // console.log(port);
+          let download_url = "/download?id=" + download_id;
+          location.href = download_url;
+          // window.open(download_url)
+          // this.$refs.download_href.setAttribute("href", download_url);
+          // this.$refs.download_href.click();
+          // setTimeout(
+          //   function() {
+          //     // port.postMessage("123");
+          //     // port.postMessage("123");
+          //     // port.postMessage("123");
+          //     // port.postMessage("123");
+          //     // port.postMessage("123");
+          //     // port.postMessage("end");
+          //   },
+          //   1000
+          // )
+        });
+        await promise;
+      }
+
 
       // const fileStream = streamSaver.createWriteStream('filename.txt'
       // // ,
