@@ -873,6 +873,24 @@ export default {
       this.scroll_init();
       window.M.AutoInit();
       await this.notepads_init();
+
+      if(localStorage.getItem("survey_20200909") != "1") {
+        this.notifications.push({
+          type: "helper",
+          text: "Предлагаем вам пройти опрос по сервису OfflinePad",
+          actions: [
+            {
+              text: "пройти опрос (опрос будет открыт в новой вкладке)",
+              handler: () => {window.open("https://docs.google.com/forms/d/e/1FAIpQLSftfG16HofTfz9zqvy86mFh6SwLK9DEi9w8M-wQd77xYoxQ_Q/viewform?usp=sf_link")},
+            },
+            {
+              text: "больше не показывать данное уведомление",
+              handler: () => {localStorage.setItem("survey_20200909", "1")},
+            },
+          ],
+        });
+      }
+
     } else {
       this.features_unawailable = true;
     }

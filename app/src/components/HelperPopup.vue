@@ -20,7 +20,7 @@
             @click.prevent="$emit('close')" />
           <p
             v-for="(action, ix) in actions" :key="ix"
-            style="color: darkorange; text-decoration: underline; cursor: pointer; font-size: 12px;"
+            style="color: darkorange; text-decoration: underline; cursor: pointer; font-size: 12px; margin-top: 0.8em; line-height: 1.2em;"
             @click="click_action(action)"
         >
             {{action.text}}
