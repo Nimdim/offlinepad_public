@@ -19,6 +19,7 @@ from django.urls import path, include
 urlpatterns = [
     path('', include('offsite.urls')),
     path('admin/', admin.site.urls),
+    path('chat/', include('chat.urls')),
 ]
 
 handler404 = 'offsite.views.handler404'

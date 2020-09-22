@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8" />
+        <title>Задать вопрос технической поддержке</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Здесь вы можете задать вопрос технической поддержке онлайн блокнота OfflinePad. Мы постараемся помочь вам в решении ваших вопросов" />
+        <!-- <meta name="keywords" content="Saas, Software, multi-uses, HTML, Clean, Modern" />
+        <meta name="author" content="Shreethemes" />
+        <meta name="email" content="shreethemes@gmail.com" />
+        <meta name="website" content="http://www.shreethemes.in" />
+        <meta name="Version" content="v2.2" /> -->
+        <!-- favicon -->
+        <link rel="shortcut icon" href="/images/favicon.ico">
+        <!-- Bootstrap -->
+        <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+        <!-- Icons -->
+        <link href="/css/materialdesignicons.min.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.7/css/unicons.css">
+        <!-- Slider -->               
+        <link rel="stylesheet" href="/css/owl.carousel.min.css"/> 
+        <link rel="stylesheet" href="/css/owl.theme.default.min.css"/> 
+        <!-- Main Css -->
+        <link href="/css/style.css" rel="stylesheet" type="text/css" id="theme-opt" />
+        <link href="/css/colors/default.css" rel="stylesheet" id="color-opt">
+    </head>
+
+    <body>
+        <!-- Loader -->
+        <div id="preloader">
+            <div id="status">
+                <div class="spinner">
+                    <div class="double-bounce1"></div>
+                    <div class="double-bounce2"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Loader -->
+
+        <!-- Navbar STart -->
+        <header id="topnav" class="defaultscroll sticky">
+            <div class="container">
+                <!-- Logo container-->
+                <div>
+                    <a class="logo" href="{% url 'index' %}">
+                        OfflinePad
+                    </a>
+                    <span style="padding-top: 25px; display: inline-block; padding-left: 25px;">
+                        Служба технической поддержки
+                    </span>
+                </div>                 
+                <!-- End Logo container-->
+            </div><!--end container-->
+        </header><!--end header-->
+        <!-- Navbar End -->
+        
+        <!-- Start Section -->
+        <section class="section">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-7 col-12">
+                        {{question}}
+                        <div class="rounded p-4 shadow" style="height: 58.4vh; overflow-y: auto;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <form id="chat_messages">
+                                        <!-- <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="alert alert-light alert-pills" role="alert" data-aos="fade-up" data-aos-duration="1000">
+                                                    <span class="badge badge-pill badge-success mr-1">Вы</span>
+                                                    <span class="content"> Здравствуйте, у меня вопрос по поводу того-то и того-то</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="alert alert-light alert-pills right" role="alert" data-aos="fade-up" data-aos-duration="1000" style="float: right;">
+                                                    <span class="content"> Здравствуйте, мы знаем как вам помочь</span>
+                                                    <span class="badge badge-pill badge-success mr-1">Служба поддержки</span>
+                                                </div>
+                                            </div>
+                                        </div> -->
+                                        Чат пока что пуст
+                                    </form>
+                                </div><!--end col-->
+                            </div><!--end row-->
+                        </div>
+
+
+                        <form>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="subcribe-form mt-4 pt-2" data-aos="fade-up" data-aos-duration="2200">
+                                        <form>
+                                            <div class="form-group mb-0">
+                                                <input type="text" id="message_text" name="name" class="border bg-white rounded-pill shadow" required="" placeholder="Текст сообщения">
+                                                <button type="submit" id="submit_message" class="btn btn-pills btn-primary" style="top: 38px; right: 22px;">Отправить</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div><!--end col-->
+                            </div><!--end row-->
+                        </form><!--end form-->
+
+                    </div><!--end col-->
+                </div><!--end row-->
+            </div><!--end container-->
+
+            <!-- <div class="container mt-100 mt-60">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 col-12">
+                        <div class="media align-items-center shadow rounded p-4 features">
+                            <div class="icons m-0 rounded h2 text-primary text-center px-2">
+                                <i class="uil uil-envelope-check"></i>
+                            </div>
+                            <div class="content ml-4">
+                                <h5 class="mb-1"><a href="javascript:void(0)" class="text-dark">Get in Touch !</a></h5>
+                                <p class="text-muted mb-0">This is required when, for text is not yet available.</p>
+                                <div class="mt-2">
+                                    <a href="javascript:void(0)" class="btn btn-sm btn-soft-primary">Submit a Request</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 col-md-6 col-12 mt-4 mt-sm-0 pt-2 pt-sm-0">
+                        <div class="media align-items-center shadow rounded p-4 features">
+                            <div class="icons m-0 rounded h2 text-primary text-center px-2">
+                                <i class="uil uil-webcam"></i>
+                            </div>
+                            <div class="content ml-4">
+                                <h5 class="mb-1"><a href="javascript:void(0)" class="text-dark">Start a Meeting</a></h5>
+                                <p class="text-muted mb-0">This is required when, for text is not yet available.</p>
+                                <div class="mt-2">
+                                    <a href="javascript:void(0)" class="btn btn-sm btn-soft-primary">Start Video Chat</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>end container -->
+        </section><!--end section-->
+        <!-- End Section -->
+
+        <!-- Footer Start -->
+        <footer class="footer footer-bar">
+            <div class="container text-center">
+                <div class="row align-items-center">
+                    <div class="col-sm-6">
+                        <div class="text-sm-left">
+                            <p class="mb-0">© 2019-2020 OfflinePad.</p>
+                        </div>
+                    </div><!--end col-->
+
+                    <div class="col-sm-6 mt-4 mt-sm-0 pt-2 pt-sm-0">
+                        <ul class="list-unstyled text-sm-right social-icon social mb-0">
+                            <li class="list-inline-item"><a href="https://vk.com/offlinepad" class="rounded">
+                                <img src="/images/vk.png" alt="Сообщество в VK" style="width: 30px;" /></a>
+                            </li>
+                        </ul><!--end icon-->
+                    </div><!--end col-->
+                </div><!--end row-->
+            </div><!--end container-->
+        </footer><!--end footer-->
+        <!-- Footer End -->
+
+        <!-- Back to top -->
+        <a href="#" class="btn btn-icon btn-soft-primary back-to-top"><i data-feather="arrow-up" class="icons"></i></a>
+        <!-- Back to top -->
+
+        <!-- javascript -->
+        <script src="/js/jquery-3.5.1.min.js"></script>
+        <script src="/js/bootstrap.bundle.min.js"></script>
+        <script src="/js/jquery.easing.min.js"></script>
+        <script src="/js/scrollspy.min.js"></script>
+        <!-- SLIDER -->
+        <script src="/js/owl.carousel.min.js "></script>
+        <script src="/js/owl.init.js "></script>
+        <!-- Icons -->
+        <script src="/js/feather.min.js"></script>
+        <script src="https://unicons.iconscout.com/release/v2.1.9/script/monochrome/bundle.js"></script>
+        <!-- Main Js -->
+        <script src="/js/app.js"></script>
+        <script>
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            const secret = urlParams.get('secret');
+            const csrfmiddlewaretoken = "{{csrf_token}}";
+            let last_timestamp = 0;
+            let messages_received = false;
+            
+            const chat_messages_to_html = function(msgs) {
+                let result = "";
+                for(let k = 0; k < msgs.length; k++) {
+                    let msg = msgs[k];
+                    last_timestamp = msg.timestamp;
+                    result = result + chat_message_to_html(msg);
+                }
+                return result;
+            };
+
+            const chat_message_to_html = function(msg) {
+                let style = '';
+                let from = 'Вы';
+                if(msg.direction == "support") {
+                    style = 'float: right; margin-left: 0.25rem';
+                    from = 'Служба поддержки';
+                }
+                let template = '\
+                <div class="row">\
+                    <div class="col-md-12">\
+                        <div class="alert alert-light alert-pills" role="alert" data-aos="fade-up" data-aos-duration="1000" style="max-width: calc(100% - 50px);' + style + '">\
+                            <span class="badge badge-pill badge-success mr-1" style="' + style + '">' + from + '</span>\
+                            <span class="content">' + msg.text + '</span>\
+                        </div>\
+                    </div>\
+                </div>';
+                return template;
+            };
+
+            let poll_timeout = null;
+            const poll_new_messages = function() {
+                if(poll_timeout != null) {
+                    clearTimeout(poll_timeout);
+                }
+                const data = {id, secret, stamp: last_timestamp, csrfmiddlewaretoken};
+                $.post("{% url 'poll_client_chat' %}", data).then(
+                    function(data) {
+                        if(data.error == "ok") {
+                            if(data.items.length > 0) {
+                                if(messages_received) {
+                                    $("#chat_messages").append(chat_messages_to_html(data.items));
+                                } else {
+                                    $("#chat_messages").html(chat_messages_to_html(data.items));
+                                    messages_received = true;
+                                }
+                            }
+                            poll_timeout = setTimeout(poll_new_messages, 5000);
+                        } else {
+                            // TODO показать ошибку загрузки чата
+                        }
+                    }
+                )
+            };
+
+            $("#submit_message").click(function(e) {
+                e.preventDefault();
+                const data = {
+                    id,
+                    secret,
+                    csrfmiddlewaretoken,
+                    text: $("#message_text").val(),
+                };
+                $("#message_text").val("");
+                $.post("{% url 'new_client_message_chat' %}", data).then(
+                    function() {
+                        poll_new_messages();
+                    }
+                );
+            });
+
+            poll_new_messages();
+        </script>
+    </body>
+</html>
