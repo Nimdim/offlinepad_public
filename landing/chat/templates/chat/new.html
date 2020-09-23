@@ -242,7 +242,6 @@
                     "csrfmiddlewaretoken": "{{csrf_token}}",
                 };
                 $.post("/chat/create", data).then(function(result) {
-                    debugger
                     let url = "{% url 'view_chat' %}" + "?id=" + result.id + "&secret=" + result.secret
                     location.href=url;
                 });
