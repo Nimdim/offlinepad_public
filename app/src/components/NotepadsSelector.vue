@@ -12,7 +12,7 @@
             style="display: block; margin: 0 auto; margin-top: 15px; margin-bottom: 15px;"
             @click="$emit('test_remote')"
           >
-            Блокноты
+            Блокноты{{persisted}}
             <a class="btn-flat btn-floating"
               style="position: absolute;
                     top: 23px;
@@ -32,7 +32,7 @@
                    margin-bottom: 10px;
                    padding: 0 40px;"
           >
-            У вас пока еще не создано ни одного блокнота. Создайте новый.
+            У вас пока еще не создано ни одного блокнота. Создайте новый{{persisted}}
             <a class="btn-flat btn-floating"
               style="position: absolute;
                     top: 23px;
@@ -99,7 +99,17 @@
         add_mode: "create",
         error: null,
         import_file_error: null,
+        persisted: "",
       };
+      window.navigator.storage.persisted().then(
+        (persisted) => {
+          if(persisted) {
+            this.persisted = ".";
+          } else {
+            this.persisted = "";
+          }
+        }
+      );
       return data;
     },
 
