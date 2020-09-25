@@ -66,6 +66,14 @@
           </a>
         </li>
       </ul>
+        <a
+          href="https://offlinepad.com/chat/new"
+          target="_blank"
+          class="grey_icon"
+          style="padding-left: 10px; line-height: 29px; text-decoration: underline;"
+        >
+          <span>Есть вопрос? Задайте в его чате</span>
+        </a>
     </span>
   </full-screen-box>
 </template>

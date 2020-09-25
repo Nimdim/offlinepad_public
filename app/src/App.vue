@@ -235,7 +235,7 @@
           style="z-index: 1003;"
           ref="nav_mobile"
         >
-          <ul style="height: calc(100% - 70px); overflow-y: auto;"
+          <ul style="height: calc(100% - 100px); overflow-y: auto;"
           >
             <li
               @click="change_section('notepad')"
@@ -271,6 +271,23 @@
               @submit="edit_note_filter(note_filter.id, $event)"
             />
           </ul>
+
+          <div style="position: absolute;
+                      bottom: 120px;
+                      width: 100%;
+                      height: 32px;
+                      box-shadow: 0 -2px 0 0 rgb(0, 0, 0, 0.2);"
+          >
+            <a
+              href="https://offlinepad.com/chat/new"
+              target="_blank"
+              class="grey_icon"
+              style="padding-left: 10px; line-height: 29px; float: left; text-decoration: underline;"
+            >
+              <span>Есть вопрос? Задайте в его чате</span>
+            </a>
+          </div>
+
 
           <div style="position: absolute;
                       bottom: 60px;
