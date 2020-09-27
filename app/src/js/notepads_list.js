@@ -151,13 +151,11 @@ class NotepadsList {
     }
 
     async read_notepad_info_by_id(notepad_id) {
-        let databases = await this._databases();
-        let database = _.find(
-            databases,
-            (item) => {
-                return item.name == NOTEPAD_DB_PREFIX + notepad_id
-            }
-        );
+        let name = NOTEPAD_DB_PREFIX + notepad_id;
+        let database = {
+            "name": name,
+            "version": this.databases[name],
+        };
         return await this.read_notepad_info(database);
     }
 
