@@ -78,7 +78,7 @@
                     <ul class="navigation-menu">
                         <li><a href="/#app-home">Домой</a></li>
                         <li><a href="/#app-features">Возможности</a></li>
-                        <li><a href="/chat/new">Задать вопрос</a></li>
+                        <li><a href="{% url 'new_chat' %}">Задать вопрос</a></li>
                     </ul><!--end navigation menu-->
                     <div class="buy-menu-btn d-none">
                         <a href="{% url 'openapp' %}" target="_blank" class="btn btn-primary">Открыть блокнот</a>
@@ -556,9 +556,33 @@
                         </div>
                     </div><!--end col-->
                 </div><!--end row-->
+
             </div><!--end container-->
         </section><!--end section-->
         <!-- Testi n Download cta End -->
+
+        <!-- Shape Start -->
+        <!-- <div class="position-relative">
+            <div class="shape overflow-hidden text-light">
+                <svg viewBox="0 0 2880 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 48H1437.5H2880V0H2160C1442.5 52 720 0 720 0H0V48Z" fill="currentColor"></path>
+                </svg>
+            </div>
+        </div> -->
+        <!--Shape End-->
+
+        <section class="section pt-0 bg-light">
+            <div class="container">
+                <div class="row mt-md-5 pt-md-3 mt-4 pt-2 mt-sm-0 pt-sm-0 justify-content-center">
+                    <div class="col-12 text-center">
+                        <div class="section-title">
+                            <h4 class="title mb-4">Остались вопросы?</h4>
+                            <p class="text-muted para-desc mx-auto"><a href="{% url 'new_chat' %}">Задайте</a> их в чате службе поддержки и наши специалисты помогут решить его.</p>
+                        </div>
+                    </div><!--end col-->
+                </div><!--end row-->
+            </div>
+        </section><!--end section-->
 
         <!-- Shape Start -->
         <div class="position-relative">

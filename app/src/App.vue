@@ -516,6 +516,10 @@
     <transition name="fade">
       <load-screen v-if="loadscreen_visible" />
     </transition>
+
+    <transition name="fade">
+      <lock-screen v-if="lockscreen_visible" />
+    </transition>
   </div>
 </template>
 
@@ -530,6 +534,7 @@ import pbkdf2 from 'pbkdf2'
 moment.locale("ru");
 
 import LoadScreen from './components/LoadScreen.vue'
+import LockScreen from './components/LockScreen.vue'
 import EnterPasswordScreen from './components/EnterPasswordScreen.vue'
 import ProcessingScreen from './components/ProcessingScreen.vue'
 import WarningScreen from './components/WarningScreen.vue'
@@ -635,6 +640,7 @@ export default {
   components: {
     EnterPasswordScreen,
     LoadScreen,
+    LockScreen,
     ProcessingScreen,
     WarningScreen,
     MessageScreen,
@@ -747,6 +753,7 @@ export default {
       header_hidden: false,
 
       show_notes_filter: false,
+      lockscreen_visible: false,
 
       header_top: 0,
       header_bottom: 0,
@@ -1034,10 +1041,12 @@ export default {
 
     window_focus_handler: function() {
       sw_api.start_updates_checking();
+      this.lockscreen_visible = false;
     },
 
     window_blur_handler: function() {
       sw_api.stop_updates_checking();
+      this.lockscreen_visible = true;
       // if(notepad != null) {
       //   if(!this.blockerscreen_visible) {
       //     this.notepad_goto_home();
@@ -1146,6 +1155,7 @@ export default {
         this.show_message("Не удалось задать пароль", false);
       } else {
         this.show_message("Пароль установлен", true);
+        await this.update_auth_method_to_the_best("password", notepad_id);
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
@@ -1191,6 +1201,7 @@ export default {
         this.show_message("Не удалось задать пин", false);
       } else {
         this.show_message("Пин установлен", true);
+        await this.update_auth_method_to_the_best("pin", notepad_id);
       }
       await sleep(0.25);
       this.loadscreen_visible = false;
@@ -1282,6 +1293,7 @@ export default {
       await sleep(0.5);
       // TODO костыль
       this.notes_filter_tags.splice(0, this.notes_filter_tags.length);
+      this.show_notes_filter = false;
       this.close_nav();
       this.section = null;
       await notepad.close();
@@ -1597,6 +1609,9 @@ export default {
         case "server error":
           result = "Ошибка сервера";
           break;
+        case "network error":
+          result = "Сеть недоступна";
+          break;
         case "password deleted":
           result = "Пароль удален";
           break;
@@ -1653,6 +1668,14 @@ export default {
       });
 
       return await promise;
+    },
+
+    update_auth_method_to_the_best: async function(suggested, notepad_id) {
+      let current_method = await notepads_list.get_current_auth_method(notepad_id)
+      let new_method = notepads_list.select_best_auth_method(current_method, suggested);
+      if(current_method != new_method) {
+        await notepads_list.set_current_auth_method(new_method, notepad_id);
+      }
     },
 
     check_notepad_secret: async function(secret, notepad_id) {

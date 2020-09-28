@@ -47,6 +47,9 @@ let POST = async function(url, data, options) {
         }
     }
 
+    if(response == null) {
+        return {"error": "network error"};
+    }
     if(response.status == 200) {
         return response.data;
     }
@@ -167,6 +170,19 @@ class NotepadsList {
         );
         await reader.close();
         return info;
+    }
+
+    select_best_auth_method(current, suggested) {
+        let method_to_index = {};
+        let index_to_method = ["passphrase", "password", "pin"];
+        for(let k = 0; k < index_to_method.length; k++) {
+            let value = index_to_method[k];
+            method_to_index[value] = k;
+        }
+        let current_index = method_to_index[current];
+        let suggested_index = method_to_index[suggested];
+        let best_method = Math.max(current_index, suggested_index);
+        return index_to_method[best_method];
     }
 
     async reread_list() {
