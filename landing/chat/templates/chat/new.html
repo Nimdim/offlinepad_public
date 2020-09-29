@@ -117,6 +117,14 @@
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-7 col-12">
+                        <div class="rounded p-4 shadow" id="saved_chats_container" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <form id="saved_chats">
+                                    </form>
+                                </div><!--end col-->
+                            </div><!--end row-->
+                        </div>
                         <div class="rounded p-4 shadow">
                             <div class="row">
                                 <div class="col-12">
@@ -233,6 +241,30 @@
         <!-- Main Js -->
         <script src="/js/app.js"></script>
         <script>
+            var get_saved_chats_list = function() {
+                let current = localStorage.getItem("saved_chats");
+                if(current != null) {
+                    current = JSON.parse(current);
+                } else {
+                    current = [];
+                }
+                return current;
+            };
+            var set_saved_chats_list = function(chats) {
+                localStorage.setItem("saved_chats", JSON.stringify(chats));
+            };
+            var show_saved_chats_list = function(chats) {
+                if(chats.length > 0) {
+                    $("#saved_chats").append("Ранее заданные вопросы:<br>");
+                    for(let k = 0; k < chats.length; k++) {
+                        let chat = chats[k];
+                        let chat_link = "<a href='{% url 'view_chat' %}?id=" + chat.id + "&secret=" + chat.secret + "'>" + chat.question + "</a><br>";
+                        $("#saved_chats").append(chat_link);
+                    }
+                    $("#saved_chats_container").show();
+                }
+            };
+            var chats = [];
             $("#submit_chat").click(function(e) {
                 e.preventDefault();
                 var data = {
@@ -242,10 +274,16 @@
                     "csrfmiddlewaretoken": "{{csrf_token}}",
                 };
                 $.post("/chat/create", data).then(function(result) {
+                    result.question = data.question;
+                    chats.push(result);
+                    set_saved_chats_list(chats);
                     let url = "{% url 'view_chat' %}" + "?id=" + result.id + "&secret=" + result.secret
                     location.href=url;
                 });
             });
+
+            chats = get_saved_chats_list();
+            show_saved_chats_list(chats);
         </script>
     </body>
 </html>
