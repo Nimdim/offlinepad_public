@@ -132,6 +132,7 @@
                                             {{ chat.total }}
                                             {% if chat.new_from_client %} <b>+{{ chat.new_from_client }}</b> {% endif %}
                                             {% if chat.unreaded_by_client %} <i>+{{ chat.unreaded_by_client }}</i> {% endif %}
+                                            {% if chat.state == "client_closed" %} CC {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}

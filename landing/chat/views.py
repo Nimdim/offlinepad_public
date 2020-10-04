@@ -47,6 +47,18 @@ def create(request):
         return JsonResponse(result)
 
 
+def delete_chat(request):
+    if request.method == "POST":
+        id = request.POST["id"]
+        secret = request.POST["secret"]
+        chat = Chat.objects.filter(id=id, secret=secret).get()
+        if chat is not None:
+            chat.state="client_closed"
+            chat.save()
+        result = {}
+        return JsonResponse(result)
+
+
 def poll_client(request):
     if request.method == "POST":
         id = request.POST["id"]
@@ -123,6 +135,8 @@ def admin_list(request):
             style = "background: rgb(202, 255, 202);"
         elif new_from_client:
             style = "background: rgb(255, 202, 202);"
+        elif chat.state == "client_closed":
+            style = "background: rgb(202, 202, 202);";
         else:
             style = ""
         item = {
@@ -135,6 +149,7 @@ def admin_list(request):
             "new_from_client": new_from_client,
             "unreaded_by_client": unreaded_by_client,
             "new_client_messages": [i.text for i in new_client_messages],
+            "state": chat.state,
         }
         chats_data.append(item)
     context = {

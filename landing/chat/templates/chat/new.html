@@ -120,8 +120,19 @@
                         <div class="rounded p-4 shadow" id="saved_chats_container" style="display: none;">
                             <div class="row">
                                 <div class="col-12">
-                                    <form id="saved_chats">
-                                    </form>
+                                    <table class="table mb-0 table-center">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th scope="col" style="">Ранее заданные вопросы</th>
+                                                <th scope="col" class="text-center" style="width: 100px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="saved_chats">
+                                        </tbody>
+                                    </table>
+        
+                                    <!-- <form id="saved_chats">
+                                    </form> -->
                                 </div><!--end col-->
                             </div><!--end row-->
                         </div>
@@ -254,12 +265,25 @@
                 localStorage.setItem("saved_chats", JSON.stringify(chats));
             };
             var show_saved_chats_list = function(chats) {
+                $("#saved_chats").html("");
                 if(chats.length > 0) {
-                    $("#saved_chats").append("Ранее заданные вопросы:<br>");
                     for(let k = 0; k < chats.length; k++) {
                         let chat = chats[k];
-                        let chat_link = "<a href='{% url 'view_chat' %}?id=" + chat.id + "&secret=" + chat.secret + "'>" + chat.question + "</a><br>";
-                        $("#saved_chats").append(chat_link);
+                        let style = "";
+                        let item = '<tr style="' + style + '">\
+                            <td>\
+                                <div class="media">\
+                                    <i class="uil uil-comment text-muted h5"></i>\
+                                    <div class="content ml-3">\
+                                        <a href="{% url "view_chat" %}?id=' + chat.id + '&secret=' + chat.secret + '" class="forum-title text-primary font-weight-bold">' + chat.question + '</a>\
+                                    </div>\
+                                </div>\
+                            </td>\
+                            <td class="text-center small">\
+                                <a onclick="delete_chat(' + k +')">Закрыть</a>\
+                            </td>\
+                        </tr>';
+                        $("#saved_chats").append(item);
                     }
                     $("#saved_chats_container").show();
                 }
@@ -282,8 +306,20 @@
                 });
             });
 
-            chats = get_saved_chats_list();
-            show_saved_chats_list(chats);
+            let delete_chat = function(index) {
+                let chat = chats[index];
+                chats.splice(index, 1);
+                let csrfmiddlewaretoken = "{{csrf_token}}";
+                $.post("/chat/delete", {id: chat.id, secret: chat.secret, csrfmiddlewaretoken});
+                set_saved_chats_list(chats);
+                refresh_chats_list();
+            };
+
+            let refresh_chats_list = function() {
+                chats = get_saved_chats_list();
+                show_saved_chats_list(chats);
+            };
+            refresh_chats_list();
         </script>
     </body>
 </html>

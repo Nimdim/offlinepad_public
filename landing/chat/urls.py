@@ -7,6 +7,7 @@ urlpatterns = [
     path('new', views.new, name='new_chat'),
     path('view', views.view, name='view_chat'),
     path('create', views.create, name='create_chat'),
+    path('delete', views.delete_chat, name='delete_chat'),
     path('poll_client', views.poll_client, name='poll_client_chat'),
     path('new_client_message', views.new_client_message, name='new_client_message_chat'),
 
