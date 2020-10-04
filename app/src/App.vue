@@ -517,8 +517,8 @@
       <load-screen v-if="loadscreen_visible" />
     </transition>
 
-    <transition name="fade">
-      <lock-screen v-if="lockscreen_visible" />
+    <transition name="fast-fade">
+      <lock-screen v-if="lockscreen_visible && notepad_working" style="z-index: 3000;"/>
     </transition>
   </div>
 </template>
@@ -2368,6 +2368,16 @@ export default {
   transition: opacity .25s;
 }
 .fade-enter, .fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
+  opacity: 0;
+}
+
+.fast-fade-enter-active {
+  transition: opacity 0s;
+}
+.fast-fade-leave-active {
+  transition: opacity .25s;
+}
+.fast-fade-enter, .fast-fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
   opacity: 0;
 }
 </style>
