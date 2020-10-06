@@ -426,6 +426,7 @@
             :text="notification.text"
             :actions="notification.actions"
             :hide_delay="notification.hide_delay"
+            :closeable="notification.closeable"
             @close="notifications.splice(i, 1)"
           />
         </transition>
@@ -963,7 +964,15 @@ export default {
     disable_lock_interval: function() {
       if(this._lock_timeout != null) {
         clearTimeout(this._lock_timeout)
+        clearTimeout(this._lock_notification_timeout);
         this._lock_timeout = null;
+        this._lock_notification_timeout = null;
+      }
+      for(let k = 0; k < this.notifications.length; k++) {
+        let notification = this.notifications[k];
+        if(notification.lock_popup === true) {
+          this.notifications.splice(k, 1);
+        }
       }
     },
 
@@ -982,6 +991,18 @@ export default {
               }
             },
             parseInt(interval) * 1000
+          );
+          this._lock_notification_timeout = setTimeout(
+            () => {
+              this.notifications.push({
+                type: "helper",
+                closeable: false,
+                text: "Блокировка через 10 сек.",
+                hide_delay: 10,
+                lock_popup: true,
+              });
+            },
+            parseInt(interval - 10) * 1000
           );
         }
       }

@@ -13,7 +13,7 @@
           <p style="font-size: 12px; line-height: 1.2em;">
             {{text}}
           </p>
-          <font-awesome-icon
+          <font-awesome-icon v-if="closeable"
             class="grey_icon popup-close"
             icon="times"
             style="margin-left: 10px;"
@@ -39,6 +39,10 @@
         type: Number,
         default: 0,
       },
+      "closeable": {
+        type: Boolean,
+        default: true,
+      }
     },
 
     computed: {
