@@ -14,7 +14,7 @@
       @click="notepad_menu"
     />
 
-    <notepad-empty-screen v-if="empty_msg"
+    <notepad-empty-screen v-if="empty_msg && (section == 'notes' || section == 'tags')"
       :develop_mode="develop_mode"
       :text="empty_msg"
       @test_create="test_create($event)"
@@ -1593,6 +1593,7 @@ export default {
       instance.on("reset_note_filters", this.notepad_reset_note_filters);
       instance.on("reset_filter", this.notepad_reset_filter);
       instance.on("reset_info", this.notepad_reset_info);
+      instance.on("error", this.notepad_error);
     },
     notepad_unregister: function(instance) {
       instance.off("reset_tags", this.notepad_reset_tags);
@@ -1604,6 +1605,17 @@ export default {
       instance.off("reset_note_filters", this.notepad_reset_note_filters);
       instance.off("reset_filter", this.notepad_reset_filter);
       instance.off("reset_info", this.notepad_reset_info);
+      instance.off("error", this.notepad_error);
+    },
+
+    notepad_error: function (msg) {
+      if(msg == "AbortError") {
+        this.notifications.push({
+          type: "helper",
+          text: "Ошибка сохранения. Возможно на вашем диске не осталось свободного места",
+        });
+        this.notepad_goto_home();
+      }
     },
 
     notepads_init: async function() {

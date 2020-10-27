@@ -57,12 +57,15 @@
             />
             <span class="">{{item.notepad_name}}</span>
           </a>
+        </li>
+        <li class="collection-item"
+        >
           <a
             class="waves-effect waves-teal btn notepads-selector-item"
             style="width: 100%;"
             @click="$emit('start-creation-wizard')"
           >
-            <font-awesome-icon icon="plus"/>
+            Создать блокнот
           </a>
         </li>
       </ul>

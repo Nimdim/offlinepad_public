@@ -1,4 +1,5 @@
 import _ from "lodash";
+import Backbone from "backbone";
 import cryptobox from "./cryptobox.js";
 
 let indexedDB;
@@ -12,6 +13,7 @@ if(global == null) {
 
 class IndexedDBStorage {
     constructor() {
+        _.extend(this, Backbone.Events);
         this._options = {
             encrypted: false,
         }
@@ -172,7 +174,11 @@ class IndexedDBStorage {
             };
             transaction.onerror = (event) => {
                 // TODO при нарушении ограничений уникальности ошибка - сложно понять
-                reject(event.target._error);
+                if(event.target.error.name == "AbortError") {
+                    this.trigger("error", "AbortError");
+                } else {
+                    reject(event.target.error);
+                }
             }
         });
         return promise;
@@ -348,7 +354,11 @@ class IndexedDBStorage {
                 resolve();
             };
             transaction.onerror = (event) => {
-                reject(event.target.error);
+                if(event.target.error.name == "AbortError") {
+                    this.trigger("error", "AbortError");
+                } else {
+                    reject(event.target.error);
+                }
             };
         });
         return promise;

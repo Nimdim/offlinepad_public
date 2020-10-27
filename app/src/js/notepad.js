@@ -102,6 +102,11 @@ class Notepad {
         return _.cloneDeep(this._filter.notes);
     }
 
+    _create_notepad_storage() {
+        this._storage = new NotepadStorage();
+        this._storage.on("error", (msg) => {this.trigger("error", msg)});
+    }
+
     async create(db_name, name, options) {
         //  Аргументы:
         //  db_name - название БД
@@ -111,7 +116,7 @@ class Notepad {
         //    secret - ключ шифрования (если зашифрован)
         
         if(!this._working) {
-            this._storage = new NotepadStorage();
+            this._create_notepad_storage();
             await this._storage.init(db_name, options);
             await this.create_notepad_info(name, options.encrypted);
             this._reset_info();
@@ -133,12 +138,11 @@ class Notepad {
         //    secret - ключ шифрования (если зашифрован)
         
         if(!this._working) {
-            this._storage = new NotepadStorage();
+            this._create_notepad_storage();
             await this._storage.init(db_name, options);
             await this.create_notepad_info_upd1(name, options.encrypted, options.salt);
             this._reset_info();
             this._reset_filter();
-            // await this._reset_state();
             this._working = true;
             return true;
         } else {
@@ -171,14 +175,10 @@ class Notepad {
              key - ключ шифрования (если зашифрован)
         */
         if(!this._working) {
-            this._storage = new NotepadStorage();
+            this._create_notepad_storage();
             await this._storage.init(db_name, options);
             this._working = true;
-            // return true;
         }
-        //  else {
-        //     // return false;
-        // }
     }
 
     async create_notepad_info(name, encrypted) {
@@ -198,7 +198,7 @@ class Notepad {
 
     async sync(db_name, options) {
         if(!this._working) {
-            this._storage = new NotepadStorage();
+            this._create_notepad_storage();
             await this._storage.init(db_name, options);
 
             let info = await this._storage.get_item_from_store_using_index(
