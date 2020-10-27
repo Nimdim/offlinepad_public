@@ -174,7 +174,7 @@ class IndexedDBStorage {
             };
             transaction.onerror = (event) => {
                 // TODO при нарушении ограничений уникальности ошибка - сложно понять
-                if(event.target.error.name == "AbortError") {
+                if(event.target.error.name == "AbortError" || event.target.error.name == "QuotaExceededError") {
                     this.trigger("error", "AbortError");
                 } else {
                     reject(event.target.error);
@@ -354,7 +354,7 @@ class IndexedDBStorage {
                 resolve();
             };
             transaction.onerror = (event) => {
-                if(event.target.error.name == "AbortError") {
+                if(event.target.error.name == "AbortError" || event.target.error.name == "QuotaExceededError") {
                     this.trigger("error", "AbortError");
                 } else {
                     reject(event.target.error);
