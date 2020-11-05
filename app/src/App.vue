@@ -1314,9 +1314,14 @@ export default {
       await sleep(0.5);
       // TODO костыль
       this.notes_filter_tags.splice(0, this.notes_filter_tags.length);
+      this.notes_fast_search = "";
+      this.tags_fast_search = "";
+      this.notes_sorting_order_asc = false;
+      this.tags_sorting_order_asc = true;
       this.show_notes_filter = false;
-      this.close_nav();
       this.section = null;
+
+      this.close_nav();
       await notepad.close();
       this.notepad_unregister(notepad);
       notepad = null;
