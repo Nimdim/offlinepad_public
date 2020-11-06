@@ -207,7 +207,9 @@ export default {
 
   filters: {
     "note_datetime": function(stamp) {
-      return moment(stamp).format("DD MMMM YYYY HH:mm");
+      let week_day = moment(stamp).format("e");
+      week_day = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][week_day];
+      return moment(stamp).format("DD MMMM YYYY (" + week_day + ") HH:mm");
     },
   },
 
