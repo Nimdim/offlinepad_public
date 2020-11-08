@@ -119,11 +119,11 @@
                   class="validate"
                   v-model="creation_info.notepad_name"
                 >
-                <span v-if="error_text"
-                  class="left red-text" style=""
-                >
-                  {{error_text}}
-                </span>
+                <template v-if="error_text">
+                  <span class="left red-text">
+                    {{error_text}}
+                  </span><br><br>
+                </template>
                 <span class="wizard-hinttext">
                   Данное название будет отображаться в списке блокнотов на главном экране приложения. Имя позднее можно изменить.
                 </span>
@@ -206,6 +206,7 @@
   import { PartialFileReader } from './../js/partial_file_reader.js';
   import _ from "lodash";
   import diceware from "./../js/diceware/diceware.js";
+  import utils from './../js/utils.js'
 
   class Validator {
     constructor(file) {
@@ -391,6 +392,11 @@
       },
 
       finish_wizard: function() {
+        if(this.creation_info.notepad_name == "") {
+          this.error = "empty";
+          utils.vibrate("error");
+          return;
+        }
         this.$emit("finish", this.creation_info);
       },
 
@@ -433,6 +439,7 @@
           }
         } else {
           this.$refs.import_file.value = "";
+          utils.vibrate("error");
         }
       },
 

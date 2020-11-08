@@ -1947,6 +1947,7 @@ export default {
         data.error = "empty"
         data.edit_state = true;
         this.tag_edit_state_changed(data);
+        utils.vibrate("error");
         return;
       }
       if(data.id == "__new_item__") {
@@ -1954,6 +1955,7 @@ export default {
         if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
+          utils.vibrate("error");
         } else {
           this.tag_index_add = null;
           await notepad.create_tag(data.name);
@@ -1963,6 +1965,7 @@ export default {
         if(is_exists) {
           data.edit_state = true;
           data.error = "existing";
+          utils.vibrate("error");
         } else {
           await notepad.edit_tag(data.id, data.name);
         }
@@ -1985,6 +1988,7 @@ export default {
         data.error = "empty"
         data.edit_state = true;
         this.note_edit_state_changed(data);
+        utils.vibrate("error");
         return;
       }
       this.note_index_add = null;
