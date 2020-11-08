@@ -84,6 +84,7 @@
       <textarea v-if="data.edit_state"
         ref="textarea"
         class="materialize-textarea"
+        :class="item_class"
         placeholder="Текст записи"
         v-model="data.text"
         @keydown.ctrl.enter="submit"
@@ -177,6 +178,14 @@ export default {
         return "Текст заметки не может быть пустым";
       }
       return null;
+    },
+
+    "item_class": function() {
+      let result = {
+        'valid': !!this.data.text.length,
+        'invalid': !this.data.text.length,
+      };
+      return result;
     },
   },
 

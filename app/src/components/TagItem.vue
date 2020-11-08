@@ -10,6 +10,7 @@
         placeholder="Название тега"
         type="text"
         class="validate tag_name text-input--standart-style"
+        :class="item_class"
         style="width: calc(100% - 115px);"
         v-model="data.name"
         @keydown.ctrl.enter="submit_edit"
@@ -94,6 +95,9 @@
           this.enter_edit_state();
         }
       },
+      "data.name": function() {
+        this.data.error = null;
+      }
     },
 
     computed: {
@@ -105,6 +109,17 @@
         } else {
           return null;
         }
+      },
+      "item_class": function() {
+        let valid = !!this.data.name.length;
+        if(this.error_text != null) {
+          valid = false;
+        }
+        let result = {
+          'valid': valid,
+          'invalid': !valid,
+        };
+        return result;
       },
     },
 

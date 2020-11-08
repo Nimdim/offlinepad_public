@@ -18,7 +18,7 @@
               ref="add_name_input"
               placeholder=""
               type="text"
-              class="validate"
+              :class="notepad_name_local_class"
               v-model="notepad_name_local"
             >
             <a
@@ -51,7 +51,7 @@
               ref="add_name_input"
               placeholder=""
               type="text"
-              class="validate"
+              :class="notepad_lock_interval_local_class"
               v-model="notepad_lock_interval_local"
             >
             <a
@@ -232,6 +232,32 @@
       available_methods: {
         type: Object,
         default: () => { return {}; },
+      },
+    },
+
+    computed: {
+      "notepad_name_local_class": function() {
+        let valid = !!this.notepad_name_local;
+        let result = {
+          'valid': valid,
+          'invalid': !valid,
+        };
+        return result;
+      },
+
+      "notepad_lock_interval_local_class": function() {
+        let valid = true;
+        if(this.notepad_lock_interval_local.length > 0) {
+          let value = parseFloat(this.notepad_lock_interval_local);
+          if(value < 20 || value > 180) {
+            valid = false;
+          }
+        }
+        let result = {
+          'valid': valid,
+          'invalid': !valid,
+        };
+        return result;
       },
     },
 

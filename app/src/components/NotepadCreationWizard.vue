@@ -116,7 +116,7 @@
                   ref="add_name_input"
                   placeholder="Название блокнота"
                   type="text"
-                  class="validate"
+                  :class="notepad_name_class"
                   v-model="creation_info.notepad_name"
                 >
                 <template v-if="error_text">
@@ -302,6 +302,14 @@
           return "Название не может быть пустым";
         }
         return null;
+      },
+
+      "notepad_name_class": function() {
+        let result = {
+          'valid': !!this.creation_info.notepad_name.length,
+          'invalid': !this.creation_info.notepad_name.length,
+        };
+        return result;
       },
     },
 
