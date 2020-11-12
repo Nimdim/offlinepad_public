@@ -9,32 +9,30 @@
         <span>
           <form class="col s12">
             <div>
-              <span>
-                Введите новый пароль
-              </span>
               <div
                 class="row" style="margin-bottom: 0px;"
               >
                 <div class="input-field col s12">
                   <input
                     ref="add_name_input"
-                    placeholder=""
+                    placeholder="Введите новый пароль"
                     :type="input_type"
-                    class="validate"
+                    :class="password_class"
                     v-model="password"
+                    style="width: calc(100% - 50px);"
                   >
-                  <span v-if="error_text"
-                    class="left red-text" style=""
-                  >
-                    {{error_text}}
-                  </span>
-                  <a class="waves-effect waves-light btn left action-button"
-                    style="width: 100%;"
+                  <a class="waves-effect waves-light btn action-button"
+                    style="width: 50зч;"
                     @click="toggle_password"
                   >
                     <font-awesome-icon icon="eye"
                     />
                   </a>
+                  <span v-if="error_text"
+                    class="left red-text" style=""
+                  >
+                    {{error_text}}
+                  </span>
                 </div>
               </div>
             </div>
@@ -61,13 +59,12 @@
             <div
               class="row" style="margin-bottom: 0px;"
             >
-              Введите пароль еще раз
               <div class="input-field col s12">
                 <input
                   ref="add_name_input_repeat"
-                  placeholder=""
+                  placeholder="Введите пароль еще раз"
                   :type="input_type"
-                  class="validate"
+                  :class="password_repeat_class"
                   v-model="password_repeat"
                 >
               </div>
@@ -162,6 +159,24 @@
           return "Пароли не совпадают";
         }
         return null;
+      },
+
+      password_class: function() {
+        let result = "valid";
+        if(this.password.length == 0) {
+          result = "invalid";
+        }
+        return result;
+      },
+
+      password_repeat_class: function() {
+        if(this.password_repeat.length == 0) {
+          return "invalid";
+        }
+        if(this.password != this.password_repeat) {
+          return "invalid";
+        }
+        return "valid";
       },
 
       password_complexity_text: function() {

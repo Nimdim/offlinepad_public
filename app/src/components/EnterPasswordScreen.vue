@@ -52,7 +52,7 @@
 
             <template v-if="current_method != 'pin'">
               <template v-if="!password_processing">
-                <div  
+                <div
                   class="row" style="margin-bottom: 0px;"
                 >
                   <div class="input-field col s12">
@@ -60,12 +60,13 @@
                       ref="add_name_input"
                       :placeholder="secret_placeholder[current_method]"
                       :type="input_type"
-                      class="validate"
+                      :class="password_valid"
                       v-model="password"
                       show-password
+                      style="width: calc(100% - 50px);"
                     >
-                    <a class="waves-effect waves-light btn left action-button"
-                      style="width: 100%;"
+                    <a class="waves-effect waves-light btn action-button"
+                      style="width: 50px;"
                       @click="toggle_password"
                     >
                       <font-awesome-icon icon="eye"
@@ -140,7 +141,7 @@
     computed: {
       "error_text": function() {
         if(this.error == "empty") {
-          return "Название не может быть пустым";
+          return "Пароль не может быть пустым";
         }
         return null;
       },
@@ -151,7 +152,15 @@
         } else {
           return "password";
         }
-      }
+      },
+
+      "password_valid": function() {
+        let result = "invalid";
+        if(this.password.length > 0) {
+          result = "valid";
+        }
+        return result;
+      },
     },
 
     data: function() {
@@ -176,6 +185,7 @@
           "pin": "Пин",
         },
         password: "",
+        error: "",
       };
       return data;
     },
@@ -196,10 +206,18 @@
         },
         immediate: true,
       },
+
+      password: function() {
+        this.error = "";
+      }
     },
 
     methods: {
       submit_password: async function() {
+        if(this.password.length == 0) {
+          this.error = "empty";
+          return;
+        }
         this.password_processing = true;
         await this.$nextTick();
         let data = {
