@@ -403,37 +403,33 @@
     </transition>
 
     <div style="position: fixed; left: 30px; bottom: 30px; z-index: 2002;">
-      <div v-for="(notification, i) in notifications" :key="i"
-      >
-        <transition v-if="notification.type == 'update available'" name="fade">
-          <update-popup
-            style="z-index: 2002"
+      <transition-group name="bounce" tag="div">
+        <div v-for="(notification, i) in notifications" :key="i"
+        >
+          <update-popup v-if="notification.type == 'update available'"
+            style="z-index: 2002;"
             :version="notification.available"
             @focus="blockerscreen_visible = $event"
             @update="update_service_worker"
           />
-        </transition>
-        <transition v-else-if="notification.type == 'update done'" name="fade">
-          <update-done-popup
-            style="z-index: 2002"
+          <update-done-popup v-else-if="notification.type == 'update done'"
+            style="z-index: 2002;"
             :version="app_version"
             @close="notifications.splice(i, 1)"
           />
-        </transition>
-        <transition v-else-if="notification.type == 'helper'" name="fade">
-          <helper-popup
-            style="z-index: 2002"
+          <helper-popup v-else-if="notification.type == 'helper'"
+            style="z-index: 2002;"
             :text="notification.text"
             :actions="notification.actions"
             :hide_delay="notification.hide_delay"
             :closeable="notification.closeable"
             @close="notifications.splice(i, 1)"
           />
-        </transition>
-        <div v-else>
-          Неизвестный тип уведомления
+          <div v-else>
+            Неизвестный тип уведомления
+          </div>
         </div>
-      </div>
+      </transition-group>
     </div>
 
     <transition name="fade">
@@ -2411,6 +2407,25 @@ export default {
 }
 .fade-enter, .fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
   opacity: 0;
+}
+
+
+.bounce-enter-active {
+  animation: bounce-in .5s;
+}
+.bounce-leave-active {
+  animation: bounce-in .5s reverse;
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .fast-fade-enter-active {
