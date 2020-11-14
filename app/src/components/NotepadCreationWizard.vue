@@ -10,6 +10,12 @@
         style="display: none;"
         @change="file_selected"
       /> 
+      <input
+        type="file"
+        ref="dev_import_file"
+        style="display: none;"
+        @change="dev_file_selected"
+      /> 
       <li class="collection-item"
       >
         <span>
@@ -49,6 +55,12 @@
                 <span class="wizard-hinttext">
                   Создайте блокнот из ранее созданной резервной копии
                 </span>
+                <a class="waves-effect waves-light btn wizard-selector-btn" v-if="develop_mode"
+                  @click="$refs.dev_import_file.click()"
+                >
+                  <font-awesome-icon icon="file-upload"/>
+                  DEV несколько блокнотов
+                </a>
               </div>
             </div>
             <div
@@ -290,6 +302,7 @@
 
   export default {
     props: {
+      develop_mode: Boolean,
     },
     
     components: {
@@ -448,6 +461,27 @@
         } else {
           this.$refs.import_file.value = "";
           utils.vibrate("error");
+        }
+      },
+
+      dev_file_selected: async function() {
+        let file = this.$refs.dev_import_file.files[0];
+        let result = await this.validate(file);
+        if(result != null) {
+          this.creation_info.file = file;
+          this.creation_info.schema = result.schema;
+          this.creation_info.encrypted = result.encrypted;
+          this.creation_info.encrypted = false;
+          let stamp = ((+ new Date()) / 1000).toFixed(0).toString();
+          let count = parseInt(prompt("Количество блокнотов"));
+          for(let k = 0; k < count; k++) {
+            this.creation_info.notepad_name = stamp + " " + k.toString();
+            let info_copy = _.clone(this.creation_info);
+            this.$emit("finish", info_copy);
+          }
+        } else {
+          this.$refs.dev_import_file.value = "";
+          alert("некорректный файл");
         }
       },
 

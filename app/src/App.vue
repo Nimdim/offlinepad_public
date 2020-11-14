@@ -387,6 +387,7 @@
     <transition name="fade">
       <notepad-creation-wizard v-if="notepad_wizard_show"
         :items="notepads"
+        :develop_mode="develop_mode"
         @finish="wizard_finished"
         @cancel="notepad_wizard_show = false"
         @secret_copied="secret_copied_notification($event)"
