@@ -405,7 +405,7 @@
 
     <div style="position: fixed; left: 30px; bottom: 30px; z-index: 2002;">
       <transition-group name="bounce" tag="div">
-        <div v-for="(notification, i) in notifications" :key="i"
+        <div v-for="(notification, i) in notifications" :key="notification.id"
         >
           <update-popup v-if="notification.type == 'update available'"
             style="z-index: 2002;"
@@ -416,7 +416,7 @@
           <update-done-popup v-else-if="notification.type == 'update done'"
             style="z-index: 2002;"
             :version="app_version"
-            @close="notifications.splice(i, 1)"
+            @close="remove_notification(i)"
           />
           <helper-popup v-else-if="notification.type == 'helper'"
             style="z-index: 2002;"
@@ -424,7 +424,7 @@
             :actions="notification.actions"
             :hide_delay="notification.hide_delay"
             :closeable="notification.closeable"
-            @close="notifications.splice(i, 1)"
+            @close="remove_notification(i)"
           />
           <div v-else>
             Неизвестный тип уведомления
@@ -668,6 +668,8 @@ export default {
 
   data: function() {
     var data = {
+      notification_id: 0,
+
       available_methods: {
         pin: false,
         password: false,
@@ -888,7 +890,7 @@ export default {
       this.app_version = init_data.version;
       if(init_data.updated) {
         // this.update_done = true;
-        this.notifications.push({
+        this.add_notification({
           type: "update done",
         });
       }
@@ -897,7 +899,7 @@ export default {
       await this.notepads_init();
 
       if(localStorage.getItem("survey_20200909") != "1") {
-        this.notifications.push({
+        this.add_notification({
           type: "helper",
           text: "Предлагаем вам пройти опрос по сервису OfflinePad",
           actions: [
@@ -939,6 +941,20 @@ export default {
   },
 
   methods: {
+    remove_notification: function(index) {
+      this.notifications.splice(index, 1);
+    },
+
+    next_notification_id: function() {
+      this.notification_id += 1;
+      return this.notification_id;
+    },
+
+    add_notification: function(notification) {
+      notification.id = this.next_notification_id();
+      this.notifications.push(notification);
+    },
+
     secret_copied_notification: function(success) {
       let notification = {
         type: "helper",
@@ -948,7 +964,7 @@ export default {
       if(!success) {
         notification.text = "Не удалось копировать фразу";
       }
-      this.notifications.push(notification);
+      this.add_notification(notification);
     },
 
     set_notepad_setting: function(key, value) {
@@ -989,15 +1005,21 @@ export default {
             },
             parseInt(interval) * 1000
           );
+          this._lock_notification_timeout_start = + new Date();
           this._lock_notification_timeout = setTimeout(
             () => {
-              this.notifications.push({
-                type: "helper",
-                closeable: false,
-                text: "Блокировка через 10 сек.",
-                hide_delay: 10,
-                lock_popup: true,
-              });
+              let current_stamp = + new Date();
+              let seconds_passed = parseInt((current_stamp - this._lock_notification_timeout_start) / 1000);
+              let delta = interval - seconds_passed;
+              if(delta > 0) {
+                this.add_notification({
+                  type: "helper",
+                  closeable: false,
+                  text: "Блокировка через " + delta + " сек.",
+                  hide_delay: delta,
+                  lock_popup: true,
+                });
+              }
             },
             parseInt(interval - 10) * 1000
           );
@@ -1014,7 +1036,7 @@ export default {
             text: "Интервал должен иметь пусто значение или в пределах от 20 до 180",
             hide_delay: 2,
           };
-          this.notifications.push(notification);
+          this.add_notification(notification);
           return;
         }
       }
@@ -1022,7 +1044,7 @@ export default {
       this.set_notepad_setting("notepad_lock_interval", new_interval);
       this.reset_lock_interval();
       await notepad.save_info(this.info);
-      this.notifications.push({
+      this.add_notification({
         type: "helper",
         text: "Интервал изменен",
         hide_delay: 2,
@@ -1034,7 +1056,7 @@ export default {
       await notepad.save_info(this.info);
       await notepads_list.reread_list();
       this.notepads = _.cloneDeep(notepads_list.notepads);
-      this.notifications.push({
+      this.add_notification({
         type: "helper",
         text: "Название изменено",
         hide_delay: 2,
@@ -1358,7 +1380,7 @@ export default {
             type: "helper",
             text: "persist: " + persist,
           };
-          this.notifications.push(item);
+          this.add_notification(item);
         }
       );
     },
@@ -1450,7 +1472,7 @@ export default {
       sw_api.on(
         "update_available",
         (id) => {
-          this.notifications.push({
+          this.add_notification({
             type: "update available",
             available: id,
           })
@@ -1539,7 +1561,7 @@ export default {
           (info) => {
             if(info != null) {
               if(info.schema != "upd1") {
-                this.notifications.push({
+                this.add_notification({
                   type: "helper",
                   text: "Мы обновили способ хранения пароля и сделали его более защищенным. Рекомендуем задать пароль заново для лучше защиты",
                   actions: [
@@ -1555,7 +1577,7 @@ export default {
         )
 
         if(this.is_notification_enabled("password_can_be_set")) {
-          this.notifications.push({
+          this.add_notification({
             type: "helper",
             text: "Для упрощения выхода в блокнот вы можете задать пароль в настройках",
             actions: [
@@ -1569,7 +1591,7 @@ export default {
         }
 
         if(this.is_notification_enabled("pin_can_be_set")) {
-          this.notifications.push({
+          this.add_notification({
             type: "helper",
             text: "Для упрощения выхода в блокнот вы можете задать пин в настройках",
             actions: [
@@ -1612,7 +1634,7 @@ export default {
 
     notepad_error: function (msg) {
       if(msg == "AbortError") {
-        this.notifications.push({
+        this.add_notification({
           type: "helper",
           text: "Ошибка сохранения. Возможно на вашем диске не осталось свободного места",
         });
@@ -2049,7 +2071,7 @@ export default {
           await notepad._storage.create_items_in_store(
             "tag_notes", note_tags
           );
-          this.notifications.push({
+          this.add_notification({
             type: "helper",
             text: "created " + (k + 1),
           });
@@ -2365,7 +2387,7 @@ export default {
         } else {
           await notepad.create_note_filter(name, tags);
           this.cancel_note_filter();
-          this.notifications.push({
+          this.add_notification({
             type: "helper",
             text: "Новая закладка доступна в меню",
             hide_delay: 2,
