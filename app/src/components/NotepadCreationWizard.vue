@@ -61,6 +61,12 @@
                   <font-awesome-icon icon="file-upload"/>
                   DEV несколько блокнотов
                 </a>
+                <a class="waves-effect waves-light btn wizard-selector-btn" v-if="develop_mode"
+                  @click="create_dev_db"
+                >
+                  <font-awesome-icon icon="file-upload"/>
+                  {{dev_db}}
+                </a>
               </div>
             </div>
             <div
@@ -220,6 +226,32 @@
   import diceware from "./../js/diceware/diceware.js";
   import utils from './../js/utils.js'
 
+  import IndexedDBStorage from "./../js/indexeddb_storage.js";
+  import cryptobox from '../js/cryptobox';
+
+  if(global != null) {
+    var window = global;
+    window;
+  }
+
+  class DevDBStorage extends IndexedDBStorage {
+    constructor() {
+      super()
+      this.DB_VERSION = 1;
+    }
+    
+    _upgrade_needed(event) {
+      let db = event.target.result;
+      let store_options = { keyPath: "id", autoIncrement: true};
+      switch(event.oldVersion) {
+        case 0: {
+          db.createObjectStore("data", store_options);
+        }
+      }
+    }
+  }
+
+
   class Validator {
     constructor(file) {
       this._file = file
@@ -328,6 +360,7 @@
 
     data: function() {
       let data = {
+        dev_db: "DEV большой блокнот",
         STEPS: STEPS,
         creation_info: {
           encrypted: null,
@@ -354,6 +387,24 @@
     },
 
     methods: {
+      create_dev_db: async function() {
+        let count = parseInt(prompt("Количество мегабайт"));
+
+        let db_name = (new Date()).toString();
+        let storage = new DevDBStorage();
+        let options = {};
+        await storage.init(db_name, options);
+
+        for(let k = 0; k < count; k++) {
+          let item = {
+            value: cryptobox.random_numbers_list(1024 *  1024),
+          };
+          await storage.create_item_in_store("data", item);
+          this.dev_db = parseInt(k * 100 / count);
+        }
+        this.dev_db = "done";
+      },
+
       fallbackCopyTextToClipboard: function(text) {
         var textArea = document.createElement("textarea");
         textArea.value = text;
