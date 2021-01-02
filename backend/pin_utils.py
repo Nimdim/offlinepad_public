@@ -4,6 +4,22 @@ import secrets
 import sqlalchemy
 
 
+RETRY_COUNT = 1
+
+def exception_guard(func):
+    def wrapper(*args, **kwargs):
+        for try_index in range(RETRY_COUNT + 1):
+            try:
+                return func(*args, **kwargs)
+            except sqlalchemy.exc.OperationalError:
+                db_session.rollback()
+                if try_index < RETRY_COUNT:
+                    continue
+                else:
+                    raise
+    return wrapper
+
+
 def auth_check(func):
     def wrapper(id, pin):
         pin_info = db_session.query(PinCode).filter(PinCode.id == id).first()
@@ -27,6 +43,7 @@ def auth_check(func):
     return wrapper
 
 
+@exception_guard
 def create(pin, secret):
     while True:
         try:
@@ -41,11 +58,13 @@ def create(pin, secret):
     return {"error": "ok", "result": id}
 
 
+@exception_guard
 @auth_check
 def get(id, pin):
     return {"error": "ok", "result": pin.secret_part}
 
 
+@exception_guard
 def delete(id):
     pin = db_session.query(PinCode).filter(PinCode.id == id).first()
     if pin:
