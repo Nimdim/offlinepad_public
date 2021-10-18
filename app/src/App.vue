@@ -1339,6 +1339,7 @@ export default {
       this.tags_sorting_order_asc = true;
       this.show_notes_filter = false;
       this.section = null;
+      this.info = {};
 
       this.close_nav();
       await notepad.close();
