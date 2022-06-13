@@ -82,7 +82,7 @@ class Notepad {
     }
 
     async set_notes_filter(options) {
-        let keys = ["sorting_asc", "text", "tags"];
+        let keys = ["sorting_asc", "text", "tags", "date_from", "date_to"];
         let k, key, value;
         for(k = 0; k < keys.length; k++) {
             key = keys[k];
@@ -236,6 +236,8 @@ class Notepad {
         this._filter.notes.sorting_asc = false;
         this._filter.notes.text = "";
         this._filter.notes.tags.splice(0, this._filter.notes.tags.length);
+        this._filter.notes.date_from = 0;
+        this._filter.notes.date_to = 0;
         let data = _.cloneDeep(this._filter);
         this.trigger("reset_filter", data);
     }
@@ -364,6 +366,20 @@ class Notepad {
             note_ids = _.filter(note_ids, (note_id) => {
                 let note = notes_map[note_id];
                 return note.text.indexOf(this._filter.notes.text) >= 0;
+            });
+        }
+
+        if(this._filter.notes.date_from != 0) {
+            note_ids = _.filter(note_ids, (note_id) => {
+                let note = notes_map[note_id];
+                return note.created_at >= this._filter.notes.date_from;
+            });
+        }
+
+        if(this._filter.notes.date_to != 0) {
+            note_ids = _.filter(note_ids, (note_id) => {
+                let note = notes_map[note_id];
+                return note.created_at <= this._filter.notes.date_to;
             });
         }
 

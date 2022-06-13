@@ -13,7 +13,9 @@
       ref="time"
       style="width: 45px; margin-left: 10px;"
       :value="picker_time"
+      :style="time_picker_style"
     />
+    <span v-if="clear_visible" @click="clear_field" style="margin-left: 5px;">X</span>
   </span>
 </template>
 
@@ -24,13 +26,30 @@ import moment from "moment";
 export default {
   props: {
     value: Number,
+    time_visible: {
+      type: Boolean,
+      default: true,
+    },
+    clear_visible: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   data: function() {
-    let moment_stamp = moment(this.value);
+    let parsed_date;
+    let parsed_time;
+    if(this.value == 0) {
+      parsed_date = "--.--.----";
+      parsed_time = "--:--";
+    } else {
+      let moment_stamp = moment(this.value);
+      parsed_date = moment_stamp.format("DD.MM.YYYY");
+      parsed_time = moment_stamp.format("HH:mm");
+    }
     let data = {
-      picker_date: moment_stamp.format("DD.MM.YYYY"),
-      picker_time: moment_stamp.format("HH:mm"),
+      picker_date: parsed_date,
+      picker_time: parsed_time,
     };
     return data;
   },
@@ -125,11 +144,30 @@ export default {
     window.M.Timepicker.getInstance(this.$refs.time).destroy();
   },
 
+  computed: {
+    time_picker_style: function() {
+      let style = {
+        display: "visible",
+      };
+      if(!this.time_visible) {
+        style.display = "none";
+      }
+      return style;
+    },
+  },
+
   methods: {
     "submit": function() {
       let datetime = this.$refs.date.value + " " + this.$refs.time.value;
+      this.picker_date = this.$refs.date.value;
+      this.picker_time = this.$refs.time.value;
       let stamp = moment(datetime, "DD.MM.YYYY HH:mm").unix() * 1000;
       this.$emit("change", stamp);
+    },
+
+    clear_field: function() {
+      this.picker_date = "--.--.----";
+      this.$emit("change", 0);
     },
   },
 }

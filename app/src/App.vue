@@ -36,6 +36,28 @@
             @change="notes_filter_tags = $event"
           />
         </p>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span style="display: inline-block;">
+            Дата от:<br>
+          </span>
+          <timestamp-picker
+            :value="notes_filter_date_from"
+            :time_visible="false"
+            :clear_visible="true"
+            @change="notes_filter_date_from = $event"
+          />
+        </p>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span style="display: inline-block;">
+            Дата до:<br>
+          </span>
+          <timestamp-picker
+            :value="notes_filter_date_to"
+            :time_visible="false"
+            :clear_visible="true"
+            @change="notes_filter_date_to = $event"
+          />
+        </p>
         <p
           style="max-width: 800px; margin: 15px auto; padding: 0px 20px; color: white;"
         >
@@ -559,6 +581,7 @@ import UpdateDonePopup from './components/UpdateDonePopup.vue'
 import RemoteScreen from './components/RemoteScreen.vue'
 import NotepadCreatedScreen from './components/NotepadCreatedScreen.vue'
 import HelperPopup from './components/HelperPopup.vue'
+import TimestampPicker from './components/TimestampPicker.vue'
 
 import sanitize_html from 'sanitize-html'
 
@@ -664,6 +687,7 @@ export default {
     RemoteScreen,
     NotepadCreatedScreen,
     HelperPopup,
+    TimestampPicker,
   },
 
   data: function() {
@@ -745,6 +769,8 @@ export default {
       import_error: null,
 
       notes_filter_tags: [],
+      notes_filter_date_from: 0,
+      notes_filter_date_to: 0,
       notes_fast_search: "",
       tags_fast_search: "",
       notes_sorting_order_asc: false,
@@ -785,6 +811,18 @@ export default {
           "tags": copy,
         });
       }
+    },
+
+    notes_filter_date_from: function(value) {
+      notepad.set_notes_filter({
+        "date_from": value
+      });
+    },
+
+    notes_filter_date_to: function(value) {
+      notepad.set_notes_filter({
+        "date_to": value
+      });
     },
   
     notes_fast_search: function(value) {
@@ -1335,6 +1373,8 @@ export default {
       this.notes_filter_tags.splice(0, this.notes_filter_tags.length);
       this.notes_fast_search = "";
       this.tags_fast_search = "";
+      this.notes_filter_date_from = 0;
+      this.notes_filter_date_to = 0;
       this.notes_sorting_order_asc = false;
       this.tags_sorting_order_asc = true;
       this.show_notes_filter = false;
