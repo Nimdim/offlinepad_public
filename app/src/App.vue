@@ -36,28 +36,6 @@
             @change="notes_filter_tags = $event"
           />
         </p>
-        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
-          <span style="display: inline-block;">
-            Дата от:<br>
-          </span>
-          <timestamp-picker
-            :value="notes_filter_date_from"
-            :time_visible="false"
-            :clear_visible="true"
-            @change="notes_filter_date_from = $event"
-          />
-        </p>
-        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
-          <span style="display: inline-block;">
-            Дата до:<br>
-          </span>
-          <timestamp-picker
-            :value="notes_filter_date_to"
-            :time_visible="false"
-            :clear_visible="true"
-            @change="notes_filter_date_to = $event"
-          />
-        </p>
         <p
           style="max-width: 800px; margin: 15px auto; padding: 0px 20px; color: white;"
         >
@@ -89,18 +67,36 @@
             v-on:click.prevent="add_note_filter">
             <font-awesome-icon icon="save" />
           </a>
+          <span v-if="new_note_filter.error"
+            style="margin: 0px;
+              color: red;
+              font-size: 12px;"
+          >
+            {{new_note_filter.error_text}}
+          </span>
         </p>
-        <span v-if="new_note_filter.error"
-          style="margin: 0px;
-            color: red;
-            font-size: 12px;
-            position: relative;
-            top: -17px;
-            float: left;
-            left: 19px;"
-        >
-          {{new_note_filter.error_text}}
-        </span>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span style="display: inline-block;">
+            Дата от:<br>
+          </span>
+          <timestamp-picker
+            :value="notes_filter_date_from"
+            :time_visible="false"
+            :clear_visible="true"
+            @change="notes_filter_date_from = $event"
+          />
+        </p>
+        <p style="max-width: 800px; margin: 15px auto; padding: 0px 20px;">
+          <span style="display: inline-block;">
+            Дата до:<br>
+          </span>
+          <timestamp-picker
+            :value="notes_filter_date_to"
+            :time_visible="false"
+            :clear_visible="true"
+            @change="notes_filter_date_to = $event"
+          />
+        </p>
       </li>
     </ul>
 
