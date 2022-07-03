@@ -161,6 +161,9 @@
 
         <a href="#" data-target="nav-mobile" class="sidenav-trigger">
           <font-awesome-icon class="nav-icon" icon="bars" />
+          <span class="changes_count" v-if="is_notepad_changed">
+            {{ info.changes_count }}
+          </span>
         </a>
 
         <ul id="tags_filter">
@@ -875,6 +878,15 @@ export default {
   },
 
   computed: {
+    is_notepad_changed: function() {
+      if(this.info.changes_count != null) {
+        if(this.info.changes_count > 0) {
+          return true;
+        }
+      }
+      return false;
+    },
+
     item_being_edited: function() {
       let item = null;
       if(this.note_being_edited != null) {
@@ -1083,6 +1095,22 @@ export default {
         text: "Интервал изменен",
         hide_delay: 2,
       });
+    },
+
+    increase_changes_count: async function() {
+      let changes_count = this.info.changes_count;
+      if(changes_count == null) {
+        changes_count = 1;
+      } else {
+        changes_count += 1;
+      }
+      this.$set(this.info, "changes_count", changes_count);
+      await notepad.save_info(this.info);
+    },
+
+    reset_changes_count: async function() {
+      this.info.changes_count = 0;
+      await notepad.save_info(this.info);
     },
 
     change_notepad_name: async function(new_name) {
@@ -2015,6 +2043,7 @@ export default {
         } else {
           this.tag_index_add = null;
           await notepad.create_tag(data.name);
+          await this.increase_changes_count();
         }
       } else {
         is_exists = await notepad.is_tag_with_name_exists(data.name, data.id);
@@ -2024,6 +2053,7 @@ export default {
           utils.vibrate("error");
         } else {
           await notepad.edit_tag(data.id, data.name);
+          await this.increase_changes_count();
         }
       }
     },
@@ -2035,11 +2065,12 @@ export default {
       }
     },
 
-    remove_tag: function(tag_id) {
-      notepad.delete_tag(tag_id);
+    remove_tag: async function(tag_id) {
+      await notepad.delete_tag(tag_id);
+      await this.increase_changes_count();
     },
 
-    submit_note: function(data) {
+    submit_note: async function(data) {
       if(data.text == "") {
         data.error = "empty"
         data.edit_state = true;
@@ -2050,8 +2081,10 @@ export default {
       this.note_index_add = null;
       if(data.id == "__new_item__") {
         notepad.create_note(data.text, data.creation_time, data.tags);
+        await this.increase_changes_count();
       } else {
         notepad.edit_note(data.id, data.text, data.creation_time, data.tags);
+        await this.increase_changes_count();
       }
     },
     cancel_note: function() {
@@ -2060,8 +2093,10 @@ export default {
         this.note_index_add = null;
       }
     },
-    remove_note: function(note_id) {
-      notepad.delete_note(note_id);
+
+    remove_note: async function(note_id) {
+      await notepad.delete_note(note_id);
+      await this.increase_changes_count();
     },
 
     long_str: function() {
@@ -2169,10 +2204,12 @@ export default {
 
     export_unencrypted: async function() {
       await this.export_notepad(false);
+      await this.reset_changes_count();
     },
 
     export_encrypted: async function() {
       await this.export_notepad(true);
+      await this.reset_changes_count();
     },
 
     export_notepad: async function(disable_decryption) {
@@ -2462,6 +2499,15 @@ export default {
 </script>
 
 <style>
+.changes_count {
+  background-color: red;
+  border-radius: 10px;
+  padding-right: 5px;
+  position: relative;
+  top: -8px;
+  left: -8px;
+}
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity .25s;
 }
