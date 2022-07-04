@@ -1169,6 +1169,7 @@ describe("notepad filtering and sorting", function() {
         ];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": false, "text": ""});
     });
 
     it("filter notes by text asc", async function() {
@@ -1200,6 +1201,147 @@ describe("notepad filtering and sorting", function() {
         ];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": true, "text": ""});
+    });
+
+    it("filter notes by date 1 desc", async function() {
+        events.reset();
+        await notepad.set_notes_filter(
+            {"sorting_asc": false, "date_from": 1586634372656, "date_to": 1586634372660}
+        );
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372660,
+                    "id": 19,
+                    "tags": [
+                        2,
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter(
+            {"sorting_asc": false, "date_from": 0, "date_to": 0}
+        );
+    });
+
+    it("filter notes by date 1 asc", async function() {
+        events.reset();
+        await notepad.set_notes_filter(
+            {"sorting_asc": true, "date_from": 1586634372656, "date_to": 1586634372660}
+        );
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372660,
+                    "id": 19,
+                    "tags": [
+                        2,
+                    ],
+                    "text": "Запись с меткой \"один\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter(
+            {"sorting_asc": true, "date_from": 0, "date_to": 0}
+        );
+    });
+
+    it("filter notes by date 2 desc", async function() {
+        events.reset();
+        await notepad.set_notes_filter(
+            {"sorting_asc": false, "date_from": 1586634372651, "date_to": 1586634372656}
+        );
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+                {
+                    "creation_time": 1586634372651,
+                    "id": 13,
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },                
+            ]
+        ];
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter(
+            {"sorting_asc": false, "date_from": 0, "date_to": 0}
+        );
+    });
+
+    it("filter notes by date 2 asc", async function() {
+        events.reset();
+        await notepad.set_notes_filter(
+            {"sorting_asc": true, "date_from": 1586634372651, "date_to": 1586634372656}
+        );
+        let EXPECTED_TAGS = [];
+        let EXPECTED_NOTES = [
+            [
+                {
+                    "creation_time": 1586634372651,
+                    "id": 13,
+                    "tags": [],
+                    "text": "Запись без меток",
+                    "text_highlighted": undefined,
+                },                
+                {
+                    "creation_time": 1586634372656,
+                    "id": 16,
+                    "tags": [
+                        3,
+                        2,
+                    ],
+                    "text": "Запись с метками \"один\" и \"два\"",
+                    "text_highlighted": undefined,
+                },
+            ]
+        ];
+        events.assert_tags(EXPECTED_TAGS);
+        events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter(
+            {"sorting_asc": true, "date_from": 0, "date_to": 0}
+        );
     });
 
     it("filter notes by attached tag desc", async function() {
@@ -1231,6 +1373,7 @@ describe("notepad filtering and sorting", function() {
         ];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": false, "tags": []});
     });
 
     it("filter notes by attached tag asc", async function() {
@@ -1262,6 +1405,7 @@ describe("notepad filtering and sorting", function() {
         ];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": true, "tags": []});
     });
 
     it("filter tags by name desc", async function() {
@@ -1284,6 +1428,7 @@ describe("notepad filtering and sorting", function() {
         let EXPECTED_NOTES = [];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_tags_filter({"sorting_asc": false, "name": ""});
     });
 
     it("filter tags by name asc", async function() {
@@ -1306,6 +1451,7 @@ describe("notepad filtering and sorting", function() {
         let EXPECTED_NOTES = [];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_tags_filter({"sorting_asc": true, "name": ""});
     });
 
     it("filter notes by not attached tag desc", async function() {
@@ -1315,6 +1461,7 @@ describe("notepad filtering and sorting", function() {
         let EXPECTED_NOTES = [[]];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": false, "tags": []});
     });
 
     it("filter notes by not attached tag asc", async function() {
@@ -1324,6 +1471,7 @@ describe("notepad filtering and sorting", function() {
         let EXPECTED_NOTES = [[]];
         events.assert_tags(EXPECTED_TAGS);
         events.assert_notes(EXPECTED_NOTES);
+        await notepad.set_notes_filter({"sorting_asc": true, "tags": []});
     });
 
     it("close", async function() {
