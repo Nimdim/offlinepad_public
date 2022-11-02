@@ -1,0 +1,14 @@
+[Unit]
+Description=Offlinepad app backend
+After=network.target auditd.service
+
+[Service]
+User=offlinepad_app_back
+WorkingDirectory=/home/offlinepad_app_back/offlinepad/backend
+ExecStart=/home/offlinepad_app_back/offlinepad/backend/start_site.sh
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+
+[Install]
+WantedBy=multi-user.target
