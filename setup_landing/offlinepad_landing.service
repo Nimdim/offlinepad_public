@@ -1,0 +1,14 @@
+[Unit]
+Description=Offlinepad landing
+After=network.target auditd.service
+
+[Service]
+User=offlinepad_app_back
+WorkingDirectory=/home/offlinepad_landing/offlinepad/landing
+ExecStart=/home/offlinepad_landing/offlinepad/landing/start_site.sh
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+
+[Install]
+WantedBy=multi-user.target

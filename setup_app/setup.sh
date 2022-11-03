@@ -29,7 +29,7 @@ runuser -l postgres -c 'psql -c "grant all privileges on database offlinepad_app
 service offlinepad_app_back start
 
 # common
-cp setup/offlinepad_app  /etc/nginx/sites-available/
+cp setup_app/offlinepad_app  /etc/nginx/sites-available/
 ln -s /etc/nginx/sites-available/offlinepad_app /etc/nginx/sites-enabled/offlinepad_app
 service nginx restart
 
