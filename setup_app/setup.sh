@@ -16,10 +16,12 @@ source .env/bin/activate
 pip install -r requirements_production.txt
 chmod +x start_site.sh
 
-cp setup/offlinepad_app_back.service /etc/systemd/system/
+cd ..
+
+cp setup_app/offlinepad_app_back.service /etc/systemd/system/
 systemctl enable offlinepad_app_back.service
 
-db_password=`openssl rand -hex 32`
+export db_password=`openssl rand -hex 32`
 runuser -l postgres -c "psql -c \"create user offlinepad_app_back with encrypted password '${db_password}';\""
 runuser -l postgres -c 'psql -c "create database offlinepad_app_back;"'
 runuser -l postgres -c 'psql -c "grant all privileges on database offlinepad_app_back to offlinepad_app_back;"'
