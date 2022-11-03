@@ -13,7 +13,9 @@ mkdir -p upload
 chown offlinepad_landing:offlinepad_landing upload
 chmod +x start_site.sh
 
-cp setup/offlinepad_landing.service /etc/systemd/system/
+cd ..
+
+cp setup_landing/offlinepad_landing.service /etc/systemd/system/
 systemctl enable offlinepad_landing.service
 
 export db_password=`openssl rand -hex 32`
@@ -22,7 +24,7 @@ runuser -l postgres -c 'psql -c "create database offlinepad_landing;"'
 runuser -l postgres -c 'psql -c "grant all privileges on database offlinepad_landing to offlinepad_landing;"'
 
 export secret_key=`openssl rand -hex 32`
-cat setup/local_settings.py | \
+cat setup_landing/local_settings.py | \
   sed "s/DB_PASSWORD_PLACEHOLDER/${db_password}/g" | \
   sed "s/SECRET_KEY_PLACEHOLDER/${secret_key}/g" \
   > local_settings.py
