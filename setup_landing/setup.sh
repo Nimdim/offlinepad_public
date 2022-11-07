@@ -24,7 +24,10 @@ runuser -l postgres -c 'psql -c "create database offlinepad_landing;"'
 runuser -l postgres -c 'psql -c "grant all privileges on database offlinepad_landing to offlinepad_landing;"'
 
 export secret_key=`openssl rand -hex 32`
-cat setup_landing/local_settings.py | \
+
+cd landing
+
+cat ../setup_landing/local_settings.py | \
   sed "s/DB_PASSWORD_PLACEHOLDER/${db_password}/g" | \
   sed "s/SECRET_KEY_PLACEHOLDER/${secret_key}/g" \
   > local_settings.py
@@ -33,7 +36,7 @@ python manage.py migrate
 python manage.py collectstatic
 service offlinepad_landing start
 
-cp setup/offlinepad_landing  /etc/nginx/sites-available/
+cp ../setup_landing/offlinepad_landing  /etc/nginx/sites-available/
 ln -s /etc/nginx/sites-available/offlinepad_landing /etc/nginx/sites-enabled/offlinepad_landing
 service nginx restart
 

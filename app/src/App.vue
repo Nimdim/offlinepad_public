@@ -1746,7 +1746,11 @@ export default {
         case "timeout":
           result = "Сервер не ответил на запрос. Попробуйте позже";
           break;
+        case "invalid id":
+          result = "ПИН не найден на сервере. Создайте новый ПИН в найстройках блокнота";
+          break;
         default:
+          result = "Ошибка приложения"
           throw new Error("not implemented '" + text + "'");
       }
       return result;
